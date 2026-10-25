@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CampaignGraph } from "@/app/ui";
+import { LazyCampaignGraph } from "@/app/lazy-graph";
 
 export default function HomePage() {
   return (
@@ -13,7 +13,7 @@ export default function HomePage() {
           <p className="prototype-note"><span className="status-dot" /> A source-based reviewer. Not a publishing engine or compliance certification.</p>
         </div>
         <div className="hero-visual" aria-label="Campaign facts connected to approved sources and assets">
-          <CampaignGraph />
+          <LazyCampaignGraph />
           <div className="visual-caption"><span>CAMPAIGN VIEW</span><span>Evidence connected, conflicts visible</span></div>
         </div>
       </section>

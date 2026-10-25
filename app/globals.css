@@ -51,6 +51,7 @@ button, input, textarea, select { font: inherit; }
 .site-header { position: sticky; z-index: 20; top: 0; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: blur(14px); }
 .header-inner { height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -.05em; }
+.brand-icon { display: block; width: 32px; height: 32px; border-radius: 8px; }
 .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--ink); color: var(--paper); font-family: var(--font-display), Georgia, serif; font-size: 25px; line-height: 1; letter-spacing: -.08em; }
 .brand-mark span { color: var(--accent); }
 .desktop-nav { display: flex; align-items: center; gap: clamp(16px, 2.8vw, 34px); margin-left: auto; }

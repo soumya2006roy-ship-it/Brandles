@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: { type: "website", siteName: siteConfig.name, title: "Brand governance for every channel", description: siteConfig.description, locale: "en_US", url: "/" },
   twitter: { card: "summary_large_image", title: "Brand governance for every channel", description: siteConfig.description },
+  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon.ico" }], apple: "/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = { colorScheme: "light dark", themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f7f5ef" }, { media: "(prefers-color-scheme: dark)", color: "#171a18" }] };
