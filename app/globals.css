@@ -430,7 +430,20 @@ h1 em, h2 em, h3 em { color: inherit !important; font: inherit; font-style: norm
 .innovation-card h2 { grid-column: 2; grid-row: 1; margin: 0; }
 .innovation-card > p { grid-column: 2; grid-row: 2; min-height: 0; margin: 4px 0 0; }
 .innovation-demo { grid-column: 3; grid-row: 1 / span 2; margin: 0; }
-.feature-status { color: var(--muted); }
+.feature-status { padding: 0; color: var(--muted); background: transparent; text-transform: none; letter-spacing: 0; }
+.conflict-section { display: grid; grid-template-columns: minmax(0, .8fr) minmax(400px, 1fr); align-items: center; gap: clamp(32px, 7vw, 90px); padding-block: clamp(55px, 8vw, 94px); border-bottom: 1px solid var(--line); }
+.conflict-copy { max-width: 460px; }
+.conflict-copy h2 { margin-bottom: 14px; font-size: clamp(34px, 4.2vw, 52px); line-height: 1.02; }
+.conflict-copy > p:last-child { color: var(--muted); }
+.conflict-panel { display: grid; grid-template-columns: 1fr 44px 1fr; align-items: center; padding: 22px 0; border-block: 1px solid var(--line); }
+.conflict-panel > div:not(.conflict-mark) { display: grid; gap: 8px; }
+.conflict-panel span, .conflict-panel small { color: var(--muted); font-size: 10px; }
+.conflict-panel strong { font-family: var(--font-display), Georgia, serif; font-size: clamp(30px, 4vw, 48px); font-weight: 400; line-height: 1; }
+.conflict-panel > div:last-of-type strong { color: var(--red); }
+.conflict-mark { color: var(--red); font-size: 28px; text-align: center; }
+.conflict-panel > p { grid-column: 1 / -1; margin: 20px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+.graph-line-conflict { stroke-dasharray: 6 7; animation: conflict-trace 4s ease-in-out infinite alternate; }
+@keyframes conflict-trace { to { stroke-dashoffset: -26; } }
 .toast { border-radius: 0; }
 .consent-panel, .consent-saved, .demo-workspace, .source-drawer { border-radius: 0; }
 .skeleton { border-radius: 0; }
@@ -442,6 +455,8 @@ button:hover:not(:disabled), a:hover { text-decoration-thickness: 2px; }
 .button-primary:hover, .header-cta:hover { transform: none; }
 @media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; }
+  .conflict-section { grid-template-columns: 1fr; }
+  .conflict-panel { grid-template-columns: 1fr 34px 1fr; }
   .innovation-card { grid-template-columns: 42px 1fr; gap: 12px; }
   .innovation-card-top > span:first-child { grid-column: 1; grid-row: 1 / span 3; }
   .innovation-card h2, .innovation-card > p, .innovation-demo { grid-column: 2; grid-row: auto; }
