@@ -1,8 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore, useState } from "react";
 import { siteConfig } from "@/site.config";
+
+type ToastMessage = { id: number; message: string; kind: "success" | "error" | "info" };
+type ToastContextValue = { notify: (message: string, kind?: ToastMessage["kind"]) => void };
+const ToastContext = createContext<ToastContextValue | null>(null);
+
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [messages, setMessages] = useState<ToastMessage[]>([]);
+  function notify(message: string, kind: ToastMessage["kind"] = "info") {
+    const id = Date.now() + Math.random();
+    setMessages((current) => [...current, { id, message, kind }]);
+    window.setTimeout(() => setMessages((current) => current.filter((toast) => toast.id !== id)), 4200);
+  }
+  return <ToastContext.Provider value={{ notify }}>{children}<div className="toast-region" aria-live="polite" aria-atomic="false">{messages.map((toast) => <div className={`toast toast-${toast.kind}`} key={toast.id} role={toast.kind === "error" ? "alert" : "status"}><span>{toast.message}</span><button type="button" onClick={() => setMessages((current) => current.filter((item) => item.id !== toast.id))} aria-label="Dismiss notification">×</button></div>)}</div></ToastContext.Provider>;
+}
+
+export function useToast() {
+  const context = useContext(ToastContext);
+  if (!context) throw new Error("useToast must be used within ToastProvider");
+  return context.notify;
+}
 
 export function ThemeToggle() {
   const dark = useSyncExternalStore(
