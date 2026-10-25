@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+api/.venv
+api/__pycache__
+api/.pytest_cache
+api/private-uploads
+.env*
+!.env.example

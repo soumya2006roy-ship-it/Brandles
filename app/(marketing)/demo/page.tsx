@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/app/ui";
 import { BreadcrumbJsonLd } from "@/app/structured-data";
-import { DemoLoader } from "@/app/demo/demo-loader";
+import { DemoLoader } from "@/app/(marketing)/demo/demo-loader";
 
 export const metadata: Metadata = { title: "Guided demo", description: "Explore a local simulation of the BrandLens skincare campaign review workflow.", alternates: { canonical: "/demo" }, openGraph: { type: "article", title: "BrandLens guided demo", description: "Explore a local simulation of the BrandLens skincare campaign review workflow.", url: "/demo", images: ["/demo/opengraph-image"] }, twitter: { card: "summary_large_image", title: "BrandLens guided demo", description: "Explore a local simulation of the BrandLens skincare campaign review workflow.", images: ["/demo/opengraph-image"] } };
 

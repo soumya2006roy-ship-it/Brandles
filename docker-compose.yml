@@ -1,0 +1,135 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      BRANDLENS_BACKEND_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/workspace
+      - web_node_modules:/workspace/node_modules
+      - web_next:/workspace/.next
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    environment: &api_environment
+      APP_ENV: development
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-local-development-key-change-before-deploy}
+      DATABASE_URL: postgresql+psycopg://brandlens:brandlens@db:5432/brandlens
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_ORIGIN: http://localhost:3000
+      EMAIL_PROVIDER: smtp
+      RESEND_FROM_EMAIL: "BrandLens <no-reply@brandlens.local>"
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_STARTTLS: "false"
+      FILE_STORAGE_DRIVER: s3
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_BUCKET: brandlens-private
+      S3_ACCESS_KEY_ID: brandlens-local
+      S3_SECRET_ACCESS_KEY: brandlens-local-secret
+      S3_REGION: us-east-1
+      LLM_PROVIDER: mock
+      LLM_MODEL: mock
+      EMBEDDING_PROVIDER: mock
+      EMBEDDING_MODEL: mock
+      ALLOW_WORKSPACE_LLM: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/code
+      - private_uploads:/code/private-uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    restart: unless-stopped
+
+  worker:
+    build: ./api
+    command: python -m app.worker
+    environment: *api_environment
+    volumes:
+      - ./api:/code
+      - private_uploads:/code/private-uploads
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: brandlens
+      POSTGRES_USER: brandlens
+      POSTGRES_PASSWORD: brandlens
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brandlens -d brandlens"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: brandlens-local
+      MINIO_ROOT_PASSWORD: brandlens-local-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - object_data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c"]
+    command: "until mc alias set local http://minio:9000 brandlens-local brandlens-local-secret && mc ready local; do sleep 1; done; mc mb --ignore-existing local/brandlens-private"
+    restart: "no"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  object_data:
+  private_uploads:
+  web_node_modules:
+  web_next:

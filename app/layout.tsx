@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { IBM_Plex_Sans, Newsreader } from "next/font/google";
-import { SiteFooter, SiteHeader, ToastProvider } from "@/app/ui";
+import { ToastProvider } from "@/app/ui";
 import { SiteStructuredData } from "@/app/structured-data";
 import { PrivacyConsentProvider } from "@/app/privacy-consent";
 import { siteConfig } from "@/site.config";
@@ -24,5 +24,5 @@ export const viewport: Viewport = { colorScheme: "light dark", themeColor: [{ me
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   await headers();
-  return <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}><body><SiteStructuredData/><PrivacyConsentProvider><ToastProvider><a className="skip-link" href="#main-content">Skip to content</a><SiteHeader/><div id="main-content" className="site-content">{children}</div><SiteFooter/></ToastProvider></PrivacyConsentProvider></body></html>;
+  return <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}><body><SiteStructuredData/><PrivacyConsentProvider><ToastProvider>{children}</ToastProvider></PrivacyConsentProvider></body></html>;
 }

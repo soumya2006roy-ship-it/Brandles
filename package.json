@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:all": "docker compose up --build",
     "build": "node scripts/check-contrast.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "contrast-check": "node scripts/check-contrast.mjs"
+    "contrast-check": "node scripts/check-contrast.mjs",
+    "api:openapi": "python api/scripts/export_openapi.py",
+    "api:types": "npm run api:openapi && openapi-typescript api/openapi.json -o app/lib/api-schema.d.ts"
   },
   "dependencies": {
     "next": "16.4.3",
@@ -24,6 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
