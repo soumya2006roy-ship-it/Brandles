@@ -56,11 +56,11 @@ export function ThemeToggle() {
     localStorage.setItem("brandlens-theme", next ? "dark" : "light");
     window.dispatchEvent(new Event("brandlens-theme-change"));
   }
-  return <button className="theme-toggle" type="button" onClick={toggle} aria-label={`Switch to ${dark ? "light" : "dark"} mode`} title="Toggle color theme">{dark ? "☼" : "◐"}</button>;
+  return <button className="theme-toggle" type="button" onClick={toggle} aria-label={`Switch to ${dark ? "light" : "dark"} mode`} title="Toggle color theme">{dark ? "Light" : "Dark"}</button>;
 }
 
 export function SiteHeader() {
-  return <header className="site-header"><div className="wrap header-inner"><Link href="/" className="brand" aria-label="BrandLens home"><Image className="brand-icon" src="/icon-192.png" width={32} height={32} alt=""/><span>brandlens</span></Link><nav className="desktop-nav" aria-label="Main navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}</nav><div className="header-actions"><ThemeToggle /><TrackedLink className="header-cta" href="/demo" label="View demo">View demo <span aria-hidden="true">↗</span></TrackedLink></div><details className="mobile-nav"><summary aria-label="Open navigation menu"><span /><span /><span /></summary><nav aria-label="Mobile navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}<TrackedLink href="/demo" label="View demo">View demo</TrackedLink></nav></details></div></header>;
+  return <header className="site-header"><div className="wrap header-inner"><Link href="/" className="brand" aria-label="BrandLens home"><Image className="brand-icon" src="/icon-192.png" width={32} height={32} alt=""/><span>brandlens</span></Link><nav className="desktop-nav" aria-label="Main navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}</nav><div className="header-actions"><ThemeToggle /><TrackedLink className="header-cta" href="/demo" label="View demo">View demo</TrackedLink></div><details className="mobile-nav"><summary aria-label="Open navigation menu"><span /><span /><span /></summary><nav aria-label="Mobile navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}<TrackedLink href="/demo" label="View demo">View demo</TrackedLink></nav></details></div></header>;
 }
 
 export function SiteFooter() {
@@ -77,5 +77,5 @@ export function RelatedReading({ slugs }: { slugs: readonly string[] }) {
     const page = siteConfig.pages[slug as keyof typeof siteConfig.pages];
     return page ? { title: page.eyebrow, href: `/${slug}` } : null;
   }).filter((link): link is { title: string; href: string } => Boolean(link));
-  return <aside className="related-reading"><p className="eyebrow">Related reading</p><div>{links.map((link) => <Link key={link.href} href={link.href}>{link.title} <span aria-hidden="true">↗</span></Link>)}</div></aside>;
+  return <aside className="related-reading"><p className="eyebrow">Related reading</p><div>{links.map((link) => <Link key={link.href} href={link.href}>{link.title}</Link>)}</div></aside>;
 }

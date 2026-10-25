@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { DM_Sans, Instrument_Serif } from "next/font/google";
+import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import { SiteFooter, SiteHeader, ToastProvider } from "@/app/ui";
 import { SiteStructuredData } from "@/app/structured-data";
 import { PrivacyConsentProvider } from "@/app/privacy-consent";
 import { siteConfig } from "@/site.config";
 import "./globals.css";
 
-const sans = DM_Sans({ variable: "--font-sans", subsets: ["latin"] });
-const display = Instrument_Serif({ variable: "--font-display", subsets: ["latin"], weight: "400" });
+const sans = IBM_Plex_Sans({ variable: "--font-sans", subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
+const display = Newsreader({ variable: "--font-display", subsets: ["latin"], weight: ["400", "500"], display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),

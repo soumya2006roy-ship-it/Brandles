@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "BrandLens — brand governance for every channel",
+    name: "BrandLens : brand governance for every channel",
     short_name: "BrandLens",
     description: "An AI-assisted, source-based campaign review concept.",
     start_url: "/",

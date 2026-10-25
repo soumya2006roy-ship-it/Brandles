@@ -34,7 +34,7 @@ export function ContactForm() {
         notify(result.message ?? "We couldn’t send your message.", "error");
         return;
       }
-      setSuccess(result.message ?? "Thanks — your message has been received.");
+      setSuccess(result.message ?? "Thanks , your message has been received.");
       form.reset();
       track("contact_submit_success", { source: "contact-form" });
       notify("Your message was sent.", "success");
@@ -55,7 +55,7 @@ export function ContactForm() {
     <div className="form-field"><label htmlFor="contact-organization">Organization <span className="optional-label">Optional</span></label><input id="contact-organization" name="organization" autoComplete="organization" aria-invalid={Boolean(errors.organization)} aria-describedby={errors.organization ? "contact-organization-error" : undefined}/>{errors.organization && <span className="field-error" id="contact-organization-error">{errors.organization}</span>}</div>
     <div className="form-field"><label htmlFor="contact-message">What would you like to discuss? <span aria-hidden="true">*</span></label><textarea id="contact-message" name="message" rows={5} required minLength={20} maxLength={3000} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? "contact-message-error" : "contact-message-help"}/>{errors.message ? <span className="field-error" id="contact-message-error">{errors.message}</span> : <span className="field-help" id="contact-message-help">At least 20 characters. Please don’t include confidential campaign material.</span>}</div>
     <div className="honeypot" aria-hidden="true"><label htmlFor="contact-website">Leave this field blank</label><input id="contact-website" name="website" tabIndex={-1} autoComplete="off"/></div>
-    <button className="button button-primary" type="submit" disabled={pending}>{pending ? "Sending…" : "Send message"} <span aria-hidden="true">→</span></button>
+    <button className="button button-primary" type="submit" disabled={pending}>{pending ? "Sending…" : "Send message"} </button>
     <p className="form-privacy-note">Your note is sent to the BrandLens team. See the <Link href="/privacy">privacy overview</Link>.</p>
   </form>;
 }

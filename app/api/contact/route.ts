@@ -76,7 +76,7 @@ export async function POST(request: Request) {
   }
 
   // Honeypot submissions look successful to bots but are not stored or emailed.
-  if (parsed.data.website) return NextResponse.json({ message: "Thanks — your note has been received." });
+  if (parsed.data.website) return NextResponse.json({ message: "Thanks : your note has been received." });
 
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const remoteAddress = request.headers.get("x-real-ip")?.trim() || forwarded || "unknown";
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
       console.error("Contact email delivery failed", results.map((result) => result.error?.name ?? null));
       return NextResponse.json({ message: "We couldn’t deliver your message just now. Please try again later." }, { status: 502 });
     }
-    return NextResponse.json({ message: "Thanks — your message is on its way. We’ve sent a confirmation to your email." });
+    return NextResponse.json({ message: "Thanks : your message is on its way. We’ve sent a confirmation to your email." });
   } catch (error) {
     console.error("Contact email delivery failed", error instanceof Error ? error.name : "unknown error");
     return NextResponse.json({ message: "We couldn’t deliver your message just now. Please try again later." }, { status: 502 });
