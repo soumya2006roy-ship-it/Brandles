@@ -26,12 +26,33 @@ The audit covers the shared visual system, page templates, demo, metadata and in
 
 Before: the site uses familiar gradient-era startup patterns such as a blurred sticky header, oversized shadows, rotated cards, a decorative dot texture, italicized display emphasis, arrows and repeated equal-width cards. Evidence exists in the content but does not consistently lead the visual hierarchy.
 
-After: (to be completed after the redesign and contrast verification.)
+After: the home page opens with a concrete campaign-review claim, then shows the 20% versus 30% offer conflict and a cited original-versus-suggestion example. The campaign graph uses only labelled, evidence-bearing links. Process and innovation content read as editorial rows. The palette has opaque surfaces, fine rules, semantic severity labels and regular display typography. The Hindi checker and platform previews remain labelled rule-based prototypes.
 
 ## Verification
 
-- (to be completed after the redesign.)
+- `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run contrast-check` pass after the final visual changes. The production build runs the contrast checker before Next.js.
+- Search across `app`, `site.config.ts`, and text assets in `public`: zero decorative gradient, backdrop blur, shadow, dotted graph pattern, em dash, arrow glyph, Lucide import, or hover opacity matches.
+- Emoji-range scan across app and public source text: zero matches. Font import scan: IBM Plex Sans and Newsreader only, both loaded with `next/font`, Latin subset, explicit weights and `display: "swap"`.
+- The copy scan for ` - ` returns only CSS sizing expressions and subtraction in scroll/rate-limit calculations. There are no sentence-punctuation uses in app copy, metadata, JSON-LD, or social image text.
+- No scroll-reveal, custom cursor or pointer-tracking code remains. Hover, active and visible-focus states are explicit. Interactive transitions are 130 ms; reduced motion disables them and the conflict-line animation.
+- Lucide import count: 0. The graph is drawn with inline SVG because its paths carry the campaign evidence relationships. No icon package is needed.
+
+### WCAG contrast results
+
+The build script reads the light and dark tokens from `app/globals.css` and checks each declared text/background and boundary pair. Text uses a 4.5:1 minimum, primary text uses 7:1 and visible boundaries/focus use 3:1.
+
+| Token role | Minimum light ratio | Minimum dark ratio | Threshold | Result |
+| --- | ---: | ---: | ---: | --- |
+| Primary text | 13.80:1 | 12.51:1 | 7:1 | Pass |
+| Secondary text | 4.87:1 | 8.16:1 | 4.5:1 | Pass |
+| Accent text | 4.88:1 | 7.44:1 | 4.5:1 | Pass |
+| Success, warning and error text | 6.44:1 | 7.85:1 | 4.5:1 | Pass |
+| Dark-section text | 14.87:1 | 14.87:1 | 7:1 | Pass |
+| Dark-section accent | 5.82:1 | 5.82:1 | 4.5:1 | Pass |
+| Button labels, including hover | 6.51:1 | 6.11:1 | 4.5:1 | Pass |
+| Visible boundaries | 3.17:1 | 3.81:1 | 3:1 | Pass |
+| Focus indicator | 4.88:1 | 7.44:1 | 3:1 | Pass |
 
 ## Limitations
 
-The proposal describes a product concept. The site demo remains a seeded local simulation. The Hindi checker and platform previews remain simple rule-based prototypes. No production product capability is implied by the visuals.
+The proposal describes a product concept. The site demo remains a seeded local simulation. The Hindi checker and platform previews remain simple rule-based prototypes. Contrast checks cover the declared token pairs, not every arbitrary color combination a future component could introduce. No production product capability is implied by the visuals.

@@ -20,6 +20,7 @@ Open `http://localhost:3000`.
 - BrandLens is presented as a proposed concept, not a launched service. No customers, testimonials, performance statistics, third-party logos or pricing are claimed.
 - The demo uses the imaginary skincare brand described in the proposal. Findings, evidence excerpts, confidence values, reviewer name and decisions are seeded simulation data in the browser. No demo content is sent to an AI service or platform.
 - The Hindi consistency checker and Instagram/LinkedIn previews are simple rule-based prototypes. They do not promise perfect translation or exact real-platform rendering.
+- The visual system uses IBM Plex Sans for interface text and Newsreader for display headings. Copy was tightened to foreground the approved-source comparison and campaign-level 20% versus 30% conflict; no additional product claims were added.
 - The privacy and security pages describe the proposal’s intended approach, not a production certification.
 - `NEXT_PUBLIC_SITE_URL` supplies the canonical public origin. The app falls back to `https://brandlens.example` if it is unset; configure the real domain before launch.
 - `track()` dispatches typed browser events only after analytics consent. No analytics or marketing vendor script is installed.
@@ -44,9 +45,12 @@ The contact route returns a configuration error until the required Resend values
 ```bash
 npm run lint
 npm run typecheck
+npm run contrast-check
 npm run build
 npm run start
 ```
+
+The production build runs `scripts/check-contrast.mjs` before `next build`. It reports WCAG contrast ratios for the declared light and dark theme text, status, button, border and focus pairs, and exits with an error if a minimum is missed.
 
 ## Deploy
 

@@ -12,11 +12,11 @@ const display = Newsreader({ variable: "--font-display", subsets: ["latin"], wei
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
-  title: { default: "Brand governance for every channel", template: "%s | BrandLens" },
+  title: { default: "Catch campaign conflicts before approval", template: "%s | BrandLens" },
   description: siteConfig.description,
   alternates: { canonical: "/" },
-  openGraph: { type: "website", siteName: siteConfig.name, title: "Brand governance for every channel", description: siteConfig.description, locale: "en_US", url: "/", images: ["/opengraph-image"] },
-  twitter: { card: "summary_large_image", title: "Brand governance for every channel", description: siteConfig.description, images: ["/opengraph-image"] },
+  openGraph: { type: "website", siteName: siteConfig.name, title: "Catch campaign conflicts before approval", description: siteConfig.description, locale: "en_US", url: "/", images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: "Catch campaign conflicts before approval", description: siteConfig.description, images: ["/opengraph-image"] },
   icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon.ico" }], apple: "/apple-touch-icon.png" },
 };
 
