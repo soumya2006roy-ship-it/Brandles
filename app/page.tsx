@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LazyCampaignGraph } from "@/app/lazy-graph";
+import { TrackedLink } from "@/app/ui";
 
 export default function HomePage() {
   return (
@@ -9,7 +10,7 @@ export default function HomePage() {
           <p className="eyebrow"><span className="eyebrow-dot" /> Brand governance, made reviewable</p>
           <h1>One campaign.<br /><em>One source of truth.</em></h1>
           <p className="hero-lede">BrandLens checks what your campaign says across every channel against the material your team has approved. Every finding shows its evidence. People make the call.</p>
-          <div className="actions"><Link className="button button-primary" href="/demo">Explore the guided demo <span aria-hidden="true">↗</span></Link><Link className="text-link" href="/how-it-works">How it works <span aria-hidden="true">→</span></Link></div>
+          <div className="actions"><TrackedLink className="button button-primary" href="/demo" label="Explore the guided demo">Explore the guided demo <span aria-hidden="true">↗</span></TrackedLink><Link className="text-link" href="/how-it-works">How it works <span aria-hidden="true">→</span></Link></div>
           <p className="prototype-note"><span className="status-dot" /> A source-based reviewer. Not a publishing engine or compliance certification.</p>
         </div>
         <div className="hero-visual" aria-label="Campaign facts connected to approved sources and assets">
@@ -24,7 +25,7 @@ export default function HomePage() {
 
       <section className="section section-muted"><div className="wrap"><div className="section-heading"><div><p className="eyebrow">How it works</p><h2>From trusted material<br />to <em>human sign-off.</em></h2></div><p>Exact rules, evidence-backed checks and campaign comparison work together. A named reviewer keeps the final decision.</p></div><div className="steps-grid">{["Set up approved sources", "Create a campaign", "Scan and resolve findings", "Record reviewer approval"].map((step, index) => <div className="step-card" key={step}><span>0{index + 1}</span><h3>{step}</h3></div>)}</div><Link className="text-link" href="/how-it-works">Walk through the workflow <span aria-hidden="true">→</span></Link></div></section>
 
-      <section className="closing-cta wrap"><p className="eyebrow">See the review flow</p><h2>Try the skincare<br /><em>campaign simulation.</em></h2><p>Explore the proposal’s seeded scenario: a claim, a conflicting offer, a logo version and a reviewer decision.</p><Link className="button button-primary" href="/demo">Open the demo <span aria-hidden="true">↗</span></Link></section>
+      <section className="closing-cta wrap"><p className="eyebrow">See the review flow</p><h2>Try the skincare<br /><em>campaign simulation.</em></h2><p>Explore the proposal’s seeded scenario: a claim, a conflicting offer, a logo version and a reviewer decision.</p><TrackedLink className="button button-primary" href="/demo" label="Open the demo">Open the demo <span aria-hidden="true">↗</span></TrackedLink></section>
     </>
   );
 }

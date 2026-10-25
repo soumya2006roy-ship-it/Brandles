@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { createContext, useContext, useEffect, useSyncExternalStore, useState } from "react";
 import { siteConfig } from "@/site.config";
+import { openCookiePreferences } from "@/app/privacy-consent";
+import { track } from "@/app/track";
 
 type ToastMessage = { id: number; message: string; kind: "success" | "error" | "info" };
 type ToastContextValue = { notify: (message: string, kind?: ToastMessage["kind"]) => void };
@@ -23,6 +25,10 @@ export function useToast() {
   const context = useContext(ToastContext);
   if (!context) throw new Error("useToast must be used within ToastProvider");
   return context.notify;
+}
+
+export function TrackedLink({ href, label, className, children }: { href: string; label: string; className?: string; children: React.ReactNode }) {
+  return <Link href={href} className={className} onClick={() => track("cta_click", { label, href })}>{children}</Link>;
 }
 
 export function ThemeToggle() {
@@ -54,11 +60,11 @@ export function ThemeToggle() {
 }
 
 export function SiteHeader() {
-  return <header className="site-header"><div className="wrap header-inner"><Link href="/" className="brand" aria-label="BrandLens home"><Image className="brand-icon" src="/icon-192.png" width={32} height={32} alt=""/><span>brandlens</span></Link><nav className="desktop-nav" aria-label="Main navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}</nav><div className="header-actions"><ThemeToggle /><Link className="header-cta" href="/demo">View demo <span aria-hidden="true">↗</span></Link></div><details className="mobile-nav"><summary aria-label="Open navigation menu"><span /><span /><span /></summary><nav aria-label="Mobile navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}<Link href="/demo">View demo</Link></nav></details></div></header>;
+  return <header className="site-header"><div className="wrap header-inner"><Link href="/" className="brand" aria-label="BrandLens home"><Image className="brand-icon" src="/icon-192.png" width={32} height={32} alt=""/><span>brandlens</span></Link><nav className="desktop-nav" aria-label="Main navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}</nav><div className="header-actions"><ThemeToggle /><TrackedLink className="header-cta" href="/demo" label="View demo">View demo <span aria-hidden="true">↗</span></TrackedLink></div><details className="mobile-nav"><summary aria-label="Open navigation menu"><span /><span /><span /></summary><nav aria-label="Mobile navigation">{siteConfig.navigation.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}<TrackedLink href="/demo" label="View demo">View demo</TrackedLink></nav></details></div></header>;
 }
 
 export function SiteFooter() {
-  return <footer className="site-footer"><div className="wrap footer-main"><div><Link href="/" className="brand footer-brand"><Image className="brand-icon" src="/icon-192.png" width={32} height={32} alt=""/><span>brandlens</span></Link><p>{siteConfig.tagline}</p><p className="footer-disclaimer">AI-assisted review. People keep the judgement.</p></div><nav className="footer-links" aria-label="Footer navigation">{siteConfig.footerLinks.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}</nav></div><div className="wrap footer-bottom"><span>BrandLens · campaign review concept</span><span>Evidence-backed flags. Human approval.</span></div></footer>;
+  return <footer className="site-footer"><div className="wrap footer-main"><div><Link href="/" className="brand footer-brand"><Image className="brand-icon" src="/icon-192.png" width={32} height={32} alt=""/><span>brandlens</span></Link><p>{siteConfig.tagline}</p><p className="footer-disclaimer">AI-assisted review. People keep the judgement.</p></div><nav className="footer-links" aria-label="Footer navigation">{siteConfig.footerLinks.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}<button className="footer-cookie-settings" type="button" onClick={openCookiePreferences}>Cookie preferences</button></nav></div><div className="wrap footer-bottom"><span>BrandLens · campaign review concept</span><span>Evidence-backed flags. Human approval.</span></div></footer>;
 }
 
 export function Breadcrumbs({ current }: { current: string }) {

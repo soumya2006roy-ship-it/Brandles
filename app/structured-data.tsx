@@ -1,11 +1,13 @@
 import { siteConfig } from "@/site.config";
+import { headers } from "next/headers";
 
-export function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unknown>[] }) {
+export async function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unknown>[] }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const safe = JSON.stringify(data).replace(/</g, "\\u003c");
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safe }} />;
+  return <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: safe }} />;
 }
 
-export function SiteStructuredData() {
+export async function SiteStructuredData() {
   return <JsonLd data={{
     "@context": "https://schema.org",
     "@graph": [

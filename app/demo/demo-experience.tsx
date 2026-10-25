@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useToast } from "@/app/ui";
+import { track } from "@/app/track";
 
 type FindingState = "open" | "accepted" | "edited" | "dismissed";
 type Finding = { id: string; severity: "high" | "medium"; title: string; asset: string; original: string; suggested: string; citation: string; excerpt: string; confidence: number; state: FindingState; reason?: string; editedText?: string };
@@ -24,6 +25,7 @@ export function DemoExperience() {
   const [rescanComplete, setRescanComplete] = useState(false);
   const [reviewerName, setReviewerName] = useState("");
   const [approval, setApproval] = useState<{ name: string; version: string; timestamp: string } | null>(null);
+  const [scanNumber, setScanNumber] = useState(0);
   const notify = useToast();
   const openCount = useMemo(() => findings.filter((finding) => finding.state === "open").length, [findings]);
   const selectedSource = findings.find((finding) => finding.id === sourceId);
@@ -35,6 +37,9 @@ export function DemoExperience() {
   }
   function runScan() {
     setScanned(true);
+    setScanNumber((count) => count + 1);
+    track("demo_started", { scenario: "skincare-campaign" });
+    track("demo_scan_run", { scanNumber: scanNumber + 1 });
     setRescanComplete(false);
     setApproval(null);
     notify("Scan complete. Four seeded findings are ready to review.", "success");
@@ -49,12 +54,15 @@ export function DemoExperience() {
   function rescan() {
     if (openCount > 0) return;
     setRescanComplete(true);
+    setScanNumber((count) => count + 1);
+    track("demo_scan_run", { scanNumber: scanNumber + 1 });
     setApproval(null);
     notify("Rescan complete. No unresolved seeded findings remain.", "success");
   }
   function approve() {
     if (!reviewerName.trim() || !rescanComplete) return;
     setApproval({ name: reviewerName.trim(), version: "Campaign v2", timestamp: new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) });
+    track("demo_approved", { version: "Campaign v2" });
     notify("Reviewer approval recorded for Campaign v2.", "success");
   }
 
@@ -78,7 +86,7 @@ export function DemoExperience() {
       <div className="demo-next-step"><div><p className="eyebrow">NEXT · RESCAN</p><p>{openCount ? `Resolve the remaining ${openCount} open finding${openCount === 1 ? "" : "s"} to continue.` : "All findings are handled. Run a rescan before reviewer approval."}</p></div><button className="button button-primary" type="button" onClick={rescan} disabled={openCount > 0}>Rescan campaign <span aria-hidden="true">↻</span></button></div>
       {rescanComplete && <div className="approval-panel"><div><p className="eyebrow">REVIEWER APPROVAL</p><h3>Record the human decision.</h3><p>Approval stores the reviewer’s name, campaign version and local timestamp.</p></div><div className="approval-controls"><label htmlFor="reviewer-name">Reviewer name</label><div className="approval-row"><input id="reviewer-name" value={reviewerName} onChange={(event) => setReviewerName(event.target.value)} placeholder="Enter reviewer name"/><button className="button button-primary" type="button" disabled={!reviewerName.trim()} onClick={approve}>Approve campaign <span aria-hidden="true">✓</span></button></div></div></div>}
       {approval && <div className="approval-record" role="status"><span className="success-mark">✓</span><div><strong>Approved by {approval.name}</strong><p>{approval.version} · {approval.timestamp} · Recorded in this browser for this simulation</p></div></div>}
-      <button className="reset-demo" type="button" onClick={() => { setScanned(false); setFindings(initialFindings); setRescanComplete(false); setApproval(null); setSourceId(null); notify("Simulation reset to its seeded starting state.", "info"); }}>Reset simulation</button>
+      <button className="reset-demo" type="button" onClick={() => { setScanned(false); setFindings(initialFindings); setRescanComplete(false); setApproval(null); setSourceId(null); setScanNumber(0); notify("Simulation reset to its seeded starting state.", "info"); }}>Reset simulation</button>
     </>}
     <p className="demo-disclaimer">Prototype notice: the Hindi checker and platform previews are simple rule-based prototypes. The demo findings above are seeded and do not come from an AI model.</p>
   </section>;
