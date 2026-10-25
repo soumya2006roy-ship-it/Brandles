@@ -47,7 +47,10 @@ def require_platform_admin(context: AuthContext = Depends(get_auth_context), db:
 
 
 def require_org_role(*roles: str) -> Callable:
-    def dependency(organization_id: str, context: AuthContext = Depends(get_auth_context), db: Session = Depends(get_db)) -> Membership:
+    def dependency(request: Request, context: AuthContext = Depends(get_auth_context), db: Session = Depends(get_db)) -> Membership:
+        organization_id = request.path_params.get("organization_id") or request.path_params.get("org_id")
+        if not organization_id:
+            raise HTTPException(status_code=404, detail="Organisation not found.")
         membership = db.scalar(select(Membership).where(
             Membership.organization_id == organization_id,
             Membership.user_id == context.user.id,

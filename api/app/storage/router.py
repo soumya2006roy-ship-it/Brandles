@@ -4,7 +4,7 @@ from pathlib import Path
 from time import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import AuthContext, get_auth_context
@@ -37,5 +37,5 @@ def download_private_file(organization_id: str, object_key: str, expires: int = 
         if not path.is_file():
             raise HTTPException(status_code=404, detail="File not found.")
         return FileResponse(path, media_type="application/octet-stream", filename=path.name, headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"})
-    download_url = storage.signed_download_url(organization_id, object_key, max(1, expires - int(time())))
-    return RedirectResponse(download_url, status_code=307, headers={"Cache-Control": "private, no-store"})
+    stream, content_type = storage.stream(organization_id, object_key)
+    return StreamingResponse(stream, media_type=content_type, headers={"Cache-Control": "private, no-store", "Content-Disposition": "attachment"})

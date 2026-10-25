@@ -522,6 +522,33 @@ button:active:not(:disabled), a:active { transform: translateY(1px); }
 .workspace-section h2 { margin-bottom: 9px; font-size: clamp(26px, 4vw, 38px); }
 .workspace-section > p { max-width: 730px; color: var(--muted); }
 .workspace-section > h3 { margin-top: 28px; font-size: 19px; }
+.workspace-quicklinks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.source-upload-form, .rule-editor-form, .source-approval-form { display: grid; gap: 14px; max-width: 760px; margin-top: 20px; }
+.source-layout { display: grid; grid-template-columns: minmax(260px, .85fr) minmax(0, 1.5fr); gap: 24px; margin-top: 28px; align-items: start; }
+.source-list-panel, .source-detail-panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: clamp(16px, 2.4vw, 26px); }
+.source-filters { display: grid; gap: 12px; }
+.source-family { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px; }
+.source-family h2 { font: 600 17px/1.3 var(--font-sans); }
+.source-family ol { list-style: none; margin: 0; padding: 0; }
+.source-version-button { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; padding: 10px 6px; text-align: left; cursor: pointer; }
+.source-version-button:hover, .source-version-button[aria-pressed="true"] { background: var(--surface-2); }
+.source-detail-panel > h2 { margin: 5px 0 8px; font-size: clamp(24px, 3vw, 36px); }
+.source-detail-panel > p { overflow-wrap: anywhere; color: var(--muted); }
+.passage-search { display: flex; align-items: end; gap: 10px; margin-block: 20px; }
+.passage-search .form-field { flex: 1; }
+.passage-list { padding-left: 22px; }
+.passage-list li { margin-block: 16px; }
+.passage-list blockquote, .rule-evidence { margin: 8px 0; padding: 14px 16px; border-left: 3px solid var(--accent); background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.passage-list blockquote mark { background: color-mix(in srgb, var(--accent) 28%, transparent); color: inherit; }
+.passage-list li > p:last-child { font-size: 14px; }
+.rule-evidence small { display: block; margin-top: 12px; color: var(--muted); }
+.rule-date-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rule-list { display: grid; gap: 12px; margin-top: 16px; }
+.rule-row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.rule-row p { margin: 6px 0; }
+.rule-row small { color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 800px) { .source-layout { grid-template-columns: 1fr; } }
+@media (max-width: 540px) { .rule-date-fields { grid-template-columns: 1fr; } .rule-row { align-items: flex-start; flex-direction: column; } }
 .invite-form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding-block: 14px 20px; }
 .invite-form .form-field { flex: 1 1 150px; }
 .invite-form .button { flex: 0 0 auto; }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { apiRequest, type Invite, type Organization, type OrganizationSummary } from "@/app/lib/api-client";
 
 type NewInvite = Invite & { code: string };
@@ -78,6 +79,7 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
       <h3>Active and revoked codes</h3>{invites.length ? <ul className="invite-list">{invites.map((invite) => <li key={invite.id}><div><strong>{invite.role}</strong><span>{invite.usage_count}/{invite.usage_limit} uses · expires {new Date(invite.expires_at).toLocaleDateString()}</span></div>{invite.revoked_at ? <span className="status-label">Revoked</span> : <div className="inline-actions"><button className="small-button" type="button" onClick={() => regenerate(invite.id)}>Regenerate</button><button className="small-button" type="button" onClick={() => revoke(invite.id)}>Revoke</button></div>}</li>)}</ul> : <p>No invite codes yet.</p>}
     </section>}
     {canManage && <section className="workspace-section"><p className="eyebrow">AI processing</p><h2>Workspace permission</h2><p>External model processing is off by default. BrandLens will not send workspace material to an LLM unless both this organisation and the deployment allow it.</p><p className="settings-state">Current setting: <strong>{organization.llm_processing_allowed ? "Allowed" : "Off"}</strong></p><button className="button secondary-button" type="button" onClick={() => updateAiPreference(!organization.llm_processing_allowed)}>{organization.llm_processing_allowed ? "Turn off AI processing" : "Allow AI processing"}</button><p className="field-help">The local Phase 1 deployment has no AI provider adapter enabled, so the permission cannot currently be turned on.</p></section>}
-    {organization.verification_status === "approved" && <section className="workspace-scope"><p className="eyebrow">Next workspace workflows</p><p>Approved-source uploads, campaign assets, evidence-backed scans and reviewer sign-off are represented in the proposal. Their processing workflows are not enabled in this phase.</p></section>}
+    {organization.verification_status === "approved" && <section className="workspace-scope"><p className="eyebrow">Product scope</p><p>The source library and structured rules editor are enabled. Campaign asset scans, findings, and reviewer sign-off are not yet enabled.</p></section>}
+    {organization.verification_status === "approved" && <section className="workspace-section"><p className="eyebrow">Workspace library</p><h2>Sources, rules, and campaigns</h2><div className="workspace-quicklinks"><Link className="button secondary-button" href={`/app/organisations/${organizationId}/sources`}>Approved sources</Link><Link className="button secondary-button" href={`/app/organisations/${organizationId}/rules`}>Structured rules</Link><Link className="button secondary-button" href={`/app/organisations/${organizationId}/campaigns`}>Campaigns</Link></div></section>}
   </>;
 }

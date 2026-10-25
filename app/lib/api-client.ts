@@ -20,11 +20,12 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
   const response = await fetch(`/api/product/${path.replace(/^\//, "")}`, {
     ...init,
     credentials: "same-origin",
     cache: "no-store",
-    headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...init.headers },
+    headers: { ...(init.body && !isFormData ? { "content-type": "application/json" } : {}), ...init.headers },
   });
   if (!response.ok) {
     let message = "Something went wrong. Please try again.";

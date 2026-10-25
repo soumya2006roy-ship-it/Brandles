@@ -1,9 +1,9 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import uuid4
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -151,46 +151,72 @@ class AuditEvent(Base):
 
 class BrandGuidelineSource(Base):
     __tablename__ = "brand_guideline_sources"
-    __table_args__ = (UniqueConstraint("organization_id", "version", name="uq_source_org_version"), Index("ix_sources_org_status", "organization_id", "status"))
+    __table_args__ = (
+        UniqueConstraint("organization_id", "family_id", "version", name="uq_source_family_version"),
+        UniqueConstraint("organization_id", "id", name="uq_source_org_id"),
+        CheckConstraint("status IN ('draft','approved','archived')", name="ck_sources_status"),
+        CheckConstraint("effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from", name="ck_source_effective_window"),
+        Index("ix_sources_org_status", "organization_id", "status"),
+        Index("ix_sources_org_family", "organization_id", "family_id", "version"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    family_id: Mapped[str] = mapped_column(String(36), nullable=False, default=new_id)
     title: Mapped[str] = mapped_column(String(240), nullable=False)
     document_ref: Mapped[str] = mapped_column(String(500), nullable=False)
+    original_filename: Mapped[str] = mapped_column(String(240), nullable=False, default="source-document")
+    content_type: Mapped[str] = mapped_column(String(120), nullable=False, default="application/octet-stream")
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="draft")
-    effective_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    effective_from: Mapped[date | None] = mapped_column(Date())
+    effective_to: Mapped[date | None] = mapped_column(Date())
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    approved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class SourcePassage(Base):
     __tablename__ = "source_passages"
-    __table_args__ = (Index("ix_source_passages_org_source", "organization_id", "source_id"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_source_passage_org_id"),
+        ForeignKeyConstraint(["organization_id", "source_id"], ["brand_guideline_sources.organization_id", "brand_guideline_sources.id"], ondelete="CASCADE", name="fk_passage_source_tenant"),
+        Index("ix_source_passages_org_source", "organization_id", "source_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    source_id: Mapped[str] = mapped_column(ForeignKey("brand_guideline_sources.id", ondelete="CASCADE"), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(36), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     page_number: Mapped[int | None] = mapped_column(Integer)
+    location_label: Mapped[str | None] = mapped_column(String(120))
+    start_offset: Mapped[int | None] = mapped_column(Integer)
+    end_offset: Mapped[int | None] = mapped_column(Integer)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536).with_variant(JSON(), "sqlite"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 
 class Rule(Base):
     __tablename__ = "rules"
-    __table_args__ = (CheckConstraint("status IN ('draft','active','archived')", name="ck_rules_status"), Index("ix_rules_org_status_channel", "organization_id", "status", "channel"))
+    __table_args__ = (
+        CheckConstraint("status IN ('draft','suggested','active','archived','rejected')", name="ck_rules_status"),
+        CheckConstraint("valid_to IS NULL OR valid_from IS NULL OR valid_to >= valid_from", name="ck_rules_valid_window"),
+        ForeignKeyConstraint(["organization_id", "source_passage_id"], ["source_passages.organization_id", "source_passages.id"], ondelete="RESTRICT", name="fk_rule_passage_tenant"),
+        Index("ix_rules_org_status_channel", "organization_id", "status", "channel"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     rule_type: Mapped[str] = mapped_column(String(50), nullable=False)
     parameters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     channel: Mapped[str | None] = mapped_column(String(50))
-    valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    source_passage_id: Mapped[str | None] = mapped_column(ForeignKey("source_passages.id", ondelete="SET NULL"))
+    valid_from: Mapped[date | None] = mapped_column(Date())
+    valid_to: Mapped[date | None] = mapped_column(Date())
+    source_passage_id: Mapped[str | None] = mapped_column(String(36))
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)

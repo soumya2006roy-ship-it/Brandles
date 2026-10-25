@@ -53,17 +53,18 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | `DATABASE_URL`, `REDIS_URL` | PostgreSQL/pgvector and shared rate limits/job queue |
 | `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Verification, reset, invite, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |
-| `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*`, `MINIO_*` | Private file storage configuration; uploads are not enabled in this phase |
-| `ALLOW_WORKSPACE_LLM`, `LLM_*`, `EMBEDDING_*` | Explicit deployment opt-in and provider configuration; only mock adapters exist, so content processing is not enabled |
+| `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*`, `MINIO_*` | Private file storage configuration for approved sources and campaign assets |
+| `ALLOW_WORKSPACE_LLM`, `LLM_*`, `EMBEDDING_*` | External model provider settings; no live LLM or semantic embedding adapter is enabled, while source text extraction and local lexical vectors run without external providers |
 | `VERIFICATION_TOKEN_TTL_MINUTES`, `PASSWORD_RESET_TTL_MINUTES` | One-time account token expiry |
 
 The workspace AI setting defaults off, and live provider adapters are absent. Do not add secrets to any `NEXT_PUBLIC_` variable.
 
 ## Implemented scope and assumptions
 
-- The supplied product task contains architecture and data-model direction plus detailed requirements for Phase 1: authentication, organisations, roles, verification, and invitations. It does not specify detailed source-ingestion, scan, finding, or reviewer workflows. This implementation makes Phase 1 usable and prepares data/API boundaries for later phases; it does not claim the later workflows are active.
+- The supplied product task contains architecture and data-model direction, detailed Phase 1 requirements, then Phase 2 approved-source and rules requirements and Phase 3 campaign and asset requirements. Later scan, finding, and reviewer workflow behavior is not specified here.
 - Users can register, verify email, sign in/out, reset passwords, and view/revoke their sessions. Organisations start in `pending_verification`; a platform administrator must approve them before workspace management and invites are available.
-- The Phase 1 tables for sources, passages, campaigns, assets, scans, findings, reviews, update suggestions, notifications, and audit history are persistence scaffolding only. There is no upload, extraction, embedding, LLM, or scan endpoint in this phase.
+- Approved-source upload and review, version history, page/location passages, search, highlighting, and structured rules are available in Phase 2. Passages receive deterministic local hashed lexical vectors; they are not semantic model embeddings. Admins approve each source version, and rules cite passages from approved sources.
+- Campaigns and asset workflows remain disabled until Phase 3 is complete. The tables for scans, findings, and reviews are not evidence of working scan or reviewer workflows.
 - Invitation codes are stored as hashes, are scoped to one organisation and role, and have expiry/use limits. Accepted invitations create memberships. Platform administrators are assigned with the trusted CLI, not by self-service registration.
 - The compose stack is the default full local environment. Docker is required for that path. If Docker is unavailable, marketing-only `npm run dev` remains available; API tests run with SQLite and do not require Docker.
 - `NEXT_PUBLIC_SITE_URL` should be set to the real HTTPS domain before deployment. Resend requires an API key and verified sender. Production API sessions require a strong random `APP_SECRET_KEY`, a TLS endpoint, and `SESSION_COOKIE_SECURE=true`.
@@ -117,6 +118,9 @@ Deploy Next.js and FastAPI as separate Node and Python services. Provision Postg
 | P1 | Tenant-aware product schema and migration | `api/app/db/models.py`, `api/alembic/versions/0001_initial.py` |
 | P1 | Storage/AI boundaries, API proxy, and local service stack | `api/app/storage/`, `api/app/ai/`, `app/api/product/[...path]/route.ts`, `docker-compose.yml` |
 | P1 | Generated OpenAPI TypeScript contracts | `api/openapi.json`, `api/scripts/export_openapi.py`, `app/lib/api-schema.d.ts`, `app/lib/api-client.ts` |
+| P2 | Approved-source upload, parsing, chunking, versioning and approvals | `api/app/sources/documents.py`, `api/app/sources/router.py`, `api/app/db/models.py`, `api/alembic/versions/0002_approved_sources_and_rules.py` |
+| P2 | Searchable source library, passage viewer and highlights | `app/app/organisations/sources/`, `app/app/organisations/[organizationId]/sources/page.tsx`, source API routes in `api/app/sources/router.py` |
+| P2 | Evidence-linked structured rules and Admin suggestions review | `api/app/sources/schemas.py`, `api/app/sources/router.py`, `app/app/organisations/rules/`, `app/app/organisations/[organizationId]/rules/page.tsx` |
 
 ## Performance notes
 
