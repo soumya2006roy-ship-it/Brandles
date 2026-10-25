@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
 import { SiteFooter, SiteHeader, ToastProvider } from "@/app/ui";
+import { SiteStructuredData } from "@/app/structured-data";
 import { siteConfig } from "@/site.config";
 import "./globals.css";
 
@@ -11,10 +12,13 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: { default: "Brand governance for every channel", template: "%s | BrandLens" },
   description: siteConfig.description,
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", siteName: siteConfig.name, title: "Brand governance for every channel", description: siteConfig.description, locale: "en_US", url: "/" },
+  twitter: { card: "summary_large_image", title: "Brand governance for every channel", description: siteConfig.description },
 };
 
 export const viewport: Viewport = { colorScheme: "light dark", themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f7f5ef" }, { media: "(prefers-color-scheme: dark)", color: "#171a18" }] };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}><body><ToastProvider><a className="skip-link" href="#main-content">Skip to content</a><SiteHeader/><div id="main-content" className="site-content">{children}</div><SiteFooter/></ToastProvider></body></html>;
+  return <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}><body><SiteStructuredData/><ToastProvider><a className="skip-link" href="#main-content">Skip to content</a><SiteHeader/><div id="main-content" className="site-content">{children}</div><SiteFooter/></ToastProvider></body></html>;
 }

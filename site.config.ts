@@ -166,6 +166,12 @@ export const siteConfig = {
     { label: "Cookies", href: "/cookies" },
     { label: "Contact", href: "/contact" },
   ],
+  faqs: [
+    { question: "What does BrandLens check?", answer: "It checks campaign content against approved brand guidelines, verified facts, terminology and visual assets, and compares facts across the campaign’s channels." },
+    { question: "What happens when approved evidence is missing?", answer: "BrandLens says “Insufficient approved evidence” or “Needs human verification” instead of calling the content a breach or guessing." },
+    { question: "Does BrandLens publish content or certify compliance?", answer: "No. BrandLens flags and explains; people decide. It does not publish content or claim to certify legal or regulatory compliance." },
+    { question: "Who can approve a campaign?", answer: "Only a reviewer can approve a campaign. The reviewer’s identity, decision, version and timestamp are saved." },
+  ],
 } as const;
 
 export type ContentPageSlug = keyof typeof siteConfig.pages;

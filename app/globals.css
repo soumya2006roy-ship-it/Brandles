@@ -157,6 +157,12 @@ ins { color: var(--green); text-decoration: none; background: color-mix(in srgb,
 .content-rule { width: 48px; height: 2px; margin-top: 14px; background: var(--accent); }
 .content-section h2 { margin-bottom: 10px; font-size: 22px; font-weight: 550; }
 .content-section p { max-width: 680px; margin-bottom: 0; color: var(--muted); font-size: 15px; }
+.faq-section { padding-top: 34px; }
+.faq-section h2 { margin-bottom: 17px; font-size: 27px; font-weight: 550; }
+.faq-section details { padding-block: 14px; border-top: 1px solid var(--line); }
+.faq-section details:last-child { border-bottom: 1px solid var(--line); }
+.faq-section summary { cursor: pointer; color: var(--ink); font-size: 13px; font-weight: 650; }
+.faq-section details p { padding: 8px 25px 0 0; margin: 0; color: var(--muted); font-size: 12px; }
 .related-reading { max-width: 850px; padding-block: 33px; }
 .related-reading > div { display: flex; flex-wrap: wrap; gap: 10px; }
 .related-reading a { padding: 10px 13px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); font-size: 12px; }
