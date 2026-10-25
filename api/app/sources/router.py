@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_auth_context, require_org_role
+from app.assets.media import scan_for_malware, sniff_and_normalize
 from app.core.db import get_db
 from app.core.security import as_utc
 from app.db.models import AuditEvent, BrandGuidelineSource, Membership, Organization, Rule, SourcePassage, User
@@ -73,7 +74,14 @@ async def upload_source(
     original_filename = Path(document.filename or "source-document").name[:240]
     contents = await read_upload(document)
     file_type, content_type = identify_format(original_filename, contents)
-    blocks = extract_document(file_type, contents)
+    scan_for_malware(contents)
+    if file_type.startswith("image_"):
+        sniffed = sniff_and_normalize(contents)
+        contents = sniffed.normalized_bytes
+        content_type = sniffed.content_type
+        blocks = None
+    else:
+        blocks = extract_document(file_type, contents)
     if source_family_id:
         previous = db.scalar(select(BrandGuidelineSource).where(BrandGuidelineSource.organization_id == org_id, BrandGuidelineSource.family_id == source_family_id).order_by(BrandGuidelineSource.version.desc()).with_for_update())
         if not previous:
@@ -84,6 +92,10 @@ async def upload_source(
     else:
         family_id = str(uuid4())
         version = 1
+    if blocks is None:
+        from app.sources.documents import ExtractedBlock
+
+        blocks = [ExtractedBlock(f"Approved logo file: {title}; logo version v{version}.", None, "Logo file")]
     object_key = safe_filename(original_filename)
     storage = get_storage()
     storage.put(org_id, object_key, BytesIO(contents), content_type)
@@ -209,9 +221,15 @@ def create_rule(org_id: str, payload: RuleWrite, context=Depends(get_auth_contex
         raise HTTPException(status_code=403, detail="Only Admins can approve rules; Creators may submit suggestions.")
     if payload.valid_from and payload.valid_to and payload.valid_to < payload.valid_from:
         raise HTTPException(status_code=422, detail="Rule end date must be on or after its start date.")
-    _ensure_source_passage(org_id, payload.source_passage_id, db, approved=True)
+    passage = _ensure_source_passage(org_id, payload.source_passage_id, db, approved=True)
     status = "active" if membership.role == "admin" else "suggested"
-    rule = Rule(organization_id=org_id, rule_type=payload.rule_type, parameters=payload.parameters, channel=payload.channel, valid_from=payload.valid_from, valid_to=payload.valid_to, source_passage_id=payload.source_passage_id, status=status, created_by=context.user.id)
+    parameters = dict(payload.parameters)
+    if payload.rule_type == "approved_logo":
+        logo_source = db.scalar(select(BrandGuidelineSource).where(BrandGuidelineSource.organization_id == org_id, BrandGuidelineSource.id == passage.source_id))
+        if not logo_source or not logo_source.content_type.startswith("image/"):
+            raise HTTPException(status_code=422, detail="Approved-logo rules must link to an approved PNG, JPEG, or WebP logo file.")
+        parameters["file_source_id"] = logo_source.id
+    rule = Rule(organization_id=org_id, rule_type=payload.rule_type, parameters=parameters, channel=payload.channel, valid_from=payload.valid_from, valid_to=payload.valid_to, source_passage_id=payload.source_passage_id, status=status, created_by=context.user.id)
     db.add(rule)
     db.flush()
     db.add(AuditEvent(organization_id=org_id, actor_user_id=context.user.id, action="rule.created" if status == "active" else "rule.suggested", entity_type="rule", entity_id=rule.id, details={"rule_type": rule.rule_type, "status": status, "source_passage_id": rule.source_passage_id}))
@@ -228,7 +246,11 @@ def decide_rule(org_id: str, rule_id: str, decision: RuleDecision, membership: M
     if rule.status != "suggested":
         raise HTTPException(status_code=409, detail="Only suggested rules can be reviewed.")
     if decision.decision == "approve":
-        _ensure_source_passage(org_id, rule.source_passage_id or "", db, approved=True)
+        passage = _ensure_source_passage(org_id, rule.source_passage_id or "", db, approved=True)
+        if rule.rule_type == "approved_logo":
+            logo_source = db.scalar(select(BrandGuidelineSource).where(BrandGuidelineSource.organization_id == org_id, BrandGuidelineSource.id == passage.source_id))
+            if not logo_source or not logo_source.content_type.startswith("image/"):
+                raise HTTPException(status_code=422, detail="Approved-logo rules must link to an approved logo file.")
         rule.status = "active"
     else:
         rule.status = "rejected"

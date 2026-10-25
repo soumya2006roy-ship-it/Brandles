@@ -3,11 +3,12 @@ from io import BytesIO
 
 from docx import Document
 import pymupdf
+from PIL import Image
 from sqlalchemy import select
 
 from app.core.db import get_db
 from app.core.security import digest_secret
-from app.db.models import AuthToken, BrandGuidelineSource, Invite, Membership, Organization, PlatformAdmin, Rule, SessionRecord, SourcePassage, User
+from app.db.models import Asset, AuthToken, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
 from app.main import app
 from app.sources.documents import chunk_block, extract_document, identify_format, local_hash_embedding
 
@@ -216,5 +217,66 @@ def test_document_parser_handles_pdf_docx_text_and_produces_deterministic_vector
     assert chunks[1][1] < chunks[0][2]
     assert local_hash_embedding(chunks[0][0]) == local_hash_embedding(chunks[0][0])
     assert len(local_hash_embedding(chunks[0][0])) == 1536
+
+
+def test_campaign_assets_validate_content_strip_image_metadata_match_approved_logo_and_stale_prior_scans(client, mailer):
+    organization, owner_email, owner_password = create_approved_organization(client, mailer, "campaign-brand@example.com")
+    org_id = organization["id"]
+    campaign_result = client.post(f"/api/v1/orgs/{org_id}/campaigns", json={"name": "Winter Glow Launch", "channels": ["Instagram caption", "Poster"], "starts_at": "2026-11-01", "ends_at": "2026-12-15", "language": "en"})
+    assert campaign_result.status_code == 201, campaign_result.text
+    campaign_id = campaign_result.json()["id"]
+
+    text_asset_result = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets", data={"channel": "Instagram caption", "text_content": "Winter Glow is here. Save 20 percent this season."})
+    assert text_asset_result.status_code == 201, text_asset_result.text
+    text_asset = text_asset_result.json()
+    assert text_asset["asset_type"] == "text"
+    assert text_asset["current"] is True
+
+    with next(app.dependency_overrides[get_db]()) as db:
+        owner = db.scalar(select(User).where(User.email_normalized == owner_email))
+        scan = Scan(organization_id=org_id, campaign_id=campaign_id, asset_id=text_asset["id"], status="complete", requested_by=owner.id)
+        db.add(scan)
+        db.flush()
+        finding = Finding(organization_id=org_id, scan_id=scan.id, asset_id=text_asset["id"], finding_type="offer_claim", severity="warning", quoted_excerpt="20 percent", confidence=0.8)
+        db.add(finding)
+        db.commit()
+        scan_id, finding_id = scan.id, finding.id
+
+    replacement = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets", data={"channel": "Instagram caption", "asset_group_id": text_asset["asset_group_id"], "text_content": "Winter Glow now saves 25 percent."})
+    assert replacement.status_code == 201, replacement.text
+    assert replacement.json()["version"] == 2
+    assert replacement.json()["supersedes_asset_id"] == text_asset["id"]
+    with next(app.dependency_overrides[get_db]()) as db:
+        assert db.get(Scan, scan_id).status == "stale"
+        assert db.get(Finding, finding_id).status == "stale"
+
+    logo = Image.new("RGB", (96, 72), (218, 154, 88))
+    exif = Image.Exif(); exif[271] = "Metadata should be removed"
+    logo_bytes = BytesIO(); logo.save(logo_bytes, format="PNG", exif=exif)
+    png = logo_bytes.getvalue()
+    logo_source_result = client.post(f"/api/v1/orgs/{org_id}/sources", data={"title": "Approved winter logo"}, files={"document": ("logo.png", png, "image/png")})
+    assert logo_source_result.status_code == 201, logo_source_result.text
+    logo_source = logo_source_result.json()
+    passage = client.get(f"/api/v1/orgs/{org_id}/sources/{logo_source['id']}").json()["passages"][0]
+    assert client.post(f"/api/v1/orgs/{org_id}/sources/{logo_source['id']}/approve", json={"effective_from": "2026-01-01"}).status_code == 200
+    logo_rule = client.post(f"/api/v1/orgs/{org_id}/rules", json={"rule_type": "approved_logo", "parameters": {"version": "winter-logo-v1"}, "source_passage_id": passage["id"]})
+    assert logo_rule.status_code == 201, logo_rule.text
+
+    client.post("/api/v1/auth/logout")
+    client.post("/api/v1/auth/login", json={"email": owner_email, "password": owner_password})
+    poster = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets", data={"channel": "Poster"}, files={"file": ("misleading.txt", png, "text/plain")})
+    assert poster.status_code == 201, poster.text
+    poster_asset = poster.json()
+    assert poster_asset["asset_type"] == "image"
+    assert poster_asset["content_type"] == "image/png"
+    assert poster_asset["metadata_stripped"] is True
+    assert poster_asset["logo_matches"][0]["matched"] is True
+
+    text_claimed_as_pdf = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets", data={"channel": "Poster"}, files={"file": ("fake.pdf", b"plain text is not a PDF", "application/pdf")})
+    assert text_claimed_as_pdf.status_code == 201
+    assert text_claimed_as_pdf.json()["asset_type"] == "document"
+    assert text_claimed_as_pdf.json()["content_type"] == "text/markdown"
+    malformed_pdf = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets", data={"channel": "Poster"}, files={"file": ("broken.pdf", b"%PDF- this is not a valid document", "application/pdf")})
+    assert malformed_pdf.status_code == 422
 
 

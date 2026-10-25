@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.orgs.router import router as org_router
 from app.storage.router import router as private_files_router
 from app.sources.router import router as sources_router
+from app.campaigns.router import router as campaigns_router
 
 settings = get_settings()
 if settings.is_production:
@@ -58,3 +59,4 @@ app.include_router(org_router, prefix="/api/v1")
 app.include_router(organization_settings_router, prefix="/api/v1")
 app.include_router(private_files_router, prefix="/api/v1")
 app.include_router(sources_router, prefix="/api/v1")
+app.include_router(campaigns_router, prefix="/api/v1")

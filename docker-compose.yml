@@ -11,7 +11,7 @@ services:
     volumes:
       - .:/workspace
       - web_node_modules:/workspace/node_modules
-      - web_next:/workspace/.next
+      - web_next:/workspace/.next-build
     depends_on:
       api:
         condition: service_started
@@ -32,6 +32,9 @@ services:
       SMTP_PORT: 1025
       SMTP_STARTTLS: "false"
       FILE_STORAGE_DRIVER: s3
+      MALWARE_SCANNER_HOST: ${MALWARE_SCANNER_HOST:-}
+      MALWARE_SCANNER_PORT: ${MALWARE_SCANNER_PORT:-3310}
+      MALWARE_SCAN_TIMEOUT_SECONDS: ${MALWARE_SCAN_TIMEOUT_SECONDS:-10}
       S3_ENDPOINT_URL: http://minio:9000
       S3_BUCKET: brandlens-private
       S3_ACCESS_KEY_ID: brandlens-local
@@ -42,6 +45,9 @@ services:
       EMBEDDING_PROVIDER: mock
       EMBEDDING_MODEL: mock
       ALLOW_WORKSPACE_LLM: "false"
+      OCR_PROVIDER: ${OCR_PROVIDER:-none}
+      TESSERACT_COMMAND: ${TESSERACT_COMMAND:-/usr/bin/tesseract}
+      TESSERACT_TIMEOUT_SECONDS: ${TESSERACT_TIMEOUT_SECONDS:-20}
     ports:
       - "8000:8000"
     volumes:

@@ -54,6 +54,12 @@ def identify_format(filename: str, contents: bytes) -> tuple[str, str]:
             if expanded_size > 100 * 1024 * 1024 or expanded_size > max(len(contents), 1) * 100:
                 raise HTTPException(status_code=413, detail="This DOCX document expands beyond the safe processing limit.")
         return "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    if contents.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image_png", "image/png"
+    if contents.startswith(b"\xff\xd8\xff"):
+        return "image_jpeg", "image/jpeg"
+    if len(contents) >= 12 and contents[:4] == b"RIFF" and contents[8:12] == b"WEBP":
+        return "image_webp", "image/webp"
     if extension not in {"txt", "md"}:
         raise HTTPException(status_code=415, detail="Upload a PDF, DOCX, TXT, or Markdown file.")
     try:

@@ -1496,10 +1496,474 @@
           }
         }
       }
+    },
+    "/api/v1/orgs/{org_id}/campaigns": {
+      "get": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "List Campaigns",
+        "operationId": "list_campaigns_api_v1_orgs__org_id__campaigns_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CampaignResponse"
+                  },
+                  "title": "Response List Campaigns Api V1 Orgs  Org Id  Campaigns Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Create Campaign",
+        "operationId": "create_campaign_api_v1_orgs__org_id__campaigns_post",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}": {
+      "get": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Get Campaign",
+        "operationId": "get_campaign_api_v1_orgs__org_id__campaigns__campaign_id__get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets": {
+      "post": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Create Asset Version",
+        "operationId": "create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets/{asset_id}/download": {
+      "get": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Get Asset Download",
+        "operationId": "get_asset_download_api_v1_orgs__org_id__campaigns__campaign_id__assets__asset_id__download_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campaign Id"
+            }
+          },
+          {
+            "name": "asset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Asset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AssetResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "asset_group_id": {
+            "type": "string",
+            "title": "Asset Group Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "current": {
+            "type": "boolean",
+            "title": "Current"
+          },
+          "supersedes_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Asset Id"
+          },
+          "asset_type": {
+            "type": "string",
+            "title": "Asset Type"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type"
+          },
+          "original_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Filename"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "malware_status": {
+            "type": "string",
+            "title": "Malware Status"
+          },
+          "extraction_status": {
+            "type": "string",
+            "title": "Extraction Status"
+          },
+          "metadata_stripped": {
+            "type": "boolean",
+            "title": "Metadata Stripped"
+          },
+          "text_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Content"
+          },
+          "extracted_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extracted Text"
+          },
+          "logo_matches": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Logo Matches"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "asset_group_id",
+          "version",
+          "current",
+          "supersedes_asset_id",
+          "asset_type",
+          "channel",
+          "language",
+          "content_type",
+          "original_filename",
+          "sha256",
+          "size_bytes",
+          "malware_status",
+          "extraction_status",
+          "metadata_stripped",
+          "text_content",
+          "extracted_text",
+          "logo_matches",
+          "created_at"
+        ],
+        "title": "AssetResponse"
+      },
+      "Body_create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 2,
+            "title": "Channel"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "text_content": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Content"
+          },
+          "asset_group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Group Id"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel"
+        ],
+        "title": "Body_create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post"
+      },
       "Body_upload_source_api_v1_orgs__org_id__sources_post": {
         "properties": {
           "title": {
@@ -1531,6 +1995,244 @@
           "document"
         ],
         "title": "Body_upload_source_api_v1_orgs__org_id__sources_post"
+      },
+      "CampaignCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "channels": {
+            "items": {
+              "type": "string",
+              "maxLength": 50,
+              "minLength": 2
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Channels"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 2,
+            "title": "Language",
+            "default": "en"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "channels"
+        ],
+        "title": "CampaignCreate"
+      },
+      "CampaignDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Channels"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "planned_publish_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Publish Date"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/AssetResponse"
+            },
+            "type": "array",
+            "title": "Assets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "channels",
+          "starts_at",
+          "ends_at",
+          "language",
+          "planned_publish_date",
+          "status",
+          "version",
+          "created_at",
+          "assets"
+        ],
+        "title": "CampaignDetailResponse"
+      },
+      "CampaignResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Channels"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "planned_publish_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Publish Date"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "channels",
+          "starts_at",
+          "ends_at",
+          "language",
+          "planned_publish_date",
+          "status",
+          "version",
+          "created_at"
+        ],
+        "title": "CampaignResponse"
       },
       "HTTPValidationError": {
         "properties": {

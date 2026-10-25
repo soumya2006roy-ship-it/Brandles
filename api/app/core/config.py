@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     smtp_starttls: bool = False
     file_storage_driver: str = "local"
     local_storage_path: str = "./private-uploads"
+    malware_scanner_host: str | None = None
+    malware_scanner_port: int = 3310
+    malware_scan_timeout_seconds: int = 10
     s3_endpoint_url: str | None = None
     s3_bucket: str = "brandlens-private"
     s3_access_key_id: str | None = None
@@ -39,6 +42,9 @@ class Settings(BaseSettings):
     embedding_model: str = "mock"
     embedding_api_key: str | None = None
     embedding_dimensions: int = 1536
+    ocr_provider: str = "none"
+    tesseract_command: str | None = None
+    tesseract_timeout_seconds: int = 20
     allow_workspace_llm: bool = False
     verification_token_ttl_minutes: int = 60
     password_reset_ttl_minutes: int = 30

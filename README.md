@@ -54,7 +54,9 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Verification, reset, invite, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |
 | `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*`, `MINIO_*` | Private file storage configuration for approved sources and campaign assets |
+| `MALWARE_SCANNER_HOST`, `MALWARE_SCANNER_PORT`, `MALWARE_SCAN_TIMEOUT_SECONDS` | Optional ClamAV-compatible INSTREAM scanner. Unset means uploads are marked unscanned; a configured but unavailable scanner rejects the upload. |
 | `ALLOW_WORKSPACE_LLM`, `LLM_*`, `EMBEDDING_*` | External model provider settings; no live LLM or semantic embedding adapter is enabled, while source text extraction and local lexical vectors run without external providers |
+| `OCR_PROVIDER`, `TESSERACT_COMMAND`, `TESSERACT_TIMEOUT_SECONDS` | Optional image OCR interface. Docker includes Tesseract; OCR stays off unless `OCR_PROVIDER=tesseract`. |
 | `VERIFICATION_TOKEN_TTL_MINUTES`, `PASSWORD_RESET_TTL_MINUTES` | One-time account token expiry |
 
 The workspace AI setting defaults off, and live provider adapters are absent. Do not add secrets to any `NEXT_PUBLIC_` variable.
@@ -64,7 +66,8 @@ The workspace AI setting defaults off, and live provider adapters are absent. Do
 - The supplied product task contains architecture and data-model direction, detailed Phase 1 requirements, then Phase 2 approved-source and rules requirements and Phase 3 campaign and asset requirements. Later scan, finding, and reviewer workflow behavior is not specified here.
 - Users can register, verify email, sign in/out, reset passwords, and view/revoke their sessions. Organisations start in `pending_verification`; a platform administrator must approve them before workspace management and invites are available.
 - Approved-source upload and review, version history, page/location passages, search, highlighting, and structured rules are available in Phase 2. Passages receive deterministic local hashed lexical vectors; they are not semantic model embeddings. Admins approve each source version, and rules cite passages from approved sources.
-- Campaigns and asset workflows remain disabled until Phase 3 is complete. The tables for scans, findings, and reviews are not evidence of working scan or reviewer workflows.
+- Phase 3 provides campaign setup and versioned text, PDF, DOCX, PNG, JPEG, and WebP assets. Upload type is sniffed from content, image metadata is stripped, PDF/DOCX text is extracted, optional Tesseract OCR and ClamAV scanning are configurable, and asset updates invalidate prior scans. Perceptual logo comparison is a difference-hash prototype against Admin-approved logo files.
+- Campaign scan generation, findings, and reviewer approval remain disabled. The tables for scans, findings, and reviews are not evidence of working scan or reviewer workflows.
 - Invitation codes are stored as hashes, are scoped to one organisation and role, and have expiry/use limits. Accepted invitations create memberships. Platform administrators are assigned with the trusted CLI, not by self-service registration.
 - The compose stack is the default full local environment. Docker is required for that path. If Docker is unavailable, marketing-only `npm run dev` remains available; API tests run with SQLite and do not require Docker.
 - `NEXT_PUBLIC_SITE_URL` should be set to the real HTTPS domain before deployment. Resend requires an API key and verified sender. Production API sessions require a strong random `APP_SECRET_KEY`, a TLS endpoint, and `SESSION_COOKIE_SECURE=true`.
@@ -121,6 +124,8 @@ Deploy Next.js and FastAPI as separate Node and Python services. Provision Postg
 | P2 | Approved-source upload, parsing, chunking, versioning and approvals | `api/app/sources/documents.py`, `api/app/sources/router.py`, `api/app/db/models.py`, `api/alembic/versions/0002_approved_sources_and_rules.py` |
 | P2 | Searchable source library, passage viewer and highlights | `app/app/organisations/sources/`, `app/app/organisations/[organizationId]/sources/page.tsx`, source API routes in `api/app/sources/router.py` |
 | P2 | Evidence-linked structured rules and Admin suggestions review | `api/app/sources/schemas.py`, `api/app/sources/router.py`, `app/app/organisations/rules/`, `app/app/organisations/[organizationId]/rules/page.tsx` |
+| P3 | Campaign setup, channel and date window, versioned assets, extraction and stale-scan invalidation | `api/app/campaigns/`, `api/app/assets/media.py`, `api/app/db/models.py`, `api/alembic/versions/0003_campaigns_and_asset_versions.py`, `app/app/organisations/campaigns/`, campaign route pages under `app/app/organisations/[organizationId]/campaigns/` |
+| P3 | Optional ClamAV scanning, Tesseract OCR, metadata stripping and approved logo matching | `.env.example`, `docker-compose.yml`, `api/app/assets/media.py`, `api/app/campaigns/router.py`, `api/Dockerfile` |
 
 ## Performance notes
 

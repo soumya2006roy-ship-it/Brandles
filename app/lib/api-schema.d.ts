@@ -501,10 +501,138 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Campaigns */
+        get: operations["list_campaigns_api_v1_orgs__org_id__campaigns_get"];
+        put?: never;
+        /** Create Campaign */
+        post: operations["create_campaign_api_v1_orgs__org_id__campaigns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Campaign */
+        get: operations["get_campaign_api_v1_orgs__org_id__campaigns__campaign_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Asset Version */
+        post: operations["create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets/{asset_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Asset Download */
+        get: operations["get_asset_download_api_v1_orgs__org_id__campaigns__campaign_id__assets__asset_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssetResponse */
+        AssetResponse: {
+            /** Id */
+            id: string;
+            /** Asset Group Id */
+            asset_group_id: string;
+            /** Version */
+            version: number;
+            /** Current */
+            current: boolean;
+            /** Supersedes Asset Id */
+            supersedes_asset_id: string | null;
+            /** Asset Type */
+            asset_type: string;
+            /** Channel */
+            channel: string;
+            /** Language */
+            language: string;
+            /** Content Type */
+            content_type: string;
+            /** Original Filename */
+            original_filename: string | null;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Malware Status */
+            malware_status: string;
+            /** Extraction Status */
+            extraction_status: string;
+            /** Metadata Stripped */
+            metadata_stripped: boolean;
+            /** Text Content */
+            text_content: string | null;
+            /** Extracted Text */
+            extracted_text: string | null;
+            /** Logo Matches */
+            logo_matches: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** Body_create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post */
+        Body_create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post: {
+            /** Channel */
+            channel: string;
+            /** Language */
+            language?: string | null;
+            /** Text Content */
+            text_content?: string | null;
+            /** Asset Group Id */
+            asset_group_id?: string | null;
+            /** File */
+            file?: string | null;
+        };
         /** Body_upload_source_api_v1_orgs__org_id__sources_post */
         Body_upload_source_api_v1_orgs__org_id__sources_post: {
             /** Title */
@@ -513,6 +641,76 @@ export interface components {
             source_family_id?: string | null;
             /** Document */
             document: string;
+        };
+        /** CampaignCreate */
+        CampaignCreate: {
+            /** Name */
+            name: string;
+            /** Channels */
+            channels: string[];
+            /** Starts At */
+            starts_at?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /**
+             * Language
+             * @default en
+             */
+            language: string;
+        };
+        /** CampaignDetailResponse */
+        CampaignDetailResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Channels */
+            channels: string[];
+            /** Starts At */
+            starts_at: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /** Language */
+            language: string;
+            /** Planned Publish Date */
+            planned_publish_date: string | null;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Assets */
+            assets: components["schemas"]["AssetResponse"][];
+        };
+        /** CampaignResponse */
+        CampaignResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Channels */
+            channels: string[];
+            /** Starts At */
+            starts_at: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /** Language */
+            language: string;
+            /** Planned Publish Date */
+            planned_publish_date: string | null;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1936,6 +2134,173 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RuleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_campaigns_api_v1_orgs__org_id__campaigns_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_campaign_api_v1_orgs__org_id__campaigns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_campaign_api_v1_orgs__org_id__campaigns__campaign_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_asset_version_api_v1_orgs__org_id__campaigns__campaign_id__assets_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_asset_download_api_v1_orgs__org_id__campaigns__campaign_id__assets__asset_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                campaign_id: string;
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

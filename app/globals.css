@@ -547,6 +547,26 @@ button:active:not(:disabled), a:active { transform: translateY(1px); }
 .rule-row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .rule-row p { margin: 6px 0; }
 .rule-row small { color: var(--muted); overflow-wrap: anywhere; }
+.campaign-create-form, .asset-upload-form { display: grid; gap: 14px; max-width: 760px; margin-top: 18px; }
+.campaign-channels { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; }
+.campaign-channels legend { padding-inline: 5px; font-weight: 600; }
+.campaign-channels label { display: flex; align-items: center; gap: 8px; }
+.campaign-list { display: grid; gap: 10px; margin-top: 16px; }
+.campaign-row { display: flex; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: inherit; text-decoration: none; }
+.campaign-row strong, .campaign-row small { display: block; }
+.campaign-row small { color: var(--muted); }
+.asset-groups { display: grid; gap: 18px; margin-top: 16px; }
+.asset-group { padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.asset-group h3 { font-size: 23px; }
+.asset-group h3 small { color: var(--muted); font: 500 14px var(--font-sans), Arial, sans-serif; }
+.asset-group ol { list-style: none; margin: 0; padding: 0; }
+.asset-version { padding-block: 14px; border-top: 1px solid var(--line); }
+.asset-version p { margin-block: 6px; }
+.asset-statuses { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 13px; }
+.asset-version details { margin-top: 12px; }
+.asset-version pre { max-height: 360px; overflow: auto; padding: 14px; border-radius: 8px; background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 ui-monospace, Consolas, monospace; }
+.logo-matches { margin-top: 12px; padding: 12px; border-left: 3px solid var(--accent); background: var(--surface-2); }
+.logo-matches ul { padding-left: 20px; margin-bottom: 0; }
 @media (max-width: 800px) { .source-layout { grid-template-columns: 1fr; } }
 @media (max-width: 540px) { .rule-date-fields { grid-template-columns: 1fr; } .rule-row { align-items: flex-start; flex-direction: column; } }
 .invite-form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding-block: 14px 20px; }

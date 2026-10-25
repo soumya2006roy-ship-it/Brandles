@@ -224,11 +224,19 @@ class Rule(Base):
 
 class Campaign(Base):
     __tablename__ = "campaigns"
-    __table_args__ = (UniqueConstraint("organization_id", "id", name="uq_campaign_org_id"), Index("ix_campaigns_org_created", "organization_id", "created_at"))
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_campaign_org_id"),
+        CheckConstraint("ends_at IS NULL OR starts_at IS NULL OR ends_at >= starts_at", name="ck_campaign_date_window"),
+        Index("ix_campaigns_org_created", "organization_id", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(240), nullable=False)
+    channels: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    starts_at: Mapped[date | None] = mapped_column(Date())
+    ends_at: Mapped[date | None] = mapped_column(Date())
+    language: Mapped[str] = mapped_column(String(32), nullable=False, default="en")
     planned_publish_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="draft")
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
@@ -240,7 +248,18 @@ class Campaign(Base):
 
 class Asset(Base):
     __tablename__ = "assets"
-    __table_args__ = (ForeignKeyConstraint(["organization_id", "campaign_id"], ["campaigns.organization_id", "campaigns.id"], ondelete="CASCADE", name="fk_asset_campaign_tenant"), Index("ix_assets_org_campaign", "organization_id", "campaign_id"))
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_asset_org_id"),
+        UniqueConstraint("organization_id", "campaign_id", "asset_group_id", "version", name="uq_asset_group_version"),
+        ForeignKeyConstraint(["organization_id", "campaign_id"], ["campaigns.organization_id", "campaigns.id"], ondelete="CASCADE", name="fk_asset_campaign_tenant"),
+        ForeignKeyConstraint(["organization_id", "supersedes_asset_id"], ["assets.organization_id", "assets.id"], ondelete="RESTRICT", name="fk_asset_supersedes_tenant"),
+        CheckConstraint("asset_type IN ('text','image','document')", name="ck_assets_type"),
+        CheckConstraint("version > 0 AND size_bytes >= 0", name="ck_asset_version_size"),
+        CheckConstraint("malware_status IN ('not_configured','not_applicable','clean')", name="ck_asset_malware_status"),
+        CheckConstraint("extraction_status IN ('complete','not_required','not_configured','unavailable','failed')", name="ck_asset_extraction_status"),
+        Index("ix_assets_org_campaign", "organization_id", "campaign_id"),
+        Index("ix_assets_org_group_current", "organization_id", "asset_group_id", "current"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
@@ -248,9 +267,21 @@ class Asset(Base):
     asset_type: Mapped[str] = mapped_column(String(16), nullable=False)
     channel: Mapped[str] = mapped_column(String(50), nullable=False)
     language: Mapped[str] = mapped_column(String(16), nullable=False, default="en")
+    asset_group_id: Mapped[str] = mapped_column(String(36), nullable=False, default=new_id)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    supersedes_asset_id: Mapped[str | None] = mapped_column(String(36))
     file_ref: Mapped[str | None] = mapped_column(String(500))
+    original_filename: Mapped[str | None] = mapped_column(String(240))
+    content_type: Mapped[str] = mapped_column(String(120), nullable=False, default="text/plain")
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    malware_status: Mapped[str] = mapped_column(String(20), nullable=False, default="not_configured")
+    extraction_status: Mapped[str] = mapped_column(String(20), nullable=False, default="not_required")
+    metadata_stripped: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     text_content: Mapped[str | None] = mapped_column(Text)
+    extracted_text: Mapped[str | None] = mapped_column(Text)
+    logo_matches: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -273,12 +304,17 @@ class ExtractedFact(Base):
 
 class Scan(Base):
     __tablename__ = "scans"
-    __table_args__ = (Index("ix_scans_org_campaign_created", "organization_id", "campaign_id", "created_at"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_scan_org_id"),
+        ForeignKeyConstraint(["organization_id", "campaign_id"], ["campaigns.organization_id", "campaigns.id"], ondelete="CASCADE", name="fk_scan_campaign_tenant"),
+        ForeignKeyConstraint(["organization_id", "asset_id"], ["assets.organization_id", "assets.id"], ondelete="CASCADE", name="fk_scan_asset_tenant"),
+        Index("ix_scans_org_campaign_created", "organization_id", "campaign_id", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    campaign_id: Mapped[str | None] = mapped_column(ForeignKey("campaigns.id", ondelete="CASCADE"))
-    asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id", ondelete="CASCADE"))
+    campaign_id: Mapped[str | None] = mapped_column(String(36))
+    asset_id: Mapped[str | None] = mapped_column(String(36))
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
     model_version: Mapped[str | None] = mapped_column(String(120))
     prompt_version: Mapped[str | None] = mapped_column(String(80))
@@ -291,18 +327,25 @@ class Scan(Base):
 
 class Finding(Base):
     __tablename__ = "findings"
-    __table_args__ = (CheckConstraint("confidence IS NULL OR (confidence >= 0 AND confidence <= 1)", name="ck_findings_confidence"), Index("ix_findings_org_scan_status", "organization_id", "scan_id", "status"))
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_finding_org_id"),
+        ForeignKeyConstraint(["organization_id", "scan_id"], ["scans.organization_id", "scans.id"], ondelete="CASCADE", name="fk_finding_scan_tenant"),
+        ForeignKeyConstraint(["organization_id", "asset_id"], ["assets.organization_id", "assets.id"], ondelete="CASCADE", name="fk_finding_asset_tenant"),
+        ForeignKeyConstraint(["organization_id", "source_passage_id"], ["source_passages.organization_id", "source_passages.id"], ondelete="RESTRICT", name="fk_finding_passage_tenant"),
+        CheckConstraint("confidence IS NULL OR (confidence >= 0 AND confidence <= 1)", name="ck_findings_confidence"),
+        Index("ix_findings_org_scan_status", "organization_id", "scan_id", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    scan_id: Mapped[str] = mapped_column(ForeignKey("scans.id", ondelete="CASCADE"), nullable=False)
-    asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id", ondelete="CASCADE"))
+    scan_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    asset_id: Mapped[str | None] = mapped_column(String(36))
     finding_type: Mapped[str] = mapped_column(String(60), nullable=False)
     severity: Mapped[str] = mapped_column(String(16), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
     flagged_region: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     rule_id: Mapped[str | None] = mapped_column(ForeignKey("rules.id", ondelete="SET NULL"))
-    source_passage_id: Mapped[str | None] = mapped_column(ForeignKey("source_passages.id", ondelete="SET NULL"))
+    source_passage_id: Mapped[str | None] = mapped_column(String(36))
     quoted_excerpt: Mapped[str | None] = mapped_column(Text)
     confidence: Mapped[float | None]
     suggested_fix: Mapped[str | None] = mapped_column(Text)
@@ -328,11 +371,14 @@ class Review(Base):
 
 class GuidelineUpdateSuggestion(Base):
     __tablename__ = "guideline_update_suggestions"
-    __table_args__ = (Index("ix_guideline_suggestions_org_status", "organization_id", "status"),)
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "source_id"], ["brand_guideline_sources.organization_id", "brand_guideline_sources.id"], ondelete="RESTRICT", name="fk_guideline_suggestion_source_tenant"),
+        Index("ix_guideline_suggestions_org_status", "organization_id", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    source_id: Mapped[str | None] = mapped_column(ForeignKey("brand_guideline_sources.id", ondelete="SET NULL"))
+    source_id: Mapped[str | None] = mapped_column(String(36))
     suggested_change: Mapped[str] = mapped_column(Text, nullable=False)
     rationale: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
