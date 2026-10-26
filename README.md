@@ -10,12 +10,13 @@ Requirements: Node.js 20.9 or newer, npm, Python 3.12+, and Docker Desktop with 
 npm install
 Copy-Item .env.example .env.local
 Copy-Item .env.example api/.env
+Copy-Item .env.example .env
 npm run dev:all
 ```
 
 `dev:all` starts Next.js, FastAPI, PostgreSQL with pgvector, Redis, MinIO, a background worker, and Mailpit. Visit `http://localhost:3000`; local email is captured at `http://localhost:8025`. The compose stack uses development-only credentials from `.env.example`. Change them before exposing any service outside localhost.
 
-On Windows, `start-brandlens.bat` requires Docker Desktop and launches the complete product stack. It opens the sign-in page after web and API readiness checks pass. If Docker is unavailable, the script reports the prerequisite and does not start a website-only fallback. To start only the public website intentionally, use `npm run dev` from a terminal.
+On Windows, run `start-brandlens.bat` from Explorer or a terminal. It checks for a running Docker Desktop engine and Compose, builds and starts the complete product stack, waits up to three minutes for API readiness (including PostgreSQL and Redis) and the sign-in page, then opens `http://localhost:3000/login` and a service-log window. If Docker or Compose is unavailable, it reports the missing prerequisite and exits without starting a partial website. On startup failure, it prints recent service logs. For Compose, copy `.env.example` to `.env` first.
 
 To run only the marketing site, use `npm run dev`; account and organisation features require the API and database. To run the API outside Docker on Windows, create and activate a venv, install the requirements, then run Alembic and Uvicorn:
 

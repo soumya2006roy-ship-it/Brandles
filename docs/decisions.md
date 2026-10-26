@@ -14,6 +14,8 @@
 - Preserve the historical migration chain. Migration `0009_remove_public_workspace_marker` marks existing public-example organizations deleted, then drops the obsolete marker column without changing migration `0006` or its checksums.
 - The Windows launcher is a full-stack entry point. It must require Docker Compose and wait for API/web readiness; if those prerequisites are absent, it exits with an actionable message and never starts the website alone.
 - Runtime LLM and embedding providers default to `none`. The fixed insufficient-evidence client exists only in the evaluation runner and cannot be selected by application settings.
+- Phase 2 of the website cleanup removes the unauthenticated public workspace route, its API/seed path, and runtime deterministic provider stand-ins. Migration `0009_remove_public_workspace_marker` tombstones legacy example organizations before removing the marker; it was not applied locally because a database service is unavailable.
+- Phase 3 launcher implementation verifies Docker/Compose, starts the complete development stack, waits for API and sign-in readiness, and exits without a partial web-only launch when prerequisites are missing. The full stack remains unverified until Docker is available.
 
 The user-provided product brief defines campaign scans, evidence-backed findings, campaign-level comparison, resolution and reviewer approval. Implementation follows these requirements while preserving explicit prototype limits.
 

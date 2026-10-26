@@ -7,6 +7,7 @@ Date: 2026-10-26. This diagnosis was reproduced from the repository root on Wind
 | Entry point | Working directory | What it runs | Ports / mode |
 | --- | --- | --- | --- |
 | `start-brandlens.bat` (before Phase 3 repair) | Correctly switches to `%~dp0` using `cd /d` | With Docker available, started `docker compose up --build`. Without Docker, explicitly started only `npm run dev`. | Full development stack: web 3000, API 8000, PostgreSQL 5432, Redis 6379, MinIO 9000/9001, Mailpit 8025. Fallback: Next development web only on 3000. |
+| `start-brandlens.bat` (after Phase 3 repair) | Switches to `%~dp0` using `cd /d` | Requires Docker CLI, a responding Docker engine and Compose; runs `docker compose up --build -d`; waits for API `/ready` and web `/login`; opens login and a service log window. On failure prints Compose state and recent service logs. | Full development stack only. No web-only fallback. Readiness timeout: three minutes. |
 | `npm run dev` | Package root | Next.js development server only. | Port 3000. |
 | `npm run dev:all` | Package root | `docker compose up --build`. | Full development stack above. |
 | `npm run build` / `npm run start` | Package root | Next standalone production build/server. | Web only on port 3000; these scripts do not start API or dependencies. |
@@ -17,7 +18,7 @@ Date: 2026-10-26. This diagnosis was reproduced from the repository root on Wind
 
 ## Root cause and reproduction
 
-**Confirmed root cause:** before repair, if Docker was absent or its engine was stopped, the Windows launcher printed that the organisation workspace required Docker and then started only the web app. Product routes rendered, but `/api/product/*` requests target `BRANDLENS_BACKEND_URL` (default `http://127.0.0.1:8000`). No API, worker, database, Redis, object storage or mail service was launched by that branch, so sign-in and workspace data requests could not work.
+**Confirmed root cause:** before repair, if Docker was absent or its engine was stopped, the Windows launcher printed that the organisation workspace required Docker and then started only the web app. Product routes rendered, but `/api/product/*` requests target `BRANDLENS_BACKEND_URL` (default `http://127.0.0.1:8000`). No API, worker, database, Redis, object storage or mail service was launched by that branch, so sign-in and workspace data requests could not work. Phase 3 removes this misleading partial-launch behavior.
 
 - Before launch, Docker was not installed (`docker` command not found) and ports 3000, 8000, 5432, 6379, 9000, 9001 and 8025 had no listeners.
 - Ran `cmd.exe /c start-brandlens.bat` in a terminal. It printed `Docker is unavailable. Starting the public marketing site only.` and `The organisation workspace needs Docker Desktop and the full product stack.`
@@ -25,6 +26,12 @@ Date: 2026-10-26. This diagnosis was reproduced from the repository root on Wind
 - The batch file used the correct repository directory. `next.config.ts` specifies standalone output, not a static export. Root does not redirect to a fictional workspace, and product routes exist in the build route tree. `/app` requires authentication and redirects to login; it does not redirect to a public example page.
 - The root page and navigation linked prominently to an unauthenticated campaign example. That former route used a dedicated API endpoint and optional database seed, rather than in-memory product API data. Phase 2 removes those public surfaces.
 - There was no port conflict before launch. Missing services were the direct cause of unavailable product requests. Database migration status and API startup could not be checked because Docker is not installed.
+
+## Phase 3 launcher repair and verification
+
+The revised batch file now validates Docker CLI, engine and Compose before doing any work. It starts the complete Compose project detached, polls API `/ready` (which checks PostgreSQL and Redis) and web `/login` for up to three minutes, then opens the sign-in page and a separate live log window. Compose failures and readiness timeouts print service status and recent logs. `scripts/wait-for-brandlens.ps1` contains the bounded readiness loop. The README tells operators to copy `.env.example` to the Compose `.env` file before launch.
+
+The updated batch launcher was executed in this environment. It reported that Docker CLI was unavailable and exited before starting any service. This confirms the prerequisite/fail-closed branch only; the Compose build, API migration, readiness loop, and full product stack were not run here because Docker is not installed.
 
 ## Product API and persistence inventory
 

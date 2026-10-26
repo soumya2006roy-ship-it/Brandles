@@ -23,11 +23,11 @@ Phase 9 CI is configured, not observed on GitHub in this run. The full signup-to
 
 - Phase 9: `.github/workflows/ci.yml`, `package.json`/lockfile, `vitest.config.ts`, `playwright.config.ts`, `e2e/public-pages.spec.ts`, `lighthouserc.json`, `pytest.ini`, API observability/rate-limit/runtime modules and tests, regenerated `api/openapi.json` and `app/lib/api-schema.d.ts`, findings filter helper/tests, `.env.example`, `README.md` and `docs/decisions.md`.
 - Phase 10: `.dockerignore`, `Dockerfile.web`, `api/Dockerfile`, `compose.production.yaml`, `next.config.ts`, `.env.example`, `README.md`, `docs/architecture.md`, `docs/api.md`, `docs/security.md`, `docs/runbook.md`, `docs/evaluation.md`, `docs/admin-guide.md` and this report.
-- These phases add no database migration; the latest schema remains revision `0008_retention_controls`.
+- The original Phases 9–10 added no database migration; the latest schema is now revision `0009_remove_public_workspace_marker`, added during the website cleanup. It tombstones previously marked example organizations before dropping the obsolete marker. Apply it with the usual `alembic upgrade head` release step; it has not been applied in this environment.
 
 ## Schema and migrations
 
-Alembic migrations are in `api/alembic/versions`; the latest revision is `0008_retention_controls`. Apply migrations from the API directory:
+Alembic migrations are in `api/alembic/versions`; the latest revision is `0009_remove_public_workspace_marker`. Apply migrations from the API directory:
 
 ```powershell
 Push-Location api
@@ -159,3 +159,11 @@ The additional website audit uses the separate rubric in the pasted master promp
 | Maintainability and test coverage | 6.5/10 | 10% | Focused tests and docs were added; the full CI, production container and route-wide acceptance suite were not run. |
 
 Weighted result: `4.0×0.25 + 7.5×0.15 + 6.0×0.20 + 7.5×0.15 + 5.0×0.15 + 6.5×0.10 = 5.85`, reported as **5.9/10**.
+
+## Website demo removal and launcher repair (2026-10-26)
+
+- Phase 1 diagnosis was committed as `56da172`; Phase 2 removed the public workspace UI/API/seed path, removed runtime mock providers, updated public CTAs to account/invite/contact entry points, regenerated the API contract, added a forward migration and added an internal-route check in commit `40382d7`.
+- Phase 3 updates `start-brandlens.bat` to require Docker CLI, engine and Compose, build/start the entire Compose stack, wait for API and login readiness, open `/login`, and show service logs. It does not start a partial web server on failure. The separate readiness loop is `scripts/wait-for-brandlens.ps1`.
+- Launcher run: `cmd.exe /c start-brandlens.bat` exited at its prerequisite check with “Docker CLI was not found”; no service was started. This environment cannot verify Compose, migrations or full-stack behavior.
+- The pre-cleanup evaluation result remains a small evaluation-only fixture result (3 examples: precision 1.0, recall 1.0, citation validity 1.0, false-breach rate 0.0). It does not validate a live model or a complete browser workflow.
+- Cleanup-phase checks: `npm run lint` passed; `npm run typecheck` passed; `npm run build` passed with light/dark contrast checks; `npm test` passed (5 tests); `npm run test:e2e` passed (5 tests); `npm run check:links` checked 29 routes/assets; API pytest passed (45 passed, 1 skipped); and the evaluation script passed (3 fixture cases). After the launcher/documentation change, `npm run lint`, `npm run typecheck`, and `npm run build` all passed again. The route build contains no former public workspace route.
