@@ -325,3 +325,22 @@ def test_campaign_review_submission_is_idempotent_and_version_bound(client, mail
     assert duplicate_decision.status_code == 200
     assert client.get(f"/api/v1/orgs/{org_id}/reviews/queue").json() == []
     assert client.get(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}").json()["status"] == "approved"
+
+
+def test_brand_twin_cites_only_approved_evidence_and_refuses_gaps(client, mailer):
+    organization, _email, _password = create_approved_organization(client, mailer, "brand-twin@example.com")
+    org_id = organization["id"]
+    refused = client.post(f"/api/v1/orgs/{org_id}/brand-twin/ask", json={"question": "What does the brand say about moon dust?"})
+    assert refused.status_code == 200
+    assert refused.json()["insufficient_evidence"] is True
+    assert refused.json()["citations"] == []
+
+    source_response = client.post(f"/api/v1/orgs/{org_id}/sources", data={"title": "Offer reference"}, files={"document": ("offer.txt", b"The approved offer is 20% off until June 30.", "text/plain")})
+    assert source_response.status_code == 201, source_response.text
+    source_id = source_response.json()["id"]
+    assert client.post(f"/api/v1/orgs/{org_id}/sources/{source_id}/approve", json={"effective_from": "2020-01-01"}).status_code == 200
+    answer = client.post(f"/api/v1/orgs/{org_id}/brand-twin/ask", json={"question": "What is the approved offer?"})
+    assert answer.status_code == 200
+    assert answer.json()["insufficient_evidence"] is False
+    assert answer.json()["citations"][0]["source_id"] == source_id
+    assert answer.json()["citations"][0]["source_version"] == 1

@@ -251,6 +251,12 @@ ins { color: var(--green); text-decoration: none; background: color-mix(in srgb,
 .campaign-consistency-graph > ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; padding: 0; list-style: none; }
 .campaign-consistency-graph > ul > li { padding: 14px; border: 1px solid var(--line); background: var(--surface-raised, var(--surface)); }
 .campaign-consistency-graph ul ul { padding-inline-start: 18px; }
+.platform-preview { max-width: 520px; margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.platform-preview-card { min-height: 80px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised, var(--surface)); overflow-wrap: anywhere; }
+.platform-preview-card p { margin: 0; white-space: pre-wrap; }
+.preview-truncation { margin-top: 10px !important; color: var(--muted); font-size: 12px; }
+.brand-twin { margin: 20px 0; }
+.brand-twin-citation { padding: 12px; border-inline-start: 3px solid var(--accent); background: var(--surface); }
 .finding-decision { margin-block: 16px; }
 @media (max-width: 600px) { .finding-filters, .campaign-consistency-graph { padding: 12px; } }
 .finding-card-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

@@ -3,15 +3,18 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest, type Invite, type Organization, type OrganizationSummary } from "@/app/lib/api-client";
+import { BrandTwin } from "./brand-twin";
 
 type NewInvite = Invite & { code: string };
 type WorkspaceNotification = { id: string; kind: string; payload: Record<string, unknown>; read_at: string | null; created_at: string };
+type GuidelineSuggestion = { id: string; source_id: string | null; suggested_change: string; rationale: string; status: string; reviewed_by: string | null; created_at: string };
 
 export function OrganisationWorkspace({ organizationId }: { organizationId: string }) {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [role, setRole] = useState<string>("");
   const [invites, setInvites] = useState<Invite[]>([]);
   const [notifications, setNotifications] = useState<WorkspaceNotification[]>([]);
+  const [guidelineSuggestions, setGuidelineSuggestions] = useState<GuidelineSuggestion[]>([]);
   const [newInvite, setNewInvite] = useState<NewInvite | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -22,10 +25,12 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
       const org = await apiRequest<Organization>(`orgs/${organizationId}`);
       setOrganization(org);
       const list = await apiRequest<OrganizationSummary[]>("orgs");
-      setRole(list.find((item) => item.id === organizationId)?.role ?? "");
+      const currentRole = list.find((item) => item.id === organizationId)?.role ?? "";
+      setRole(currentRole);
       if (org.verification_status === "approved") setNotifications(await apiRequest<WorkspaceNotification[]>(`orgs/${organizationId}/notifications`));
-      if (org.verification_status === "approved" && list.find((item) => item.id === organizationId)?.role === "admin") {
+      if (org.verification_status === "approved" && currentRole === "admin") {
         setInvites(await apiRequest<Invite[]>(`orgs/${organizationId}/invites`));
+        setGuidelineSuggestions(await apiRequest<GuidelineSuggestion[]>(`orgs/${organizationId}/guideline-update-suggestions?status=pending`));
       }
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not load this organisation."); }
     finally { setLoading(false); }
@@ -74,6 +79,13 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update this notification."); }
   }
 
+  async function decideGuidelineSuggestion(suggestionId: string, decision: "accept" | "ignore") {
+    try {
+      await apiRequest<GuidelineSuggestion>(`orgs/${organizationId}/guideline-update-suggestions/${suggestionId}/decision`, { method: "POST", body: JSON.stringify({ decision }) });
+      await load();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not record the Admin decision."); }
+  }
+
   if (loading) return <div className="workspace-skeleton" aria-label="Loading organisation"><div/><div/></div>;
   if (!organization) return <p className="auth-message auth-error" role="alert">{error || "Organisation not found."}</p>;
   const canManage = role === "admin" && organization.verification_status === "approved";
@@ -90,6 +102,8 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
     </section>}
     {organization.verification_status === "approved" && <section className="workspace-section"><p className="eyebrow">Notifications</p><h2>Workspace activity</h2>{notifications.length ? <ul className="invite-list">{notifications.map((notification) => <li key={notification.id}><div><strong>{notification.kind.replaceAll("_", " ")}</strong><span>{String(notification.payload.campaign_name ?? notification.payload.organization_name ?? "Workspace update")} · {new Date(notification.created_at).toLocaleString()}</span></div>{notification.read_at ? <span>Read</span> : <button className="small-button" type="button" onClick={() => void markRead(notification.id)}>Mark read</button>}</li>)}</ul> : <div className="workspace-empty"><p>No notifications yet.</p></div>}</section>}
     {canManage && <section className="workspace-section"><p className="eyebrow">AI processing</p><h2>Workspace permission</h2><p>External model processing is off by default. BrandLens will not send workspace material to an LLM unless both this organisation and the deployment allow it.</p><p className="settings-state">Current setting: <strong>{organization.llm_processing_allowed ? "Allowed" : "Off"}</strong></p><button className="button secondary-button" type="button" onClick={() => updateAiPreference(!organization.llm_processing_allowed)}>{organization.llm_processing_allowed ? "Turn off AI processing" : "Allow AI processing"}</button><p className="field-help">This repository has no live LLM provider adapter; the mock returns insufficient evidence only.</p></section>}
+    {organization.verification_status === "approved" && <BrandTwin organizationId={organizationId}/>}
+    {canManage && <section className="workspace-section"><p className="eyebrow">Feedback-to-guideline loop · suggestions only</p><h2>Suggested guideline updates</h2><p>Repeated creator resolutions or dismissals can suggest a pattern for Admin review. Accepting records the suggestion decision; it does not modify a source or rule.</p>{guidelineSuggestions.length ? <ul className="invite-list">{guidelineSuggestions.map((suggestion) => <li key={suggestion.id}><div><strong>{suggestion.suggested_change}</strong><span>{suggestion.rationale}</span></div><div className="inline-actions"><button className="small-button" type="button" onClick={() => void decideGuidelineSuggestion(suggestion.id, "accept")}>Accept suggestion</button><button className="small-button" type="button" onClick={() => void decideGuidelineSuggestion(suggestion.id, "ignore")}>Ignore</button></div></li>)}</ul> : <div className="workspace-empty"><p>No repeated finding feedback is waiting for review.</p></div>}</section>}
     {organization.verification_status === "approved" && <section className="workspace-scope"><p className="eyebrow">Product scope</p><p>Approved sources, structured rules, campaign scans, findings and reviewer decisions are available. Model judgement remains a mock prototype.</p></section>}
     {organization.verification_status === "approved" && <section className="workspace-section"><p className="eyebrow">Workspace library</p><h2>Sources, rules, and campaigns</h2><div className="workspace-quicklinks"><Link className="button secondary-button" href={`/app/organisations/${organizationId}/sources`}>Approved sources</Link><Link className="button secondary-button" href={`/app/organisations/${organizationId}/rules`}>Structured rules</Link><Link className="button secondary-button" href={`/app/organisations/${organizationId}/campaigns`}>Campaigns</Link>{role === "reviewer" && <Link className="button secondary-button" href={`/app/organisations/${organizationId}/reviews`}>Review queue</Link>}</div></section>}
   </>;

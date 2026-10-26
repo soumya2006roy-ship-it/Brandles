@@ -2592,6 +2592,181 @@
         }
       }
     },
+    "/api/v1/orgs/{org_id}/guideline-update-suggestions": {
+      "get": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "List Guideline Update Suggestions",
+        "operationId": "list_guideline_update_suggestions_api_v1_orgs__org_id__guideline_update_suggestions_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GuidelineSuggestionResponse"
+                  },
+                  "title": "Response List Guideline Update Suggestions Api V1 Orgs  Org Id  Guideline Update Suggestions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orgs/{org_id}/guideline-update-suggestions/{suggestion_id}/decision": {
+      "post": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Decide Guideline Update Suggestion",
+        "operationId": "decide_guideline_update_suggestion_api_v1_orgs__org_id__guideline_update_suggestions__suggestion_id__decision_post",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "suggestion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Suggestion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuidelineSuggestionDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidelineSuggestionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orgs/{org_id}/brand-twin/ask": {
+      "post": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Ask Brand Twin",
+        "operationId": "ask_brand_twin_api_v1_orgs__org_id__brand_twin_ask_post",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandTwinQuestion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandTwinAnswer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/orgs/{org_id}/notifications/{notification_id}/read": {
       "post": {
         "tags": [
@@ -2875,6 +3050,109 @@
           "document"
         ],
         "title": "Body_upload_source_api_v1_orgs__org_id__sources_post"
+      },
+      "BrandTwinAnswer": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "insufficient_evidence": {
+            "type": "boolean",
+            "title": "Insufficient Evidence"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/BrandTwinCitation"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "maturity": {
+            "type": "string",
+            "title": "Maturity",
+            "default": "bounded lexical retrieval prototype"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "insufficient_evidence",
+          "citations"
+        ],
+        "title": "BrandTwinAnswer"
+      },
+      "BrandTwinCitation": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "source_title": {
+            "type": "string",
+            "title": "Source Title"
+          },
+          "source_version": {
+            "type": "integer",
+            "title": "Source Version"
+          },
+          "passage_id": {
+            "type": "string",
+            "title": "Passage Id"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Number"
+          },
+          "location_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Label"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_id",
+          "source_title",
+          "source_version",
+          "passage_id",
+          "page_number",
+          "location_label",
+          "excerpt"
+        ],
+        "title": "BrandTwinCitation"
+      },
+      "BrandTwinQuestion": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "BrandTwinQuestion"
       },
       "CampaignCreate": {
         "properties": {
@@ -3314,6 +3592,28 @@
             ],
             "title": "Source Version"
           },
+          "source_page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page Number"
+          },
+          "source_location_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Location Label"
+          },
           "source_text": {
             "anyOf": [
               {
@@ -3405,6 +3705,78 @@
           "created_at"
         ],
         "title": "FindingResponse"
+      },
+      "GuidelineSuggestionDecision": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "pattern": "^(accept|ignore)$",
+            "title": "Decision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "GuidelineSuggestionDecision"
+      },
+      "GuidelineSuggestionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "suggested_change": {
+            "type": "string",
+            "title": "Suggested Change"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_id",
+          "suggested_change",
+          "rationale",
+          "status",
+          "reviewed_by",
+          "created_at"
+        ],
+        "title": "GuidelineSuggestionResponse"
       },
       "HTTPValidationError": {
         "properties": {

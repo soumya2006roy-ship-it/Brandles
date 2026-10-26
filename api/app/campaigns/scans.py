@@ -18,7 +18,7 @@ from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, Ext
 from app.core.config import get_settings
 
 PERCENT_RE = re.compile(r"(?<!\w)(\d{1,3}(?:\.\d+)?)\s*%")
-CLAIM_CUES = re.compile(r"\b(?:claim|cure[sd]?|treat[sd]?|prevent[sd]?|clinically proven|proven|guarantee[sd]?|eliminate[sd]?|reduce[sd]?|improve[sd]?|safe|effective|dermatologist[- ]tested)\b", re.IGNORECASE)
+CLAIM_CUES = re.compile(r"\b(?:claim|cure[sd]?|treat[sd]?|prevent[sd]?|clinically proven|proven|guarantee[sd]?|eliminate[sd]?|reduce[sd]?|improve[sd]?|safe|effective|dermatologist[- ]tested)\b|दावा|ठीक|इलाज|गारंटी|प्रमाणित|सुरक्षित|प्रभावी", re.IGNORECASE)
 CURRENCY_RE = re.compile(r"(?<!\w)(?:[$€£₹]\s?\d[\d,]*(?:\.\d{1,2})?|(?:USD|INR|EUR|GBP)\s?\d[\d,]*(?:\.\d{1,2})?)(?!\w)", re.IGNORECASE)
 DATE_RE = re.compile(r"\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b")
 
@@ -62,6 +62,17 @@ def _eligible_rule_rows(db: Session, organization_id: str, scan_date: date):
             (Rule.valid_from.is_(None) | (Rule.valid_from <= scan_date)),
             (Rule.valid_to.is_(None) | (Rule.valid_to >= scan_date)),
         )
+        .order_by(Rule.id)
+    ).all()
+
+
+def _active_offer_rows(db: Session, organization_id: str):
+    """Approved offer evidence regardless of its dates, so expiry can be reported."""
+    return db.execute(
+        select(Rule, SourcePassage, BrandGuidelineSource)
+        .join(SourcePassage, (SourcePassage.organization_id == Rule.organization_id) & (SourcePassage.id == Rule.source_passage_id))
+        .join(BrandGuidelineSource, (BrandGuidelineSource.organization_id == SourcePassage.organization_id) & (BrandGuidelineSource.id == SourcePassage.source_id))
+        .where(Rule.organization_id == organization_id, Rule.status == "active", Rule.rule_type.in_(["discount_percent", "offer_name"]), BrandGuidelineSource.status == "approved", BrandGuidelineSource.deleted_at.is_(None))
         .order_by(Rule.id)
     ).all()
 
@@ -113,6 +124,7 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
             today = datetime.now(UTC).date()
             reference_date = campaign.planned_publish_date.date() if campaign.planned_publish_date else campaign.starts_at or campaign.ends_at or today
             rows = _eligible_rule_rows(db, organization_id, reference_date)
+            offer_rows = _active_offer_rows(db, organization_id)
             expected_asset_versions = {asset.id: asset.version for asset in assets}
             expected_rules_version = active_rules_version(db, organization_id, reference_date)
             if scan.completed_asset_ids and (scan.asset_versions != expected_asset_versions or scan.rules_version != expected_rules_version):
@@ -158,6 +170,32 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                     return
                 content = asset.extracted_text or asset.text_content or ""
                 folded = content.casefold()
+                scheduled = publish_date
+                for offer_rule, offer_passage, offer_source in offer_rows:
+                    if offer_rule.channel and offer_rule.channel.casefold() != asset.channel.casefold():
+                        continue
+                    params = offer_rule.parameters or {}
+                    language = str(params.get("language", "")).strip()
+                    if language and language.casefold() != asset.language.casefold():
+                        continue
+                    offer_match = None
+                    if offer_rule.rule_type == "discount_percent":
+                        expected = float(params.get("percent", -1))
+                        offer_match = next((match for match in PERCENT_RE.finditer(content) if abs(float(match.group(1)) - expected) <= 0.001), None)
+                    elif offer_rule.rule_type == "offer_name":
+                        name = str(params.get("value", "")).strip()
+                        offer_match = re.search(re.escape(name), content, re.IGNORECASE) if name else None
+                    valid_froms = [value for value in (offer_rule.valid_from, offer_source.effective_from) if value]
+                    valid_tos = [value for value in (offer_rule.valid_to, offer_source.effective_to) if value]
+                    valid_from = max(valid_froms) if valid_froms else None
+                    valid_to = min(valid_tos) if valid_tos else None
+                    not_yet_valid = bool(valid_from and scheduled < valid_from)
+                    expired = bool(valid_to and scheduled > valid_to)
+                    if offer_match and (not_yet_valid or expired):
+                        boundary = valid_from.isoformat() if not_yet_valid else valid_to.isoformat()
+                        description = "not valid yet" if not_yet_valid else "expired"
+                        validity = "not_yet_valid" if not_yet_valid else "expired"
+                        findings.append(_finding(scan=scan, asset=asset, rule=offer_rule, passage=offer_passage, finding_type="offer_validity", severity="warning", text=content, start=offer_match.start(), end=offer_match.end(), quoted_excerpt=offer_passage.text, confidence=1.0, suggested_fix=f"The offer appears {description} for {scheduled.isoformat()}; review its approved validity through {boundary}.", flagged_region={"validity": validity, "scheduled_date": scheduled.isoformat(), "valid_from": valid_from.isoformat() if valid_from else None, "valid_to": valid_to.isoformat() if valid_to else None}))
                 discount_evidence = next(((rule, passage) for rule, passage, _source in rows if rule.rule_type == "discount_percent"), None)
                 for match in PERCENT_RE.finditer(content):
                     value = f"{float(match.group(1)):g}%"

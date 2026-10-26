@@ -93,6 +93,8 @@ class FindingResponse(BaseModel):
     source_passage_id: str | None
     source_title: str | None = None
     source_version: int | None = None
+    source_page_number: int | None = None
+    source_location_label: str | None = None
     source_text: str | None = None
     quoted_excerpt: str | None
     confidence: float | None
@@ -149,3 +151,38 @@ class FactResponse(BaseModel):
     value: str
     asset_location: dict[str, Any] | None
     source_passage_id: str | None
+
+
+class GuidelineSuggestionResponse(BaseModel):
+    id: str
+    source_id: str | None
+    suggested_change: str
+    rationale: str
+    status: str
+    reviewed_by: str | None
+    created_at: datetime
+
+
+class GuidelineSuggestionDecision(BaseModel):
+    decision: str = Field(pattern="^(accept|ignore)$")
+
+
+class BrandTwinQuestion(BaseModel):
+    question: str = Field(min_length=3, max_length=1000)
+
+
+class BrandTwinCitation(BaseModel):
+    source_id: str
+    source_title: str
+    source_version: int
+    passage_id: str
+    page_number: int | None
+    location_label: str | None
+    excerpt: str
+
+
+class BrandTwinAnswer(BaseModel):
+    answer: str
+    insufficient_evidence: bool
+    citations: list[BrandTwinCitation]
+    maturity: str = "bounded lexical retrieval prototype"

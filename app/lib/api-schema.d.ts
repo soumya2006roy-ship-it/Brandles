@@ -792,6 +792,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/guideline-update-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Guideline Update Suggestions */
+        get: operations["list_guideline_update_suggestions_api_v1_orgs__org_id__guideline_update_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/guideline-update-suggestions/{suggestion_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide Guideline Update Suggestion */
+        post: operations["decide_guideline_update_suggestion_api_v1_orgs__org_id__guideline_update_suggestions__suggestion_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/brand-twin/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask Brand Twin */
+        post: operations["ask_brand_twin_api_v1_orgs__org_id__brand_twin_ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org_id}/notifications/{notification_id}/read": {
         parameters: {
             query?: never;
@@ -880,6 +931,42 @@ export interface components {
             source_family_id?: string | null;
             /** Document */
             document: string;
+        };
+        /** BrandTwinAnswer */
+        BrandTwinAnswer: {
+            /** Answer */
+            answer: string;
+            /** Insufficient Evidence */
+            insufficient_evidence: boolean;
+            /** Citations */
+            citations: components["schemas"]["BrandTwinCitation"][];
+            /**
+             * Maturity
+             * @default bounded lexical retrieval prototype
+             */
+            maturity: string;
+        };
+        /** BrandTwinCitation */
+        BrandTwinCitation: {
+            /** Source Id */
+            source_id: string;
+            /** Source Title */
+            source_title: string;
+            /** Source Version */
+            source_version: number;
+            /** Passage Id */
+            passage_id: string;
+            /** Page Number */
+            page_number: number | null;
+            /** Location Label */
+            location_label: string | null;
+            /** Excerpt */
+            excerpt: string;
+        };
+        /** BrandTwinQuestion */
+        BrandTwinQuestion: {
+            /** Question */
+            question: string;
         };
         /** CampaignCreate */
         CampaignCreate: {
@@ -1010,6 +1097,10 @@ export interface components {
             source_title?: string | null;
             /** Source Version */
             source_version?: number | null;
+            /** Source Page Number */
+            source_page_number?: number | null;
+            /** Source Location Label */
+            source_location_label?: string | null;
             /** Source Text */
             source_text?: string | null;
             /** Quoted Excerpt */
@@ -1022,6 +1113,31 @@ export interface components {
             resolution: string | null;
             /** Dismissal Reason */
             dismissal_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** GuidelineSuggestionDecision */
+        GuidelineSuggestionDecision: {
+            /** Decision */
+            decision: string;
+        };
+        /** GuidelineSuggestionResponse */
+        GuidelineSuggestionResponse: {
+            /** Id */
+            id: string;
+            /** Source Id */
+            source_id: string | null;
+            /** Suggested Change */
+            suggested_change: string;
+            /** Rationale */
+            rationale: string;
+            /** Status */
+            status: string;
+            /** Reviewed By */
+            reviewed_by: string | null;
             /**
              * Created At
              * Format: date-time
@@ -3181,6 +3297,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_guideline_update_suggestions_api_v1_orgs__org_id__guideline_update_suggestions_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidelineSuggestionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_guideline_update_suggestion_api_v1_orgs__org_id__guideline_update_suggestions__suggestion_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                suggestion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuidelineSuggestionDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidelineSuggestionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_brand_twin_api_v1_orgs__org_id__brand_twin_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandTwinQuestion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandTwinAnswer"];
                 };
             };
             /** @description Validation Error */

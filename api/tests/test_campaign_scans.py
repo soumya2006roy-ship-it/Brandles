@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.db import Base
-from app.db.models import Asset, BrandGuidelineSource, Campaign, Finding, Membership, Organization, Rule, Scan, SourcePassage, User
+from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, Finding, GuidelineUpdateSuggestion, Membership, Organization, Rule, Scan, SourcePassage, User
 from app.campaigns import scans
 from app.checks.judgement import parse_judgement
 
@@ -20,7 +20,7 @@ def _database(monkeypatch):
     return factory, engine
 
 
-def _campaign_records(db, *, first_text: str, second_text: str | None = None, with_rule: bool = True, rule_type: str = "discount_percent", parameters=None, starts_at=None, ends_at=None):
+def _campaign_records(db, *, first_text: str, second_text: str | None = None, with_rule: bool = True, rule_type: str = "discount_percent", parameters=None, starts_at=None, ends_at=None, asset_language="en"):
     user = User(email="creator@example.com", email_normalized="creator@example.com", display_name="Creator", password_hash="test", email_verified_at=datetime.now(UTC))
     db.add(user)
     db.flush()
@@ -40,7 +40,7 @@ def _campaign_records(db, *, first_text: str, second_text: str | None = None, wi
         rule = Rule(organization_id=org.id, rule_type=rule_type, parameters=parameters if parameters is not None else {"percent": 20}, source_passage_id=passage.id, status="active", created_by=user.id)
         db.add(rule)
     db.flush()
-    assets = [Asset(organization_id=org.id, campaign_id=campaign.id, asset_type="text", channel="Instagram", language="en", asset_group_id="a1", version=1, current=True, content_type="text/plain", sha256="a", size_bytes=len(first_text), malware_status="not_applicable", extraction_status="complete", text_content=first_text, extracted_text=first_text, created_by=user.id)]
+    assets = [Asset(organization_id=org.id, campaign_id=campaign.id, asset_type="text", channel="Instagram", language=asset_language, asset_group_id="a1", version=1, current=True, content_type="text/plain", sha256="a", size_bytes=len(first_text), malware_status="not_applicable", extraction_status="complete", text_content=first_text, extracted_text=first_text, created_by=user.id)]
     if second_text is not None:
         assets.append(Asset(organization_id=org.id, campaign_id=campaign.id, asset_type="text", channel="Email", language="en", asset_group_id="a2", version=1, current=True, content_type="text/plain", sha256="b", size_bytes=len(second_text), malware_status="not_applicable", extraction_status="complete", text_content=second_text, extracted_text=second_text, created_by=user.id))
     db.add_all(assets)
@@ -153,3 +153,65 @@ def test_judgement_requires_real_citation_and_caps_confidence():
     assert parsed.confidence == 0.95
     with pytest.raises(ValueError, match="quoted excerpt"):
         parse_judgement({**raw, "quoted_excerpt": "The product cures acne."}, asset_text="Our cream cures acne.", retrieved=retrieved)
+
+
+@pytest.mark.parametrize("validity", ["not_yet_valid", "expired"])
+def test_offer_validity_warning_uses_publish_date_and_approved_evidence(monkeypatch, validity):
+    factory, engine = _database(monkeypatch)
+    try:
+        with factory() as db:
+            org, campaign, _assets, scan, passage = _campaign_records(db, first_text="Save 20% on the approved offer.")
+            campaign.planned_publish_date = datetime.combine(date.today(), datetime.min.time()).replace(tzinfo=UTC)
+            rule = db.scalar(select(Rule).where(Rule.organization_id == org.id))
+            rule.valid_from = date.today() + timedelta(days=1) if validity == "not_yet_valid" else None
+            rule.valid_to = date.today() - timedelta(days=1) if validity == "expired" else None
+            scan_id, org_id, passage_id = scan.id, org.id, passage.id
+            db.commit()
+        scans.execute_campaign_scan(org_id, scan_id)
+        with factory() as db:
+            finding = db.scalar(select(Finding).where(Finding.scan_id == scan_id, Finding.finding_type == "offer_validity"))
+            assert finding is not None
+            assert finding.flagged_region["validity"] == validity
+            assert finding.source_passage_id == passage_id
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+def test_hindi_banned_phrase_is_checked_for_hindi_asset(monkeypatch):
+    factory, engine = _database(monkeypatch)
+    try:
+        with factory() as db:
+            org, _campaign, _assets, scan, _passage = _campaign_records(db, first_text="यह चमत्कारी क्रीम है", rule_type="banned_phrase", parameters={"value": "चमत्कारी", "language": "hi"}, asset_language="hi")
+            org_id, scan_id = org.id, scan.id
+        scans.execute_campaign_scan(org_id, scan_id)
+        with factory() as db:
+            finding = db.scalar(select(Finding).where(Finding.scan_id == scan_id, Finding.finding_type == "banned_phrase"))
+            assert finding is not None
+            assert finding.flagged_region["text"] == "चमत्कारी"
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_repeated_creator_feedback_creates_admin_suggestion_without_changing_rules(monkeypatch):
+    factory, engine = _database(monkeypatch)
+    try:
+        with factory() as db:
+            org, _campaign, assets, scan, _passage = _campaign_records(db, first_text="This wording causes the same flagged result.")
+            asset, user = assets[0], db.scalar(select(User).where(User.id == scan.requested_by))
+            for index in range(3):
+                finding = Finding(organization_id=org.id, scan_id=scan.id, asset_id=asset.id, finding_type="banned_phrase", severity="high", status="resolved", flagged_region={"text": "same flagged result"}, confidence=1.0)
+                db.add(finding)
+                db.flush()
+                from app.campaigns.router import _record_recurrent_finding_feedback
+                _record_recurrent_finding_feedback(db, finding=finding, organization_id=org.id, actor_id=user.id, action="finding.resolved")
+            db.commit()
+            suggestions = db.scalars(select(GuidelineUpdateSuggestion).where(GuidelineUpdateSuggestion.organization_id == org.id)).all()
+            rules = db.scalars(select(Rule).where(Rule.organization_id == org.id)).all()
+            assert len(suggestions) == 1
+            assert suggestions[0].status == "pending"
+            assert "does not change rules automatically" in suggestions[0].rationale
+            assert rules[0].status == "active"
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()

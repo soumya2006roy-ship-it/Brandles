@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
+import re
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -10,11 +11,11 @@ from sqlalchemy.orm import Session
 
 from app.assets.media import MAX_ASSET_BYTES, difference_hash, get_ocr_provider, scan_for_malware, similarity, sniff_and_normalize
 from app.auth.dependencies import get_auth_context, require_org_role
-from app.campaigns.schemas import AssetResponse, CampaignCreate, CampaignDetailResponse, CampaignResponse, ClarificationRequest, FactResponse, FindingDecision, FindingResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse
+from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignResponse, ClarificationRequest, FactResponse, FindingDecision, FindingResponse, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse
 from app.core.db import get_db
 from app.core.config import get_settings
 from app.core.mail import EmailSender, get_email_sender
-from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, Membership, Notification, Organization, Review, Rule, Scan, SourcePassage
+from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, GuidelineUpdateSuggestion, Membership, Notification, Organization, Review, Rule, Scan, SourcePassage
 from app.notifications.schemas import NotificationResponse
 from app.notifications.service import record_notification, send_user_email
 from app.sources.documents import clean_text, extract_document, identify_format
@@ -22,9 +23,42 @@ from app.storage.factory import get_storage
 from app.storage.local import safe_filename
 from app.jobs.queue import enqueue
 from app.campaigns.scans import active_rules_version
+from app.checks.judgement import retrieve_top_passages
+from app.core.rate_limit import enforce_rate_limit
 
 router = APIRouter(tags=["campaigns-and-assets"])
 MAX_PASTED_TEXT_CHARACTERS = 200_000
+
+
+def _finding_response(finding: Finding, passage: SourcePassage | None, source: BrandGuidelineSource | None) -> FindingResponse:
+    return FindingResponse.model_validate({**finding.__dict__, "source_title": source.title if source else None, "source_version": source.version if source else None, "source_page_number": passage.page_number if passage else None, "source_location_label": passage.location_label if passage else None, "source_text": passage.text if passage else None})
+
+
+def _feedback_pattern(finding: Finding) -> tuple[str, str]:
+    flagged = str((finding.flagged_region or {}).get("text", "")).casefold()
+    normalized = " ".join(re.findall(r"[^\W_]+", flagged, flags=re.UNICODE))[:240]
+    material = f"{finding.finding_type}:{normalized or finding.rule_id or 'unspanned'}"
+    key = sha256(material.encode("utf-8")).hexdigest()[:20]
+    return key, normalized
+
+
+def _record_recurrent_finding_feedback(db: Session, *, finding: Finding, organization_id: str, actor_id: str, action: str) -> None:
+    pattern_key, normalized = _feedback_pattern(finding)
+    db.add(AuditEvent(organization_id=organization_id, actor_user_id=actor_id, action=action, entity_type="finding", entity_id=finding.id, details={"scan_id": finding.scan_id, "pattern_key": pattern_key, "finding_type": finding.finding_type}))
+    events = db.scalars(select(AuditEvent).where(AuditEvent.organization_id == organization_id, AuditEvent.action.in_(["finding.resolved", "finding.dismissed"])).order_by(AuditEvent.created_at.desc()).limit(200)).all()
+    count = sum(1 for event in events if (event.details or {}).get("pattern_key") == pattern_key)
+    if count + 1 < 3:
+        return
+    change = f"Review the approved guidance for repeated {finding.finding_type.replace('_', ' ')} feedback pattern: {normalized or 'unspanned rule'} (pattern {pattern_key})."
+    exists = db.scalar(select(GuidelineUpdateSuggestion.id).where(GuidelineUpdateSuggestion.organization_id == organization_id, GuidelineUpdateSuggestion.suggested_change == change))
+    if exists:
+        return
+    suggestion = GuidelineUpdateSuggestion(organization_id=organization_id, suggested_change=change, rationale=f"At least three creators resolved or dismissed findings with this pattern. This is feedback for Admin review only; BrandLens does not change rules automatically.", status="pending")
+    db.add(suggestion)
+    db.flush()
+    admin_ids = db.scalars(select(Membership.user_id).where(Membership.organization_id == organization_id, Membership.role == "admin")).all()
+    for admin_id in admin_ids:
+        record_notification(db, user_id=admin_id, organization_id=organization_id, kind="guideline_update_suggested", payload={"suggested_change": change, "suggestion_id": suggestion.id})
 
 
 def _campaign_member(org_id: str, user_id: str, db: Session) -> Membership:
@@ -375,7 +409,7 @@ def list_campaign_findings(org_id: str, campaign_id: str, scan_id: str, context=
     if not scan:
         raise HTTPException(status_code=404, detail="Campaign scan not found.")
     rows = db.execute(select(Finding, SourcePassage, BrandGuidelineSource).outerjoin(SourcePassage, (SourcePassage.organization_id == Finding.organization_id) & (SourcePassage.id == Finding.source_passage_id)).outerjoin(BrandGuidelineSource, (BrandGuidelineSource.organization_id == SourcePassage.organization_id) & (BrandGuidelineSource.id == SourcePassage.source_id)).where(Finding.organization_id == org_id, Finding.scan_id == scan_id).order_by(Finding.created_at, Finding.id)).all()
-    return [FindingResponse.model_validate({**finding.__dict__, "source_title": source.title if source else None, "source_version": source.version if source else None, "source_text": passage.text if passage else None}) for finding, passage, source in rows]
+    return [_finding_response(finding, passage, source) for finding, passage, source in rows]
 
 
 @router.get("/orgs/{org_id}/campaigns/{campaign_id}/scans/{scan_id}/facts", response_model=list[FactResponse])
@@ -404,12 +438,12 @@ def decide_finding(org_id: str, campaign_id: str, finding_id: str, payload: Find
     finding.status = "dismissed" if payload.decision == "dismiss" else "resolved"
     finding.dismissal_reason = (payload.dismissal_reason or "").strip() or None
     finding.resolution = (payload.resolution or "").strip() or None
-    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"finding.{payload.decision}d" if payload.decision == "resolve" else "finding.dismissed", entity_type="finding", entity_id=finding.id, details={"scan_id": finding.scan_id, "reason": finding.dismissal_reason or finding.resolution}))
+    _record_recurrent_finding_feedback(db, finding=finding, organization_id=org_id, actor_id=membership.user_id, action="finding.resolved" if payload.decision == "resolve" else "finding.dismissed")
     db.commit()
     db.refresh(finding)
     passage = db.get(SourcePassage, finding.source_passage_id) if finding.source_passage_id else None
     source = db.get(BrandGuidelineSource, passage.source_id) if passage else None
-    return FindingResponse.model_validate({**finding.__dict__, "source_title": source.title if source else None, "source_version": source.version if source else None, "source_text": passage.text if passage else None})
+    return _finding_response(finding, passage, source)
 
 
 @router.post("/orgs/{org_id}/campaigns/{campaign_id}/findings/{finding_id}/clarification", response_model=FindingResponse)
@@ -430,7 +464,7 @@ def request_finding_clarification(org_id: str, campaign_id: str, finding_id: str
         send_user_email(db, sender, user_id=admin_id, subject="BrandLens finding needs clarification", text=f"A campaign finding needs clarification.\nQuestion: {payload.question}")
     passage = db.get(SourcePassage, finding.source_passage_id) if finding.source_passage_id else None
     source = db.get(BrandGuidelineSource, passage.source_id) if passage else None
-    return FindingResponse.model_validate({**finding.__dict__, "source_title": source.title if source else None, "source_version": source.version if source else None, "source_text": passage.text if passage else None})
+    return _finding_response(finding, passage, source)
 
 
 def _review_response(row: Review, campaign: Campaign, asset: Asset) -> ReviewResponse:
@@ -551,6 +585,66 @@ def decide_review_submission(org_id: str, submission_id: str, payload: ReviewDec
 def list_notifications(org_id: str, context=Depends(get_auth_context), db: Session = Depends(get_db)):
     _campaign_member(org_id, context.user.id, db)
     return db.scalars(select(Notification).where(Notification.organization_id == org_id, Notification.user_id == context.user.id).order_by(Notification.created_at.desc()).limit(100)).all()
+
+
+@router.get("/orgs/{org_id}/guideline-update-suggestions", response_model=list[GuidelineSuggestionResponse])
+def list_guideline_update_suggestions(org_id: str, status: str | None = None, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    _campaign_member(org_id, context.user.id, db)
+    statement = select(GuidelineUpdateSuggestion).where(GuidelineUpdateSuggestion.organization_id == org_id)
+    if status:
+        if status not in {"pending", "accepted", "ignored"}:
+            raise HTTPException(status_code=422, detail="Unknown suggestion status.")
+        statement = statement.where(GuidelineUpdateSuggestion.status == status)
+    return db.scalars(statement.order_by(GuidelineUpdateSuggestion.created_at.desc())).all()
+
+
+@router.post("/orgs/{org_id}/guideline-update-suggestions/{suggestion_id}/decision", response_model=GuidelineSuggestionResponse)
+def decide_guideline_update_suggestion(org_id: str, suggestion_id: str, payload: GuidelineSuggestionDecision, membership: Membership = Depends(require_org_role("admin")), db: Session = Depends(get_db)):
+    suggestion = db.scalar(select(GuidelineUpdateSuggestion).where(GuidelineUpdateSuggestion.organization_id == org_id, GuidelineUpdateSuggestion.id == suggestion_id).with_for_update())
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="Guideline update suggestion not found.")
+    if suggestion.status != "pending":
+        expected = "accepted" if payload.decision == "accept" else "ignored"
+        if suggestion.status == expected:
+            return suggestion
+        raise HTTPException(status_code=409, detail="This suggestion already has a different decision.")
+    suggestion.status = "accepted" if payload.decision == "accept" else "ignored"
+    suggestion.reviewed_by = membership.user_id
+    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"guideline_update_suggestion.{suggestion.status}", entity_type="guideline_update_suggestion", entity_id=suggestion.id, details={"suggested_change": suggestion.suggested_change, "rules_changed": False}))
+    db.commit()
+    db.refresh(suggestion)
+    return suggestion
+
+
+@router.post("/orgs/{org_id}/brand-twin/ask", response_model=BrandTwinAnswer)
+def ask_brand_twin(org_id: str, payload: BrandTwinQuestion, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    _campaign_member(org_id, context.user.id, db)
+    enforce_rate_limit(f"brand-twin:{org_id}:{context.user.id}", limit=30, window_seconds=3600)
+    question = payload.question.strip()
+    retrieved = retrieve_top_passages(db, org_id, question, datetime.now(UTC).date())
+    query_terms = {token for token in re.findall(r"[^\W_]{2,}", question.casefold(), flags=re.UNICODE)}
+    citations = []
+    answers = []
+    for result in retrieved:
+        passage = db.scalar(select(SourcePassage).where(SourcePassage.organization_id == org_id, SourcePassage.id == result["passage_id"]))
+        source = db.scalar(select(BrandGuidelineSource).where(BrandGuidelineSource.organization_id == org_id, BrandGuidelineSource.id == result["source_id"]))
+        if not passage or not source:
+            continue
+        candidates = [sentence.strip() for sentence in re.split(r"(?<=[.!?।])\s+|\n+", passage.text) if sentence.strip()]
+        best = max(candidates, key=lambda sentence: len(query_terms & set(re.findall(r"[^\W_]{2,}", sentence.casefold(), flags=re.UNICODE))), default="")
+        overlap = len(query_terms & set(re.findall(r"[^\W_]{2,}", best.casefold(), flags=re.UNICODE))) if best else 0
+        if overlap == 0 or result["similarity"] <= 0:
+            continue
+        citations.append(BrandTwinCitation(source_id=source.id, source_title=source.title, source_version=source.version, passage_id=passage.id, page_number=passage.page_number, location_label=passage.location_label, excerpt=best))
+        answers.append(best)
+        if len(citations) == 3:
+            break
+    if not citations:
+        return BrandTwinAnswer(answer="I could not find matching approved evidence for that question. Please ask an Admin to review the source library.", insufficient_evidence=True, citations=[])
+    answer = "Approved source material says: " + " ".join(answers)
+    db.add(AuditEvent(organization_id=org_id, actor_user_id=context.user.id, action="brand_twin.asked", entity_type="organization", entity_id=org_id, details={"citation_passage_ids": [citation.passage_id for citation in citations], "insufficient_evidence": False}))
+    db.commit()
+    return BrandTwinAnswer(answer=answer, insufficient_evidence=False, citations=citations)
 
 
 @router.post("/orgs/{org_id}/notifications/{notification_id}/read", response_model=NotificationResponse)
