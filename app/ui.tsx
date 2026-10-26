@@ -56,7 +56,7 @@ export function ThemeToggle() {
     localStorage.setItem("brandlens-theme", next ? "dark" : "light");
     window.dispatchEvent(new Event("brandlens-theme-change"));
   }
-  return <button className="theme-toggle" type="button" onClick={toggle} aria-label={`Switch to ${dark ? "light" : "dark"} mode`} title="Toggle color theme">{dark ? "Light" : "Dark"}</button>;
+  return <button className="theme-toggle" type="button" onClick={toggle} aria-label={`Switch to ${dark ? "light" : "dark"} mode`} title="Toggle color theme"><span aria-hidden="true">{dark ? "🌙" : "☀️"}</span></button>;
 }
 
 export function SiteHeader() {

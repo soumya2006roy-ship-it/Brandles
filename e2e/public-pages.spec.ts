@@ -16,6 +16,19 @@ test("demo is presented as a read-only sample workspace", async ({ page }) => {
   await expect(page.getByText(/Changes and external model calls are disabled\./i)).toBeVisible();
 });
 
+test("theme button switches its icon between sun and moon", async ({ page }) => {
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: "Switch to dark mode" });
+  await expect(toggle).toHaveText("☀️");
+  await toggle.click();
+
+  const switchToLight = page.getByRole("button", { name: "Switch to light mode" });
+  await expect(switchToLight).toHaveText("🌙");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await switchToLight.click();
+  await expect(page.getByRole("button", { name: "Switch to dark mode" })).toHaveText("☀️");
+});
+
 test("key public pages have no automated axe violations", async ({ page }) => {
   for (const route of ["/", "/features", "/security", "/privacy"]) {
     await page.goto(route);
