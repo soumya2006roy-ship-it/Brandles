@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Use a fresh directory outside OneDrive's synced .next placeholders on Windows.
   distDir: ".next-brandlens-build",
+  output: "standalone",
   poweredByHeader: false,
   images: { formats: ["image/avif", "image/webp"] },
   async headers() {

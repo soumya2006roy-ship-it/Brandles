@@ -1,9 +1,15 @@
 .git
 .next
+.next-build
+.next-brandlens-build
 node_modules
 api/.venv
 api/__pycache__
-api/.pytest_cache
 api/private-uploads
-.env*
+private-uploads
+.env
+.env.*
 !.env.example
+playwright-report
+test-results
+.lighthouseci
