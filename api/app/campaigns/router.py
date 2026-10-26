@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.assets.media import MAX_ASSET_BYTES, difference_hash, get_ocr_provider, scan_for_malware, similarity, sniff_and_normalize
 from app.auth.dependencies import get_auth_context, require_org_role
-from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignResponse, ClarificationRequest, DashboardCampaign, ExpiringOffer, FactResponse, FindingDecision, FindingListItem, FindingResponse, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse, WorkspaceDashboard
+from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignResponse, CampaignScanSummary, ClarificationRequest, DashboardCampaign, ExpiringOffer, FactResponse, FindingDecision, FindingListItem, FindingResponse, FindingsOverview, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse, WorkspaceDashboard
 from app.core.db import get_db
 from app.core.config import get_settings
 from app.core.mail import EmailSender, get_email_sender
@@ -208,7 +208,7 @@ def list_workspace_findings(org_id: str, status: str | None = None, severity: st
     results = []
     for finding, campaign_id, passage, source in rows:
         asset = assets_by_id.get(finding.asset_id)
-        if channel and (not asset or asset.channel.casefold() != channel.casefold()):
+        if channel and (not asset or channel.casefold() not in asset.channel.casefold()):
             continue
         campaign = campaign_by_id[campaign_id]
         response = _finding_response(finding, passage, source).model_dump()
@@ -217,6 +217,34 @@ def list_workspace_findings(org_id: str, status: str | None = None, severity: st
             continue
         results.append(FindingListItem.model_validate(response))
     return results[offset:offset + limit]
+
+
+@router.get("/orgs/{org_id}/findings/overview", response_model=FindingsOverview)
+def findings_overview(org_id: str, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    _campaign_member(org_id, context.user.id, db)
+    campaigns = db.scalars(select(Campaign).where(Campaign.organization_id == org_id, Campaign.deleted_at.is_(None)).order_by(Campaign.created_at.desc())).all()
+    summaries = []
+    for campaign in campaigns:
+        assets = db.scalars(select(Asset).where(Asset.organization_id == org_id, Asset.campaign_id == campaign.id, Asset.current.is_(True), Asset.deleted_at.is_(None))).all()
+        scan = db.scalar(select(Scan).where(Scan.organization_id == org_id, Scan.campaign_id == campaign.id).order_by(Scan.created_at.desc(), Scan.id.desc()).limit(1))
+        current = bool(scan and _scan_is_current(db, org_id, campaign.id, scan, assets))
+        scan_status = scan.status if scan else None
+        if scan and scan.status == "completed" and not current:
+            scan_status = "stale"
+        finding_count = db.scalar(select(func.count(Finding.id)).where(Finding.organization_id == org_id, Finding.scan_id == scan.id)) if scan else 0
+        summaries.append(CampaignScanSummary(
+            campaign_id=campaign.id,
+            campaign_name=campaign.name,
+            channels=campaign.channels,
+            current_asset_count=len(assets),
+            latest_scan_status=scan_status,
+            latest_scan_at=scan.completed_at or scan.created_at if scan else None,
+            latest_scan_finding_count=finding_count or 0,
+            scan_is_current=current,
+        ))
+    approved_sources = db.scalar(select(func.count(BrandGuidelineSource.id)).where(BrandGuidelineSource.organization_id == org_id, BrandGuidelineSource.status == "approved", BrandGuidelineSource.deleted_at.is_(None))) or 0
+    active_rules = db.scalar(select(func.count(Rule.id)).where(Rule.organization_id == org_id, Rule.status == "active")) or 0
+    return FindingsOverview(campaigns=summaries, approved_source_count=approved_sources, active_rule_count=active_rules)
 
 
 @router.post("/orgs/{org_id}/campaigns", response_model=CampaignResponse, status_code=201)

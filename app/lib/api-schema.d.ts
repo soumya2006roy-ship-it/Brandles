@@ -674,6 +674,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/findings/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Findings Overview */
+        get: operations["findings_overview_api_v1_orgs__org_id__findings_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}": {
         parameters: {
             query?: never;
@@ -1217,6 +1234,25 @@ export interface components {
              */
             created_at: string;
         };
+        /** CampaignScanSummary */
+        CampaignScanSummary: {
+            /** Campaign Id */
+            campaign_id: string;
+            /** Campaign Name */
+            campaign_name: string;
+            /** Channels */
+            channels: string[];
+            /** Current Asset Count */
+            current_asset_count: number;
+            /** Latest Scan Status */
+            latest_scan_status: string | null;
+            /** Latest Scan At */
+            latest_scan_at: string | null;
+            /** Latest Scan Finding Count */
+            latest_scan_finding_count: number;
+            /** Scan Is Current */
+            scan_is_current: boolean;
+        };
         /** ClarificationRequest */
         ClarificationRequest: {
             /** Question */
@@ -1388,6 +1424,15 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** FindingsOverview */
+        FindingsOverview: {
+            /** Campaigns */
+            campaigns: components["schemas"]["CampaignScanSummary"][];
+            /** Approved Source Count */
+            approved_source_count: number;
+            /** Active Rule Count */
+            active_rule_count: number;
         };
         /** GuidelineSuggestionDecision */
         GuidelineSuggestionDecision: {
@@ -3363,6 +3408,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FindingListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    findings_overview_api_v1_orgs__org_id__findings_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingsOverview"];
                 };
             };
             /** @description Validation Error */

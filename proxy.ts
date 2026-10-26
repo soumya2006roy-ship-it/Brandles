@@ -9,7 +9,9 @@ export function proxy(request: NextRequest) {
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    // Next's development runtime injects inline styles for its overlay and HMR.
+    // Keep production nonce-only while allowing those development styles locally.
+    `style-src 'self' ${development ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
     // Next Image adds a color fallback style attribute; style elements remain nonce-only.
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob:",

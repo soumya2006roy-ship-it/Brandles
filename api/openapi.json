@@ -2354,6 +2354,53 @@
         ]
       }
     },
+    "/api/v1/orgs/{org_id}/findings/overview": {
+      "get": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Findings Overview",
+        "operationId": "findings_overview_api_v1_orgs__org_id__findings_overview_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingsOverview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}": {
       "get": {
         "tags": [
@@ -4324,6 +4371,72 @@
         ],
         "title": "CampaignResponse"
       },
+      "CampaignScanSummary": {
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "title": "Campaign Id"
+          },
+          "campaign_name": {
+            "type": "string",
+            "title": "Campaign Name"
+          },
+          "channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Channels"
+          },
+          "current_asset_count": {
+            "type": "integer",
+            "title": "Current Asset Count"
+          },
+          "latest_scan_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Scan Status"
+          },
+          "latest_scan_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Scan At"
+          },
+          "latest_scan_finding_count": {
+            "type": "integer",
+            "title": "Latest Scan Finding Count"
+          },
+          "scan_is_current": {
+            "type": "boolean",
+            "title": "Scan Is Current"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_id",
+          "campaign_name",
+          "channels",
+          "current_asset_count",
+          "latest_scan_status",
+          "latest_scan_at",
+          "latest_scan_finding_count",
+          "scan_is_current"
+        ],
+        "title": "CampaignScanSummary"
+      },
       "ClarificationRequest": {
         "properties": {
           "question": {
@@ -4955,6 +5068,32 @@
           "created_at"
         ],
         "title": "FindingResponse"
+      },
+      "FindingsOverview": {
+        "properties": {
+          "campaigns": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignScanSummary"
+            },
+            "type": "array",
+            "title": "Campaigns"
+          },
+          "approved_source_count": {
+            "type": "integer",
+            "title": "Approved Source Count"
+          },
+          "active_rule_count": {
+            "type": "integer",
+            "title": "Active Rule Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaigns",
+          "approved_source_count",
+          "active_rule_count"
+        ],
+        "title": "FindingsOverview"
       },
       "GuidelineSuggestionDecision": {
         "properties": {

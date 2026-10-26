@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   distDir: process.env.NODE_ENV === "development" ? ".next-brandlens-dev" : ".next-brandlens-build",
   output: "standalone",
   poweredByHeader: false,
+  // The workspace is meant to look like a finished product in local demo mode;
+  // keep Next's route inspector button out of the user interface.
+  devIndicators: false,
   images: { formats: ["image/avif", "image/webp"] },
   async headers() {
     const headers = [

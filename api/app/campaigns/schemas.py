@@ -219,3 +219,20 @@ class FindingListItem(FindingResponse):
     campaign_id: str
     campaign_name: str
     channel: str | None
+
+
+class CampaignScanSummary(BaseModel):
+    campaign_id: str
+    campaign_name: str
+    channels: list[str]
+    current_asset_count: int
+    latest_scan_status: str | None
+    latest_scan_at: datetime | None
+    latest_scan_finding_count: int
+    scan_is_current: bool
+
+
+class FindingsOverview(BaseModel):
+    campaigns: list[CampaignScanSummary]
+    approved_source_count: int
+    active_rule_count: int

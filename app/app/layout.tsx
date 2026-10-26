@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { ProductShell } from "@/app/app/product-shell";
 
 export default async function ProductLayout({ children }: Readonly<{ children: ReactNode }>) {
   const backend = process.env.BRANDLENS_BACKEND_URL;
@@ -19,5 +20,5 @@ export default async function ProductLayout({ children }: Readonly<{ children: R
   }
   if (response.status === 401) redirect("/login");
   if (!response.ok) return <main className="page-shell"><p role="alert">The BrandLens API could not verify your session. Try again shortly.</p></main>;
-  return children;
+  return <ProductShell>{children}</ProductShell>;
 }

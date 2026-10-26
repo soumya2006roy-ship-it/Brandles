@@ -1,32 +1,89 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { apiRequest, type User } from "@/app/lib/api-client";
+import { ThemeToggle } from "@/app/ui";
+
+type NavigationItem = { label: string; href: string; match: string };
 
 export function ProductShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const organizationId = pathname.match(/^\/app\/organisations\/([^/]+)/)?.[1];
+  const routeOrganizationId = pathname.match(/^\/app\/organisations\/([^/]+)/)?.[1];
+  const organizationId = routeOrganizationId === "new" ? undefined : routeOrganizationId;
 
   useEffect(() => {
-    apiRequest<User>("auth/me").then(setUser).catch(() => router.replace("/login")).finally(() => setLoading(false));
+    let active = true;
+    apiRequest<User>("auth/me")
+      .then((currentUser) => { if (active) setUser(currentUser); })
+      .catch(() => { if (active) router.replace("/login"); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [router]);
 
   async function signOut() {
-    try { await apiRequest<void>("auth/logout", { method: "POST" }); } finally { router.replace("/login"); router.refresh(); }
+    try { await apiRequest<void>("auth/logout", { method: "POST" }); }
+    finally { router.replace("/login"); router.refresh(); }
   }
+
+  const organizationNavigation: NavigationItem[] = organizationId ? [
+    { label: "Overview", href: `/app/organisations/${organizationId}`, match: `/app/organisations/${organizationId}` },
+    { label: "Campaigns", href: `/app/organisations/${organizationId}/campaigns`, match: `/app/organisations/${organizationId}/campaigns` },
+    { label: "Findings", href: `/app/organisations/${organizationId}/findings`, match: `/app/organisations/${organizationId}/findings` },
+    { label: "Reviews", href: `/app/organisations/${organizationId}/reviews`, match: `/app/organisations/${organizationId}/reviews` },
+    { label: "Approved sources", href: `/app/organisations/${organizationId}/sources`, match: `/app/organisations/${organizationId}/sources` },
+    { label: "Rules", href: `/app/organisations/${organizationId}/rules`, match: `/app/organisations/${organizationId}/rules` },
+    { label: "Team & invites", href: `/app/organisations/${organizationId}#team`, match: "#never-active" },
+    { label: "Settings", href: `/app/organisations/${organizationId}#settings`, match: "#never-active" },
+    { label: "Audit log", href: `/app/organisations/${organizationId}/audit`, match: `/app/organisations/${organizationId}/audit` },
+  ] : [];
+  const accountNavigation: NavigationItem[] = [
+    { label: "Organisations", href: "/app", match: "/app" },
+    { label: "Platform verification", href: "/app/admin/verifications", match: "/app/admin" },
+    { label: "Sessions", href: "/app/account/sessions", match: "/app/account" },
+    { label: "Security overview", href: "/app/security", match: "/app/security" },
+    { label: "Join with an invite", href: "/app/invite", match: "/app/invite" },
+  ];
 
   if (loading) return <main className="product-loading" aria-live="polite"><p className="eyebrow">BrandLens workspace</p><h1>Checking your session</h1><div className="loading-rule"/></main>;
   if (!user) return <main className="product-loading"><p>Opening sign in…</p></main>;
 
+  const navigation = organizationId ? organizationNavigation : accountNavigation;
   return <div className="product-frame">
     <a className="skip-link" href="#workspace-main">Skip to workspace</a>
-    <header className="product-header"><Link className="product-brand" href="/app">BrandLens <span>Workspace</span></Link><nav aria-label="Workspace navigation"><Link aria-current={pathname === "/app" ? "page" : undefined} href="/app">Organisations</Link>{organizationId && <><Link href={`/app/organisations/${organizationId}`}>Dashboard</Link><Link href={`/app/organisations/${organizationId}/campaigns`}>Campaigns</Link><Link href={`/app/organisations/${organizationId}/findings`}>Findings</Link><Link href={`/app/organisations/${organizationId}/reviews`}>Reviews</Link><Link href={`/app/organisations/${organizationId}/sources`}>Sources</Link><Link href={`/app/organisations/${organizationId}/rules`}>Rules</Link><Link href={`/app/organisations/${organizationId}#team`}>Team & invites</Link><Link href={`/app/organisations/${organizationId}#settings`}>Settings</Link><Link href={`/app/organisations/${organizationId}/audit`}>Audit log</Link></>}<Link aria-current={pathname.startsWith("/app/admin") ? "page" : undefined} href="/app/admin/verifications">Platform admin</Link><Link aria-current={pathname.startsWith("/app/account") ? "page" : undefined} href="/app/account/sessions">Sessions</Link><Link aria-current={pathname.startsWith("/app/security") ? "page" : undefined} href="/app/security">Security</Link><Link href="/app/invite">Join with an invite code</Link></nav><div className="product-user"><span>{user.display_name}</span><button type="button" onClick={signOut}>Sign out</button></div></header>
-    <main id="workspace-main" className="product-main">{children}</main>
-    <footer className="product-footer"><span>BrandLens workspace</span><Link href="/privacy">Privacy information</Link><Link href="/security">Security overview</Link></footer>
+    <header className="product-header">
+      <Link className="product-brand" href="/app" aria-label="BrandLens workspace home">
+        <Image className="product-brand-mark" src="/icon-192.png" width={48} height={48} alt="" priority/>
+        <span className="product-brand-copy">BrandLens<small>Workspace</small></span>
+      </Link>
+      <div className="product-header-actions">
+        <span className="product-user-name">{user.display_name}</span>
+        <ThemeToggle/>
+        <button className="product-signout" type="button" onClick={signOut}>Sign out</button>
+      </div>
+    </header>
+    <div className="product-layout">
+      <aside className="product-sidebar" aria-label="Workspace menu">
+        {organizationId && <div className="sidebar-context"><span className="sidebar-context-mark" aria-hidden="true">W</span><span><small>Current workspace</small><strong>Organisation</strong></span></div>}
+        <p className="sidebar-label">{organizationId ? "WORKSPACE" : "YOUR ACCOUNT"}</p>
+        <nav className="product-nav" aria-label={organizationId ? "Organisation navigation" : "Account navigation"}>
+          {navigation.map((item) => {
+            const active = item.match !== "#never-active" && (pathname === item.match || (item.match !== "/app" && pathname.startsWith(`${item.match}/`)));
+            return <Link key={item.label} href={item.href} aria-current={active ? "page" : undefined} className={active ? "product-nav-link is-active" : "product-nav-link"}><span className="product-nav-indicator" aria-hidden="true"/>{item.label}</Link>;
+          })}
+        </nav>
+        {organizationId && <Link className="sidebar-back-link" href="/app">← All organisations</Link>}
+        <div className="sidebar-note"><span className="sidebar-note-dot" aria-hidden="true"/><span><strong>Evidence first</strong><small>Checks are grounded in approved sources.</small></span></div>
+      </aside>
+      <div className="product-content-column">
+        <main id="workspace-main" className="product-main">{children}</main>
+        <footer className="product-footer"><span>BrandLens workspace</span><Link href="/privacy">Privacy information</Link><Link href="/security">Security overview</Link></footer>
+      </div>
+    </div>
   </div>;
 }
