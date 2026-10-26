@@ -257,6 +257,14 @@ ins { color: var(--green); text-decoration: none; background: color-mix(in srgb,
 .preview-truncation { margin-top: 10px !important; color: var(--muted); font-size: 12px; }
 .brand-twin { margin: 20px 0; }
 .brand-twin-citation { padding: 12px; border-inline-start: 3px solid var(--accent); background: var(--surface); }
+.dashboard-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+.dashboard-metrics > * { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+.dashboard-metrics span, .dashboard-panels li span { color: var(--muted); font-size: 13px; }
+.dashboard-metrics strong { font-size: 26px; }
+.dashboard-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 18px; }
+.dashboard-panels > div { min-width: 0; }
+.notification-preferences { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; }
+.notification-preferences label { display: inline-flex; align-items: center; gap: 8px; }
 .finding-decision { margin-block: 16px; }
 @media (max-width: 600px) { .finding-filters, .campaign-consistency-graph { padding: 12px; } }
 .finding-card-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

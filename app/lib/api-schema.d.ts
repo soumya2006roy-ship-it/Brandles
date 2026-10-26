@@ -226,6 +226,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{organization_id}/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Audit Events */
+        get: operations["list_audit_events_api_v1_orgs__organization_id__audit_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{organization_id}/invites": {
         parameters: {
             query?: never;
@@ -361,6 +378,24 @@ export interface paths {
         head?: never;
         /** Update Workspace Settings */
         patch: operations["update_workspace_settings_api_v1_orgs__organization_id__settings_patch"];
+        trace?: never;
+    };
+    "/api/v1/orgs/{organization_id}/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Notification Preferences */
+        get: operations["get_notification_preferences_api_v1_orgs__organization_id__notification_preferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Notification Preferences */
+        patch: operations["update_notification_preferences_api_v1_orgs__organization_id__notification_preferences_patch"];
         trace?: never;
     };
     "/api/v1/private-files/{organization_id}/{object_key}": {
@@ -513,6 +548,40 @@ export interface paths {
         put?: never;
         /** Create Campaign */
         post: operations["create_campaign_api_v1_orgs__org_id__campaigns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workspace Dashboard */
+        get: operations["workspace_dashboard_api_v1_orgs__org_id__dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workspace Findings */
+        get: operations["list_workspace_findings_api_v1_orgs__org_id__findings_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -860,6 +929,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sample-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sample Workspace */
+        get: operations["get_sample_workspace_api_v1_sample_workspace_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -904,6 +990,30 @@ export interface components {
             logo_matches: {
                 [key: string]: unknown;
             }[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AuditEventResponse */
+        AuditEventResponse: {
+            /** Id */
+            id: string;
+            /** Actor User Id */
+            actor_user_id: string | null;
+            /** Actor Name */
+            actor_name: string | null;
+            /** Action */
+            action: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Entity Id */
+            entity_id: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
             /**
              * Created At
              * Format: date-time
@@ -1043,6 +1153,38 @@ export interface components {
             /** Question */
             question: string;
         };
+        /** DashboardCampaign */
+        DashboardCampaign: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ExpiringOffer */
+        ExpiringOffer: {
+            /** Rule Id */
+            rule_id: string;
+            /** Rule Type */
+            rule_type: string;
+            /** Offer Name */
+            offer_name: string | null;
+            /**
+             * Expires At
+             * Format: date
+             */
+            expires_at: string;
+            /** Source Title */
+            source_title: string;
+            /** Source Version */
+            source_version: number;
+        };
         /** FactResponse */
         FactResponse: {
             /** Id */
@@ -1070,6 +1212,60 @@ export interface components {
             resolution?: string | null;
             /** Dismissal Reason */
             dismissal_reason?: string | null;
+        };
+        /** FindingListItem */
+        FindingListItem: {
+            /** Id */
+            id: string;
+            /** Scan Id */
+            scan_id: string;
+            /** Asset Id */
+            asset_id: string | null;
+            /** Finding Type */
+            finding_type: string;
+            /** Severity */
+            severity: string;
+            /** Status */
+            status: string;
+            /** Flagged Region */
+            flagged_region: {
+                [key: string]: unknown;
+            } | null;
+            /** Rule Id */
+            rule_id: string | null;
+            /** Source Passage Id */
+            source_passage_id: string | null;
+            /** Source Title */
+            source_title?: string | null;
+            /** Source Version */
+            source_version?: number | null;
+            /** Source Page Number */
+            source_page_number?: number | null;
+            /** Source Location Label */
+            source_location_label?: string | null;
+            /** Source Text */
+            source_text?: string | null;
+            /** Quoted Excerpt */
+            quoted_excerpt: string | null;
+            /** Confidence */
+            confidence: number | null;
+            /** Suggested Fix */
+            suggested_fix: string | null;
+            /** Resolution */
+            resolution: string | null;
+            /** Dismissal Reason */
+            dismissal_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Campaign Id */
+            campaign_id: string;
+            /** Campaign Name */
+            campaign_name: string;
+            /** Channel */
+            channel: string | null;
         };
         /** FindingResponse */
         FindingResponse: {
@@ -1215,6 +1411,13 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+        };
+        /** NotificationPreferences */
+        NotificationPreferences: {
+            /** In App */
+            in_app: boolean;
+            /** Email */
+            email: boolean;
         };
         /** NotificationResponse */
         NotificationResponse: {
@@ -1446,6 +1649,23 @@ export interface components {
             /** Source Passage Id */
             source_passage_id: string;
         };
+        /** SampleWorkspaceResponse */
+        SampleWorkspaceResponse: {
+            /** Organization Name */
+            organization_name: string;
+            campaign: components["schemas"]["CampaignResponse"];
+            /** Assets */
+            assets: components["schemas"]["AssetResponse"][];
+            /** Findings */
+            findings: components["schemas"]["FindingResponse"][];
+            /** Facts */
+            facts: components["schemas"]["FactResponse"][];
+            /**
+             * Read Only
+             * @default true
+             */
+            read_only: boolean;
+        };
         /** ScanResponse */
         ScanResponse: {
             /** Id */
@@ -1646,6 +1866,17 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** WorkspaceDashboard */
+        WorkspaceDashboard: {
+            /** Pending Reviews */
+            pending_reviews: number;
+            /** Open Findings */
+            open_findings: number;
+            /** Recent Campaigns */
+            recent_campaigns: components["schemas"]["DashboardCampaign"][];
+            /** Expiring Offers */
+            expiring_offers: components["schemas"]["ExpiringOffer"][];
         };
         /** WorkspaceSettings */
         WorkspaceSettings: {
@@ -2048,6 +2279,41 @@ export interface operations {
             };
         };
     };
+    list_audit_events_api_v1_orgs__organization_id__audit_events_get: {
+        parameters: {
+            query?: {
+                action?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_invites_api_v1_orgs__organization_id__invites_get: {
         parameters: {
             query?: never;
@@ -2307,6 +2573,72 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WorkspaceSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_notification_preferences_api_v1_orgs__organization_id__notification_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_notification_preferences_api_v1_orgs__organization_id__notification_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPreferences"];
             };
         };
         responses: {
@@ -2727,6 +3059,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    workspace_dashboard_api_v1_orgs__org_id__dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDashboard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspace_findings_api_v1_orgs__org_id__findings_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                severity?: string | null;
+                finding_type?: string | null;
+                channel?: string | null;
+                search?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingListItem"][];
                 };
             };
             /** @description Validation Error */
@@ -3442,6 +3844,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sample_workspace_api_v1_sample_workspace_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleWorkspaceResponse"];
                 };
             };
         };

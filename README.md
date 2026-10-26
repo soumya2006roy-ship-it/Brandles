@@ -1,6 +1,6 @@
 # BrandLens
 
-BrandLens is an editorial website and an early organisation workspace for the source-based brand governance concept described in [`docs/brandlens-proposal.md`](docs/brandlens-proposal.md). Proposal language is the source of truth. The Hindi checker and platform previews remain simple rule-based prototypes.
+BrandLens is an editorial website and an organisation workspace for the source-based brand governance concept described in [`docs/brandlens-proposal.md`](docs/brandlens-proposal.md). Proposal language is the source of truth. The Hindi checker and platform previews remain simple rule-based prototypes.
 
 ## Local setup
 
@@ -16,6 +16,17 @@ npm run dev:all
 `dev:all` starts Next.js, FastAPI, PostgreSQL with pgvector, Redis, MinIO, a background worker, and Mailpit. Visit `http://localhost:3000`; local email is captured at `http://localhost:8025`. The compose stack uses development-only credentials from `.env.example`. Change them before exposing any service outside localhost.
 
 On Windows, `start-brandlens.bat` opens the full stack when Docker Desktop is running; without Docker, it starts the public marketing site only.
+
+### Sample workspace
+
+`/demo` reads the fictional skincare workspace from the public, read-only `GET /api/v1/sample-workspace` endpoint. After starting the API and applying migrations, seed the sample with:
+
+```powershell
+Set-Location api
+.venv\Scripts\python.exe scripts\seed_sample_workspace.py
+```
+
+The seed command is idempotent. It creates a dedicated sample organization and campaign scan, and refuses to expose regular customer workspaces through the public route. The sample is unavailable until this command has run in the deployment database.
 
 To run only the marketing site, use `npm run dev`; account and organisation features require the API and database. To run the API outside Docker on Windows, create and activate a venv, install the requirements, then run Alembic and Uvicorn:
 
@@ -71,6 +82,7 @@ The workspace AI setting defaults off, and live provider adapters are absent. Do
 - Phase 4 provides queued, cancellable and resumable campaign scans with asset/rule snapshots, progress and per-organisation limits. Deterministic exact checks cover offer validity/discounts, banned and required phrases, logo version, channel limits, and language-scoped rules. The judgement interface uses top-five deterministic lexical-hash retrieval, strict validated JSON, evidence citation checks, confidence caps, and human-verification fallback. Model/prompt, retrieved passage IDs and latency are recorded without secrets. Campaign facts are normalized where possible and compared across assets; conflicts and unsupported facts remain review prompts. These checks are prototypes; no live LLM or semantic embedding provider is included.
 - Phase 5 provides filtered and grouped findings, evidence and suggested-text comparison, creator edits as new asset versions, reasoned dismissal, clarification requests, and rescans. Reviewer submissions are idempotent and bind to exact asset versions and the current scan/rule snapshot; reviewers cannot review their own submissions. Approval, rejection, request-changes history, in-app notifications and email notices are recorded. Campaign status is set by the API. The workflow does not publish to platforms or certify legal or regulatory compliance.
 - Phase 6 adds an expandable Evidence Map with source passage/page/version, expiry warnings for referenced offers, and Admin-only feedback suggestions after repeated creator decisions. Accepting a guideline suggestion records an Admin decision and never edits a rule. Brand Twin is an extractive assistant limited to effective approved passages; it cites each excerpt and refuses unmatched questions. Hindi exact checks and lexical retrieval are a limited-accuracy prototype. Instagram/LinkedIn-style previews use rule-based truncation and hashtag/link counts; they do not reflect live platform rendering or post content.
+- Phase 7 adds a server-data dashboard, campaign and finding views, review queue, sources/rules, team and invite management, notification/AI settings, platform verification and append-only audit history. `/demo` is now a read-only sandbox backed by explicitly seeded sample records; it does not use editable browser-only state. Dashboard and finding APIs are tenant-scoped and list endpoints provide bounded filters and pagination.
 - Invitation codes are stored as hashes, are scoped to one organisation and role, and have expiry/use limits. Accepted invitations create memberships. Platform administrators are assigned with the trusted CLI, not by self-service registration.
 - The compose stack is the default full local environment. Docker is required for that path. If Docker is unavailable, marketing-only `npm run dev` remains available; API tests run with SQLite and do not require Docker.
 - `NEXT_PUBLIC_SITE_URL` should be set to the real HTTPS domain before deployment. Resend requires an API key and verified sender. Production API sessions require a strong random `APP_SECRET_KEY`, a TLS endpoint, and `SESSION_COOKIE_SECURE=true`.
@@ -134,6 +146,7 @@ Deploy Next.js and FastAPI as separate Node and Python services. Provision Postg
 | P4 | Labelled evaluation set and metrics | `evals/brandlens.json`, `api/scripts/run_evals.py`, `api/tests/test_campaign_scans.py` |
 | P5 | Filtered findings, creator resolution and clarification, version-bound review queue/history, notifications | `api/app/campaigns/router.py`, `api/app/notifications/`, `api/app/db/models.py`, `app/app/organisations/campaigns/campaign-workspace.tsx`, `app/app/organisations/reviews/` |
 | P6 | Evidence Map, offer expiry warnings, feedback suggestions, bounded source Q&A and rule-based previews | `api/app/campaigns/router.py`, `api/app/campaigns/scans.py`, `api/app/checks/`, `app/app/organisations/brand-twin.tsx`, `app/app/organisations/campaigns/platform-preview.tsx` |
+| P7 | Dashboard, findings and audit views, organization workspace navigation, read-only seeded sample workspace | `api/app/campaigns/router.py`, `api/app/orgs/router.py`, `api/app/sample/`, `api/scripts/seed_sample_workspace.py`, `app/app/organisations/dashboard.tsx`, `app/app/organisations/audit-log.tsx`, `app/app/organisations/[organizationId]/findings/`, `app/(marketing)/demo/` |
 
 ## Performance notes
 

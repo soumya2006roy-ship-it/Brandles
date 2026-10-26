@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.assets.media import MAX_ASSET_BYTES, difference_hash, get_ocr_provider, scan_for_malware, similarity, sniff_and_normalize
 from app.auth.dependencies import get_auth_context, require_org_role
-from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignResponse, ClarificationRequest, FactResponse, FindingDecision, FindingResponse, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse
+from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignResponse, ClarificationRequest, DashboardCampaign, ExpiringOffer, FactResponse, FindingDecision, FindingListItem, FindingResponse, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse, WorkspaceDashboard
 from app.core.db import get_db
 from app.core.config import get_settings
 from app.core.mail import EmailSender, get_email_sender
@@ -145,6 +145,78 @@ def _extract_asset_text(sniffed, contents: bytes) -> tuple[str | None, str]:
 def list_campaigns(org_id: str, context=Depends(get_auth_context), db: Session = Depends(get_db)):
     _campaign_member(org_id, context.user.id, db)
     return db.scalars(select(Campaign).where(Campaign.organization_id == org_id, Campaign.deleted_at.is_(None)).order_by(Campaign.created_at.desc())).all()
+
+
+@router.get("/orgs/{org_id}/dashboard", response_model=WorkspaceDashboard)
+def workspace_dashboard(org_id: str, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    _campaign_member(org_id, context.user.id, db)
+    campaigns = db.scalars(select(Campaign).where(Campaign.organization_id == org_id, Campaign.deleted_at.is_(None)).order_by(Campaign.created_at.desc())).all()
+    recent = campaigns[:5]
+    open_count = 0
+    pending_submission_ids: set[str] = set()
+    for campaign in campaigns:
+        scan = db.scalar(select(Scan).where(Scan.organization_id == org_id, Scan.campaign_id == campaign.id).order_by(Scan.created_at.desc(), Scan.id.desc()).limit(1))
+        assets = db.scalars(select(Asset).where(Asset.organization_id == org_id, Asset.campaign_id == campaign.id, Asset.current.is_(True), Asset.deleted_at.is_(None))).all()
+        if not scan or not _scan_is_current(db, org_id, campaign.id, scan, assets):
+            continue
+        open_count += db.scalar(select(func.count(Finding.id)).where(Finding.organization_id == org_id, Finding.scan_id == scan.id, Finding.status.in_("open", "clarification_requested"))) or 0
+        pending_rows = db.scalars(select(Review).where(Review.organization_id == org_id, Review.scan_id == scan.id, Review.decision == "pending")).all()
+        pending_submission_ids.update(row.submission_id or row.id for row in pending_rows)
+
+    today = datetime.now(UTC).date()
+    horizon = today + timedelta(days=30)
+    offer_rows = db.execute(select(Rule, BrandGuidelineSource).join(SourcePassage, (SourcePassage.organization_id == Rule.organization_id) & (SourcePassage.id == Rule.source_passage_id)).join(BrandGuidelineSource, (BrandGuidelineSource.organization_id == SourcePassage.organization_id) & (BrandGuidelineSource.id == SourcePassage.source_id)).where(Rule.organization_id == org_id, Rule.status == "active", Rule.rule_type.in_(["discount_percent", "offer_name"]), BrandGuidelineSource.status == "approved", BrandGuidelineSource.deleted_at.is_(None))).all()
+    expiring = []
+    for rule, source in offer_rows:
+        deadlines = [value for value in (rule.valid_to, source.effective_to) if value]
+        if not deadlines:
+            continue
+        expires_at = min(deadlines)
+        if today <= expires_at <= horizon:
+            offer_name = str((rule.parameters or {}).get("value")) if (rule.parameters or {}).get("value") else None
+            expiring.append(ExpiringOffer(rule_id=rule.id, rule_type=rule.rule_type, offer_name=offer_name, expires_at=expires_at, source_title=source.title, source_version=source.version))
+    return WorkspaceDashboard(pending_reviews=len(pending_submission_ids), open_findings=open_count, recent_campaigns=[DashboardCampaign(id=item.id, name=item.name, status=item.status, created_at=item.created_at) for item in recent], expiring_offers=sorted(expiring, key=lambda item: item.expires_at))
+
+
+@router.get("/orgs/{org_id}/findings", response_model=list[FindingListItem])
+def list_workspace_findings(org_id: str, status: str | None = None, severity: str | None = None, finding_type: str | None = None, channel: str | None = None, search: str | None = None, offset: int = 0, limit: int = 50, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    _campaign_member(org_id, context.user.id, db)
+    if offset < 0 or limit < 1 or limit > 100:
+        raise HTTPException(status_code=422, detail="Use an offset of zero or more and a page size from 1 to 100.")
+    campaigns = db.scalars(select(Campaign).where(Campaign.organization_id == org_id, Campaign.deleted_at.is_(None))).all()
+    latest_scans = {}
+    campaign_by_id = {campaign.id: campaign for campaign in campaigns}
+    assets_by_id = {}
+    scan_ids = []
+    for campaign in campaigns:
+        scan = db.scalar(select(Scan).where(Scan.organization_id == org_id, Scan.campaign_id == campaign.id).order_by(Scan.created_at.desc(), Scan.id.desc()).limit(1))
+        assets = db.scalars(select(Asset).where(Asset.organization_id == org_id, Asset.campaign_id == campaign.id, Asset.current.is_(True), Asset.deleted_at.is_(None))).all()
+        if scan and _scan_is_current(db, org_id, campaign.id, scan, assets):
+            latest_scans[campaign.id] = scan
+            scan_ids.append(scan.id)
+            assets_by_id.update({asset.id: asset for asset in assets})
+    if not scan_ids:
+        return []
+    statement = select(Finding, Scan.campaign_id, SourcePassage, BrandGuidelineSource).join(Scan, (Scan.organization_id == Finding.organization_id) & (Scan.id == Finding.scan_id)).outerjoin(SourcePassage, (SourcePassage.organization_id == Finding.organization_id) & (SourcePassage.id == Finding.source_passage_id)).outerjoin(BrandGuidelineSource, (BrandGuidelineSource.organization_id == SourcePassage.organization_id) & (BrandGuidelineSource.id == SourcePassage.source_id)).where(Finding.organization_id == org_id, Finding.scan_id.in_(scan_ids))
+    if status:
+        statement = statement.where(Finding.status == status)
+    if severity:
+        statement = statement.where(Finding.severity == severity)
+    if finding_type:
+        statement = statement.where(Finding.finding_type == finding_type)
+    rows = db.execute(statement.order_by(Finding.created_at.desc(), Finding.id).limit(limit + offset)).all()
+    results = []
+    for finding, campaign_id, passage, source in rows:
+        asset = assets_by_id.get(finding.asset_id)
+        if channel and (not asset or asset.channel.casefold() != channel.casefold()):
+            continue
+        campaign = campaign_by_id[campaign_id]
+        response = _finding_response(finding, passage, source).model_dump()
+        response.update({"campaign_id": campaign.id, "campaign_name": campaign.name, "channel": asset.channel if asset else None})
+        if search and search.casefold() not in (campaign.name + " " + str((finding.flagged_region or {}).get("text", "")) + " " + finding.finding_type).casefold():
+            continue
+        results.append(FindingListItem.model_validate(response))
+    return results[offset:offset + limit]
 
 
 @router.post("/orgs/{org_id}/campaigns", response_model=CampaignResponse, status_code=201)
@@ -461,7 +533,7 @@ def request_finding_clarification(org_id: str, campaign_id: str, finding_id: str
     db.commit()
     db.refresh(finding)
     for admin_id in admins:
-        send_user_email(db, sender, user_id=admin_id, subject="BrandLens finding needs clarification", text=f"A campaign finding needs clarification.\nQuestion: {payload.question}")
+        send_user_email(db, sender, user_id=admin_id, organization_id=org_id, subject="BrandLens finding needs clarification", text=f"A campaign finding needs clarification.\nQuestion: {payload.question}")
     passage = db.get(SourcePassage, finding.source_passage_id) if finding.source_passage_id else None
     source = db.get(BrandGuidelineSource, passage.source_id) if passage else None
     return _finding_response(finding, passage, source)
@@ -506,7 +578,7 @@ def submit_campaign_for_review(org_id: str, campaign_id: str, payload: ReviewSub
     db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action="campaign.submitted_for_review", entity_type="campaign", entity_id=campaign.id, details={"scan_id": scan.id, "submission_id": submission_id, "asset_versions": {asset.id: asset.version for asset in assets}}))
     db.commit()
     for reviewer_id in reviewers:
-        send_user_email(db, sender, user_id=reviewer_id, subject=f"BrandLens review requested: {campaign.name}", text=f"A campaign was submitted for review. Open the organisation workspace to inspect findings and asset versions.\nCampaign: {campaign.name}")
+        send_user_email(db, sender, user_id=reviewer_id, organization_id=org_id, subject=f"BrandLens review requested: {campaign.name}", text=f"A campaign was submitted for review. Open the organisation workspace to inspect findings and asset versions.\nCampaign: {campaign.name}")
     return [_review_response(row, campaign, asset) for row, asset in zip(reviews, assets, strict=False)]
 
 
@@ -577,7 +649,7 @@ def decide_review_submission(org_id: str, submission_id: str, payload: ReviewDec
     db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"campaign.review_{decision}", entity_type="campaign", entity_id=campaign.id, details={"scan_id": scan.id, "submission_id": submission_id, "asset_versions": {asset.id: asset.version for asset in current_assets}, "comment": payload.comment}))
     db.commit()
     for recipient in recipients:
-        send_user_email(db, sender, user_id=recipient, subject=f"BrandLens review {decision.replace('_', ' ')}: {campaign.name}", text=f"A reviewer recorded {decision.replace('_', ' ')} for campaign {campaign.name}.\n{payload.comment or ''}")
+        send_user_email(db, sender, user_id=recipient, organization_id=org_id, subject=f"BrandLens review {decision.replace('_', ' ')}: {campaign.name}", text=f"A reviewer recorded {decision.replace('_', ' ')} for campaign {campaign.name}.\n{payload.comment or ''}")
     return [_review_response(row, campaign, asset) for row, asset in zip(reviews, current_assets, strict=False)]
 
 

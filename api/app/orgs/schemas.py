@@ -42,6 +42,17 @@ class VerificationHistoryItem(BaseModel):
     created_at: datetime
 
 
+class AuditEventResponse(BaseModel):
+    id: str
+    actor_user_id: str | None
+    actor_name: str | None
+    action: str
+    entity_type: str
+    entity_id: str
+    details: dict
+    created_at: datetime
+
+
 class InviteCreate(BaseModel):
     role: OrgRole
     expires_in_days: int = Field(default=7, ge=1, le=30)

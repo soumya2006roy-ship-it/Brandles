@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Breadcrumbs } from "@/app/ui";
 import { BreadcrumbJsonLd } from "@/app/structured-data";
-import { DemoLoader } from "@/app/(marketing)/demo/demo-loader";
+import { SampleWorkspace } from "@/app/(marketing)/demo/sample-workspace";
 
-export const metadata: Metadata = { title: "Guided demo", description: "Explore a local simulation of the BrandLens skincare campaign review workflow.", alternates: { canonical: "/demo" }, openGraph: { type: "article", title: "BrandLens guided demo", description: "Explore a local simulation of the BrandLens skincare campaign review workflow.", url: "/demo", images: ["/demo/opengraph-image"] }, twitter: { card: "summary_large_image", title: "BrandLens guided demo", description: "Explore a local simulation of the BrandLens skincare campaign review workflow.", images: ["/demo/opengraph-image"] } };
+export const metadata: Metadata = { title: "Try the sample workspace", description: "Explore a read-only sample workspace with seeded campaign assets and evidence-linked findings.", alternates: { canonical: "/demo" } };
 
 export default function DemoPage() {
-  return <main className="page-main"><div className="wrap page-wrap"><BreadcrumbJsonLd items={[{ name: "Home", path: "/" }, { name: "Guided demo", path: "/demo" }]}/><Breadcrumbs current="Guided demo"/><header className="page-hero demo-page-hero"><p className="eyebrow">Seeded local simulation</p><h1>Review the campaign <em>before it goes live.</em></h1><p className="page-intro">Explore the proposal’s imaginary skincare brand scenario. The scan uses seeded rules and sample evidence in this browser; it does not send content to an AI service or publish to a platform.</p></header><DemoLoader/></div></main>;
+  return <main className="page-main"><div className="wrap page-wrap"><BreadcrumbJsonLd items={[{ name: "Home", path: "/" }, { name: "Sample workspace", path: "/demo" }]}/><Breadcrumbs current="Sample workspace"/><header className="page-hero demo-page-hero"><p className="eyebrow">Read-only sample workspace</p><h1>Try the sample <em>workspace.</em></h1><p className="page-intro">Explore the proposal’s fictional skincare campaign using seeded records from the product API. Changes and external model calls are disabled.</p><p><Link className="text-link" href="/register">Create an organisation to start your own workspace</Link></p></header><SampleWorkspace/></div></main>;
 }

@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest, type Invite, type Organization, type OrganizationSummary } from "@/app/lib/api-client";
 import { BrandTwin } from "./brand-twin";
+import { OrganisationDashboard } from "./dashboard";
 
 type NewInvite = Invite & { code: string };
 type WorkspaceNotification = { id: string; kind: string; payload: Record<string, unknown>; read_at: string | null; created_at: string };
 type GuidelineSuggestion = { id: string; source_id: string | null; suggested_change: string; rationale: string; status: string; reviewed_by: string | null; created_at: string };
+type NotificationPreferences = { in_app: boolean; email: boolean };
 
 export function OrganisationWorkspace({ organizationId }: { organizationId: string }) {
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -15,6 +17,7 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
   const [invites, setInvites] = useState<Invite[]>([]);
   const [notifications, setNotifications] = useState<WorkspaceNotification[]>([]);
   const [guidelineSuggestions, setGuidelineSuggestions] = useState<GuidelineSuggestion[]>([]);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>({ in_app: true, email: true });
   const [newInvite, setNewInvite] = useState<NewInvite | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -27,7 +30,10 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
       const list = await apiRequest<OrganizationSummary[]>("orgs");
       const currentRole = list.find((item) => item.id === organizationId)?.role ?? "";
       setRole(currentRole);
-      if (org.verification_status === "approved") setNotifications(await apiRequest<WorkspaceNotification[]>(`orgs/${organizationId}/notifications`));
+      if (org.verification_status === "approved") {
+        const [notificationRows, preferences] = await Promise.all([apiRequest<WorkspaceNotification[]>(`orgs/${organizationId}/notifications`), apiRequest<NotificationPreferences>(`orgs/${organizationId}/notification-preferences`)]);
+        setNotifications(notificationRows); setNotificationPreferences(preferences);
+      }
       if (org.verification_status === "approved" && currentRole === "admin") {
         setInvites(await apiRequest<Invite[]>(`orgs/${organizationId}/invites`));
         setGuidelineSuggestions(await apiRequest<GuidelineSuggestion[]>(`orgs/${organizationId}/guideline-update-suggestions?status=pending`));
@@ -86,6 +92,11 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not record the Admin decision."); }
   }
 
+  async function updateNotificationPreferences(next: NotificationPreferences) {
+    try { const saved = await apiRequest<NotificationPreferences>(`orgs/${organizationId}/notification-preferences`, { method: "PATCH", body: JSON.stringify(next) }); setNotificationPreferences(saved); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save notification preferences."); }
+  }
+
   if (loading) return <div className="workspace-skeleton" aria-label="Loading organisation"><div/><div/></div>;
   if (!organization) return <p className="auth-message auth-error" role="alert">{error || "Organisation not found."}</p>;
   const canManage = role === "admin" && organization.verification_status === "approved";
@@ -95,12 +106,13 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
     {organization.verification_status === "more_information_required" && <section className="workspace-notice"><h2>More information is required</h2><p>Check with the platform team for the details needed to continue. Organisation resubmission is not available yet.</p></section>}
     {organization.verification_status === "rejected" && <section className="workspace-notice"><h2>Organisation not approved</h2><p>Workspace actions are unavailable. Contact the platform team if you believe this decision needs review.</p></section>}
     {error && <p className="auth-message auth-error" role="alert">{error}</p>}
-    {canManage && <section className="workspace-section"><div className="workspace-section-heading"><div><p className="eyebrow">Access</p><h2>Invite organisation members</h2><p>Create a role-scoped code. It is shown once and is never added to a URL.</p></div></div>
+    {organization.verification_status === "approved" && <OrganisationDashboard organizationId={organizationId}/>}
+    {canManage && <section id="team" className="workspace-section"><div className="workspace-section-heading"><div><p className="eyebrow">Access</p><h2>Invite organisation members</h2><p>Create a role-scoped code. It is shown once and is never added to a URL.</p></div></div>
       <form className="invite-form" onSubmit={createInvite}><label className="form-field">Role<select name="role" defaultValue="creator"><option value="admin">Admin</option><option value="creator">Creator</option><option value="reviewer">Reviewer</option></select></label><label className="form-field">Expires in days<input name="expires_in_days" type="number" min={1} max={30} defaultValue={7}/></label><label className="form-field">Uses<input name="usage_limit" type="number" min={1} max={100} defaultValue={1}/></label><button className="button button-primary" type="submit">Create invite code</button></form>
       {newInvite && <div className="one-time-code" role="status"><strong>Copy this invite code now</strong><p>This code is only shown in the creation response. Share it with the intended organisation member using a trusted channel.</p><code>{newInvite.code}</code><button className="small-button" type="button" onClick={() => navigator.clipboard.writeText(newInvite.code).catch(() => setError("Clipboard access is unavailable. Select and copy the code instead."))}>Copy code</button></div>}
       <h3>Active and revoked codes</h3>{invites.length ? <ul className="invite-list">{invites.map((invite) => <li key={invite.id}><div><strong>{invite.role}</strong><span>{invite.usage_count}/{invite.usage_limit} uses · expires {new Date(invite.expires_at).toLocaleDateString()}</span></div>{invite.revoked_at ? <span className="status-label">Revoked</span> : <div className="inline-actions"><button className="small-button" type="button" onClick={() => regenerate(invite.id)}>Regenerate</button><button className="small-button" type="button" onClick={() => revoke(invite.id)}>Revoke</button></div>}</li>)}</ul> : <p>No invite codes yet.</p>}
     </section>}
-    {organization.verification_status === "approved" && <section className="workspace-section"><p className="eyebrow">Notifications</p><h2>Workspace activity</h2>{notifications.length ? <ul className="invite-list">{notifications.map((notification) => <li key={notification.id}><div><strong>{notification.kind.replaceAll("_", " ")}</strong><span>{String(notification.payload.campaign_name ?? notification.payload.organization_name ?? "Workspace update")} · {new Date(notification.created_at).toLocaleString()}</span></div>{notification.read_at ? <span>Read</span> : <button className="small-button" type="button" onClick={() => void markRead(notification.id)}>Mark read</button>}</li>)}</ul> : <div className="workspace-empty"><p>No notifications yet.</p></div>}</section>}
+    {organization.verification_status === "approved" && <section id="settings" className="workspace-section"><p className="eyebrow">Notifications</p><h2>Workspace activity and preferences</h2><div className="notification-preferences"><label><input type="checkbox" checked={notificationPreferences.in_app} onChange={(event) => void updateNotificationPreferences({ ...notificationPreferences, in_app: event.target.checked })}/> In-app notifications</label><label><input type="checkbox" checked={notificationPreferences.email} onChange={(event) => void updateNotificationPreferences({ ...notificationPreferences, email: event.target.checked })}/> Email notifications</label></div>{notifications.length ? <ul className="invite-list">{notifications.map((notification) => <li key={notification.id}><div><strong>{notification.kind.replaceAll("_", " ")}</strong><span>{String(notification.payload.campaign_name ?? notification.payload.organization_name ?? "Workspace update")} · {new Date(notification.created_at).toLocaleString()}</span></div>{notification.read_at ? <span>Read</span> : <button className="small-button" type="button" onClick={() => void markRead(notification.id)}>Mark read</button>}</li>)}</ul> : <div className="workspace-empty"><p>No notifications yet.</p></div>}</section>}
     {canManage && <section className="workspace-section"><p className="eyebrow">AI processing</p><h2>Workspace permission</h2><p>External model processing is off by default. BrandLens will not send workspace material to an LLM unless both this organisation and the deployment allow it.</p><p className="settings-state">Current setting: <strong>{organization.llm_processing_allowed ? "Allowed" : "Off"}</strong></p><button className="button secondary-button" type="button" onClick={() => updateAiPreference(!organization.llm_processing_allowed)}>{organization.llm_processing_allowed ? "Turn off AI processing" : "Allow AI processing"}</button><p className="field-help">This repository has no live LLM provider adapter; the mock returns insufficient evidence only.</p></section>}
     {organization.verification_status === "approved" && <BrandTwin organizationId={organizationId}/>}
     {canManage && <section className="workspace-section"><p className="eyebrow">Feedback-to-guideline loop · suggestions only</p><h2>Suggested guideline updates</h2><p>Repeated creator resolutions or dismissals can suggest a pattern for Admin review. Accepting records the suggestion decision; it does not modify a source or rule.</p>{guidelineSuggestions.length ? <ul className="invite-list">{guidelineSuggestions.map((suggestion) => <li key={suggestion.id}><div><strong>{suggestion.suggested_change}</strong><span>{suggestion.rationale}</span></div><div className="inline-actions"><button className="small-button" type="button" onClick={() => void decideGuidelineSuggestion(suggestion.id, "accept")}>Accept suggestion</button><button className="small-button" type="button" onClick={() => void decideGuidelineSuggestion(suggestion.id, "ignore")}>Ignore</button></div></li>)}</ul> : <div className="workspace-empty"><p>No repeated finding feedback is waiting for review.</p></div>}</section>}

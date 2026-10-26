@@ -186,3 +186,32 @@ class BrandTwinAnswer(BaseModel):
     insufficient_evidence: bool
     citations: list[BrandTwinCitation]
     maturity: str = "bounded lexical retrieval prototype"
+
+
+class DashboardCampaign(BaseModel):
+    id: str
+    name: str
+    status: str
+    created_at: datetime
+
+
+class ExpiringOffer(BaseModel):
+    rule_id: str
+    rule_type: str
+    offer_name: str | None
+    expires_at: date
+    source_title: str
+    source_version: int
+
+
+class WorkspaceDashboard(BaseModel):
+    pending_reviews: int
+    open_findings: int
+    recent_campaigns: list[DashboardCampaign]
+    expiring_offers: list[ExpiringOffer]
+
+
+class FindingListItem(FindingResponse):
+    campaign_id: str
+    campaign_name: str
+    channel: str | None

@@ -55,6 +55,7 @@ class Organization(Base):
     contact_person: Mapped[str] = mapped_column(String(120), nullable=False)
     verification_status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending_verification")
     llm_processing_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_sample: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
@@ -73,6 +74,7 @@ class Membership(Base):
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(16), nullable=False)
+    notification_preferences: Mapped[dict[str, bool]] = mapped_column(JSON, nullable=False, default=lambda: {"in_app": True, "email": True})
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 

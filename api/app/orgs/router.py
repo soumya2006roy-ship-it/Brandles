@@ -14,7 +14,7 @@ from app.core.rate_limit import enforce_rate_limit
 from app.core.security import as_utc, digest_secret
 from app.db.models import AuditEvent, Invite, Membership, Organization, User, VerificationDecision
 from app.notifications.service import record_notification, send_user_email
-from app.orgs.schemas import InviteCreate, InviteRedeem, InviteResponse, InviteSummary, OrganizationCreate, OrganizationResponse, VerificationDecisionRequest, VerificationHistoryItem
+from app.orgs.schemas import AuditEventResponse, InviteCreate, InviteRedeem, InviteResponse, InviteSummary, OrganizationCreate, OrganizationResponse, VerificationDecisionRequest, VerificationHistoryItem
 
 router = APIRouter(tags=["organisations"])
 
@@ -69,6 +69,17 @@ def get_organization(organization_id: str, context=Depends(get_auth_context), db
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found.")
     return org
+
+
+@router.get("/orgs/{organization_id}/audit-events", response_model=list[AuditEventResponse])
+def list_audit_events(organization_id: str, action: str | None = None, offset: int = 0, limit: int = 50, membership: Membership = Depends(require_org_role("admin")), db: Session = Depends(get_db)):
+    if offset < 0 or limit < 1 or limit > 100:
+        raise HTTPException(status_code=422, detail="Use an offset of zero or more and a page size from 1 to 100.")
+    statement = select(AuditEvent, User.display_name).outerjoin(User, User.id == AuditEvent.actor_user_id).where(AuditEvent.organization_id == organization_id)
+    if action:
+        statement = statement.where(AuditEvent.action.ilike(f"%{action[:80]}%"))
+    rows = db.execute(statement.order_by(AuditEvent.created_at.desc(), AuditEvent.id).offset(offset).limit(limit)).all()
+    return [AuditEventResponse(id=event.id, actor_user_id=event.actor_user_id, actor_name=actor_name, action=event.action, entity_type=event.entity_type, entity_id=event.entity_id, details=event.details, created_at=event.created_at) for event, actor_name in rows]
 
 
 @router.post("/orgs/{organization_id}/invites", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
@@ -141,7 +152,7 @@ def redeem_invite(payload: InviteRedeem, request: Request, user: User = Depends(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="You already belong to this organisation.") from None
-    send_user_email(db, sender, user_id=user.id, subject=f"You joined {org.name} on BrandLens", text=f"You joined {org.name} as {invite.role}.")
+    send_user_email(db, sender, user_id=user.id, organization_id=org.id, subject=f"You joined {org.name} on BrandLens", text=f"You joined {org.name} as {invite.role}.")
     return {"message": "You joined the organisation.", "organization_id": org.id, "role": invite.role}
 
 
@@ -175,7 +186,7 @@ def decide_verification(organization_id: str, payload: VerificationDecisionReque
     record_notification(db, user_id=org.created_by, organization_id=org.id, kind="organization_verification_result", payload={"organization_id": org.id, "organization_name": org.name, "decision": payload.decision, "note": payload.note})
     db.commit()
     db.refresh(org)
-    send_user_email(db, sender, user_id=org.created_by, subject=f"BrandLens organisation verification: {org.name}", text=f"Your organisation status is now {payload.decision.replace('_', ' ')}.\n{payload.note or ''}")
+    send_user_email(db, sender, user_id=org.created_by, organization_id=org.id, subject=f"BrandLens organisation verification: {org.name}", text=f"Your organisation status is now {payload.decision.replace('_', ' ')}.\n{payload.note or ''}")
     return org
 
 
