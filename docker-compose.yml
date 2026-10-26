@@ -40,8 +40,8 @@ services:
       MALWARE_SCAN_TIMEOUT_SECONDS: ${MALWARE_SCAN_TIMEOUT_SECONDS:-10}
       S3_ENDPOINT_URL: http://minio:9000
       S3_BUCKET: brandlens-private
-      S3_ACCESS_KEY_ID: brandlens-local
-      S3_SECRET_ACCESS_KEY: brandlens-local-secret
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-brandlens-local}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-brandlens-local-secret}
       S3_REGION: us-east-1
       LLM_PROVIDER: none
       LLM_MODEL: none
@@ -111,8 +111,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: brandlens-local
-      MINIO_ROOT_PASSWORD: brandlens-local-secret
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-brandlens-local}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-brandlens-local-secret}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -125,7 +125,10 @@ services:
       minio:
         condition: service_started
     entrypoint: ["/bin/sh", "-c"]
-    command: "until mc alias set local http://minio:9000 brandlens-local brandlens-local-secret && mc ready local; do sleep 1; done; mc mb --ignore-existing local/brandlens-private"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-brandlens-local}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-brandlens-local-secret}
+    command: 'until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" && mc ready local; do sleep 1; done; mc mb --ignore-existing local/brandlens-private'
     restart: "no"
 
   mailpit:

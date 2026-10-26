@@ -7,14 +7,17 @@ Date: 2026-10-26. This diagnosis was reproduced from the repository root on Wind
 | Entry point | Working directory | What it runs | Ports / mode |
 | --- | --- | --- | --- |
 | `start-brandlens.bat` (before Phase 3 repair) | Correctly switches to `%~dp0` using `cd /d` | With Docker available, started `docker compose up --build`. Without Docker, explicitly started only `npm run dev`. | Full development stack: web 3000, API 8000, PostgreSQL 5432, Redis 6379, MinIO 9000/9001, Mailpit 8025. Fallback: Next development web only on 3000. |
-| `start-brandlens.bat` (after Phase 3 repair) | Switches to `%~dp0` using `cd /d` | Requires Docker CLI, a responding Docker engine and Compose; runs `docker compose up --build -d`; waits for API `/ready` and web `/login`; opens login and a service log window. On failure prints Compose state and recent service logs. | Full development stack only. No web-only fallback. Readiness timeout: three minutes. |
+| `start.bat` | Switches to `%~dp0` using `cd /d` and calls the PowerShell setup orchestrator | Checks Node/npm, Python, Docker/Compose and ports; generates local secrets once, prepares dependencies, starts data services, waits for health, migrates and bootstraps the first local platform administrator, then opens named API/worker/web windows. | Dev by default; `start.bat prod` rebuilds the web app and runs Uvicorn without reload. |
+| `start-brandlens.bat` | Compatibility entry point that calls `start.bat` | Forwards arguments and returns the launcher's exit code. | Same as `start.bat`. |
+| `start.sh` / `npm run dev:all` | Repository root on macOS/Linux, or cross-platform Node dispatcher | Runs the equivalent environment setup, data-service startup, migration/bootstrap and health checks; writes service logs and PIDs under `logs/`. | Dev by default; optional `prod` mode. |
 | `npm run dev` | Package root | Next.js development server only. | Port 3000. |
-| `npm run dev:all` | Package root | `docker compose up --build`. | Full development stack above. |
+| `npm run dev:all` | Package root | Starts the platform-specific full launcher. | API, worker and web processes plus PostgreSQL/pgvector, Redis, MinIO and Mailpit. |
 | `npm run build` / `npm run start` | Package root | Next standalone production build/server. | Web only on port 3000; these scripts do not start API or dependencies. |
 | `docker-compose.yml` | Compose project root | Next web, FastAPI, worker, PostgreSQL/pgvector, Redis, MinIO/init, and Mailpit. API command runs `alembic upgrade head` before Uvicorn. | Full development stack. The model provider is unconfigured; retrieval vectors are deterministic lexical-hash vectors. |
 | `compose.production.yaml` | Compose project root | One-shot migrations, API, worker and web, expecting externally supplied DB, Redis, object storage and secrets. | Web configurable at 3000; API internal. Production mode. |
-| Other `.bat`, `.cmd`, `.ps1`, `.sh`, Makefile, Procfile | Repository search found none. | — | — |
-| Other `package.json` files | Repository search found only the root package manifest outside dependencies/build output. | Scripts are `dev`, `dev:all`, `build`, `start`, lint/typecheck/test, contrast and OpenAPI/type generation. | — |
+| `stop.bat` / `stop.sh` | Repository root | Stops processes whose launcher PID and command line match BrandLens service runners; optional flag stops data containers. | Application processes; optionally local containers. |
+| `reset-dev.bat` | Repository root | Requires exact typed confirmation, then removes local Compose volumes, development uploads and build/log output. Keeps env files and installed dependencies. | Destructive to local development data only. |
+| Other `package.json` files | Repository search found only the root package manifest outside dependencies/build output. | Scripts include full-stack `dev:all`, build, start, lint/typecheck/test, contrast, link checking and OpenAPI/type generation. | — |
 
 ## Root cause and reproduction
 
@@ -27,11 +30,11 @@ Date: 2026-10-26. This diagnosis was reproduced from the repository root on Wind
 - The root page and navigation linked prominently to an unauthenticated campaign example. That former route used a dedicated API endpoint and optional database seed, rather than in-memory product API data. Phase 2 removes those public surfaces.
 - There was no port conflict before launch. Missing services were the direct cause of unavailable product requests. Database migration status and API startup could not be checked because Docker is not installed.
 
-## Phase 3 launcher repair and verification
+## Launcher implementation and verification
 
-The revised batch file now validates Docker CLI, engine and Compose before doing any work. It starts the complete Compose project detached, polls API `/ready` (which checks PostgreSQL and Redis) and web `/login` for up to three minutes, then opens the sign-in page and a separate live log window. Compose failures and readiness timeouts print service status and recent logs. `scripts/wait-for-brandlens.ps1` contains the bounded readiness loop. The README tells operators to copy `.env.example` to the Compose `.env` file before launch.
+The current launch flow validates Node/npm, Python, Docker/Compose, and service ports; creates local secrets once; prepares npm and Python dependencies when their lock/config files change; starts only the database, Redis, MinIO and Mailpit from Compose; waits for PostgreSQL, Redis and MinIO bucket initialization; runs migrations and idempotent local platform-admin bootstrap; then starts API, worker and web in separate named Windows windows with logs. It gates success on API `/health` and the web root. `start.bat prod` rebuilds before starting production-mode Next and Uvicorn without reload. `start-brandlens.bat` forwards to this entry point. On macOS/Linux `bash start.sh` and `npm run dev:all` use the equivalent shell flow.
 
-The updated batch launcher was executed in this environment. It reported that Docker CLI was unavailable and exited before starting any service. This confirms the prerequisite/fail-closed branch only; the Compose build, API migration, readiness loop, and full product stack were not run here because Docker is not installed.
+The earlier full-stack launcher was executed in this environment and reported that Docker CLI was unavailable before starting any service. The new launcher flow cannot pass its Docker prerequisite here; its full startup, migrations, service health, browser journey and stop/reset behavior remain unverified until Docker Desktop is available. The diagnosis also found that the product API routes were already implemented; the new work adds canonical route aliases and a server-side session check on product routes.
 
 ## Product API and persistence inventory
 

@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Use a fresh directory outside OneDrive's synced .next placeholders on Windows.
-  distDir: ".next-brandlens-build",
+  // Keep development output separate so a previous production build cannot be served in dev.
+  distDir: process.env.NODE_ENV === "development" ? ".next-brandlens-dev" : ".next-brandlens-build",
   output: "standalone",
   poweredByHeader: false,
   images: { formats: ["image/avif", "image/webp"] },

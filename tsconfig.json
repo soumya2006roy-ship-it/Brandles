@@ -34,12 +34,15 @@
     "**/*.tsx",
     "**/*.mts",
     ".next-brandlens-build/types/**/*.ts",
-    ".next-brandlens-build/dev/types/**/*.ts"
+    ".next-brandlens-build/dev/types/**/*.ts",
+    ".next-brandlens-dev/types/**/*.ts",
+    ".next-brandlens-dev/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     ".next",
     ".next-build",
-    ".next-brandlens-build"
+    ".next-brandlens-build",
+    ".next-brandlens-dev"
   ]
 }

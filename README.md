@@ -4,21 +4,21 @@ BrandLens is an editorial website and an organisation workspace for the source-b
 
 ## Local setup
 
-Requirements: Node.js 20.9 or newer, npm, Python 3.12+, and Docker Desktop with Compose. From the repository root:
+Requirements: Node.js 20.9 or newer, Python 3.12 or newer, and Docker Desktop with Compose. From the repository root:
 
-```powershell
-npm install
-Copy-Item .env.example .env.local
-Copy-Item .env.example api/.env
-Copy-Item .env.example .env
-npm run dev:all
+```text
+Windows:  start.bat
+macOS/Linux: bash start.sh
+Any OS:  npm run dev:all
 ```
 
-`dev:all` starts Next.js, FastAPI, PostgreSQL with pgvector, Redis, MinIO, a background worker, and Mailpit. Visit `http://localhost:3000`; local email is captured at `http://localhost:8025`. The compose stack uses development-only credentials from `.env.example`. Change them before exposing any service outside localhost.
+First run creates `.env` from `.env.example`, generates local signing and platform administrator secrets, copies it to `api/.env` when needed, installs npm/Python dependencies when absent or changed, starts PostgreSQL with pgvector, Redis, MinIO and Mailpit, waits for the data services, applies Alembic migrations and creates the first local platform administrator only if none exists. The password is not printed; find it in `.env` and change it after signing in. Existing `.env` files are preserved. Local verification email is captured at `http://localhost:8025`.
 
-On Windows, run `start-brandlens.bat` from Explorer or a terminal. It checks for a running Docker Desktop engine and Compose, builds and starts the complete product stack, waits up to three minutes for API readiness (including PostgreSQL and Redis) and the sign-in page, then opens `http://localhost:3000/login` and a service-log window. If Docker or Compose is unavailable, it reports the missing prerequisite and exits without starting a partial website. On startup failure, it prints recent service logs. For Compose, copy `.env.example` to `.env` first.
+The launcher starts API, background worker and web app as separate processes; Windows opens a named log window for each. Logs are written to `logs/`. It checks the API `/health` endpoint and web home page before opening `http://localhost:3000/`. Docker, Node/npm, or Python prerequisite failures print install guidance and stop. Use `start.bat prod` for a fresh Next production build and Uvicorn without reload. The older `start-brandlens.bat` delegates to `start.bat`.
 
-To run only the marketing site, use `npm run dev`; account and organisation features require the API and database. To run the API outside Docker on Windows, create and activate a venv, install the requirements, then run Alembic and Uvicorn:
+Stop application processes with `stop.bat` (Windows) or `bash stop.sh` (macOS/Linux). Add `containers` on Windows or `--containers` on macOS/Linux to also stop the local database, Redis, MinIO and Mailpit containers. To erase local development volumes, uploads and build/log output, run `reset-dev.bat` and type `RESET BRANDLENS DEV DATA`; it preserves `.env` and installed dependencies. The Node `npm run dev:all` command routes to the same full launcher on every platform.
+
+For a marketing-only frontend, `npm run dev` is available intentionally; account and organisation features require the API and data services. To run the API manually on Windows, create and activate a venv, install requirements, copy `.env.example` to `api/.env`, then run Alembic and Uvicorn:
 
 ```powershell
 py -3.12 -m venv api/.venv
@@ -30,11 +30,11 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
-The API docs are available at `http://localhost:8000/docs`. `npm run api:types` exports the FastAPI OpenAPI schema and regenerates TypeScript API types; run it from a shell where the Python environment is active.
+The API docs are available at `http://localhost:8000/docs`. Signup and invite routes are `/signup`, `/org/create`, and `/join`; logged-out access to product pages redirects to `/login`. The frontend uses a same-origin `/api/product/*` proxy whose server-side destination is configured through `BRANDLENS_BACKEND_URL`. `npm run api:types` exports the FastAPI OpenAPI schema and regenerates TypeScript API types; run it from a shell where the Python environment is active.
 
 ### Platform administrator
 
-Platform administrator status is granted only by a trusted operator with local database access. Register the intended account, verify its email using the local Mailpit message, then run:
+For a clean local database, the launcher reads `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env`, creates a verified development administrator if no platform administrator exists, and records the action. Change its generated password after signing in. Platform administrator status in a deployed environment should be granted only by a trusted operator with local database access. To promote an already verified account, run:
 
 ```powershell
 Set-Location api
@@ -51,6 +51,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL`, `BRANDLENS_BACKEND_URL`, `FRONTEND_ORIGIN` | Canonical metadata origin and private Next-to-FastAPI routing |
 | `APP_ENV`, `APP_SECRET_KEY`, `SESSION_*` | Runtime mode, signing secret, and secure session cookie settings |
+| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | Local first-run platform administrator; the launcher generates a random password only when it creates a new `.env` |
 | `DATABASE_URL`, `REDIS_URL`, `TRUSTED_PROXY_CIDRS` | PostgreSQL/pgvector, shared API/contact rate limits and job queue, and explicitly trusted API reverse-proxy peers (comma-separated CIDRs; configure only when the ingress sanitizes forwarded IP headers) |
 | `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Verification, reset, invite, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |

@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     allow_workspace_llm: bool = False
     verification_token_ttl_minutes: int = 60
     password_reset_ttl_minutes: int = 30
+    bootstrap_admin_email: str | None = None
+    bootstrap_admin_password: str | None = None
 
     @property
     def is_production(self) -> bool:

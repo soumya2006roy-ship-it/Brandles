@@ -25,6 +25,7 @@
 /.next/
 /.next-build/
 /.next-brandlens-build/
+/.next-brandlens-dev/
 /.lighthouseci/
 /out/
 /brandlens-app/
@@ -38,6 +39,8 @@
 
 # debug
 npm-debug.log*
+.brandlens-npm-lock-hash
+/logs/
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
