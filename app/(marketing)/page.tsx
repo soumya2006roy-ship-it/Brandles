@@ -11,7 +11,7 @@ export default function HomePage() {
           <p className="hero-position">Brand governance, made reviewable.</p>
           <p className="hero-lede">Compare campaign assets with approved brand material and with one another. Each finding points to its evidence, and a person decides what changes.</p>
           <div className="actions">
-            <TrackedLink className="button button-primary" href="/sign-up" label="Create your organisation">Create your organisation</TrackedLink>
+            <TrackedLink className="button button-primary" href="/signup" label="Create your organisation">Create your organisation</TrackedLink>
             <Link className="text-link" href="/login">Log in</Link>
           </div>
           <p className="prototype-note">A source-based reviewer. Not a publishing engine or compliance certification.</p>
@@ -26,9 +26,9 @@ export default function HomePage() {
 
       <section className="section section-muted"><div className="wrap"><div className="section-heading"><div><p className="eyebrow">A shared review workflow</p><h2>From trusted sources<br />to a recorded decision.</h2></div><p>Organisation members use role-based access to maintain evidence, prepare campaigns and review findings.</p></div><div className="steps-grid">{["Set up approved sources", "Create a campaign and add assets", "Scan and resolve findings", "Submit for reviewer approval"].map((step, index) => <div className="step-card" key={step}><span>0{index + 1}</span><h3>{step}</h3></div>)}</div><Link className="text-link" href="/how-it-works">Read how the workflow works</Link></div></section>
 
-      <section className="section wrap"><div className="section-heading"><div><p className="eyebrow">Evidence before opinion</p><h2>Inspect the source.<br />Make the decision.</h2></div><p>Findings link to approved passages and campaign facts. A reviewer makes the decision, and the selected asset version is recorded.</p></div><div className="actions"><Link className="button button-primary" href="/sign-up">Create your organisation</Link><Link className="text-link" href="/app/invite">Join with an invite code</Link></div></section>
+      <section className="section wrap"><div className="section-heading"><div><p className="eyebrow">Evidence before opinion</p><h2>Inspect the source.<br />Make the decision.</h2></div><p>Findings link to approved passages and campaign facts. A reviewer makes the decision, and the selected asset version is recorded.</p></div><div className="actions"><Link className="button button-primary" href="/signup">Create your organisation</Link><Link className="text-link" href="/join">Join with an invite code</Link></div></section>
 
-      <section className="closing-cta wrap"><p className="eyebrow">Questions about access?</p><h2>Start with your organisation.</h2><p>Create an organisation, log in to an existing account, or contact the BrandLens team.</p><div className="actions"><TrackedLink className="button button-primary" href="/sign-up" label="Create your organisation">Create your organisation</TrackedLink><Link className="text-link" href="/contact">Contact us</Link></div></section>
+      <section className="closing-cta wrap"><p className="eyebrow">Questions about access?</p><h2>Start with your organisation.</h2><p>Create an organisation, log in to an existing account, or contact the BrandLens team.</p><div className="actions"><TrackedLink className="button button-primary" href="/signup" label="Create your organisation">Create your organisation</TrackedLink><Link className="text-link" href="/contact">Contact us</Link></div></section>
     </>
   );
 }

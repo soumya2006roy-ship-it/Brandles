@@ -4,7 +4,8 @@ const allowedResponseHeaders = ["content-type", "cache-control", "set-cookie", "
 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
-  const backend = process.env.BRANDLENS_BACKEND_URL ?? "http://127.0.0.1:8000";
+  const backend = process.env.BRANDLENS_BACKEND_URL;
+  if (!backend) return Response.json({ detail: "The BrandLens API URL is not configured." }, { status: 503 });
   const target = new URL(`/api/v1/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`, backend);
   const headers = new Headers();
   for (const key of ["accept", "content-type", "cookie", "origin", "user-agent", "sec-fetch-site", "x-forwarded-for"]) {

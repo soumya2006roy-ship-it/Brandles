@@ -17,6 +17,23 @@ test("account entry points expose real sign-in and organisation flows", async ({
   await page.goto("/sign-up");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/create|register/i);
   await expect(page.getByLabel(/password/i)).toBeVisible();
+  await page.goto("/signup");
+  await expect(page).toHaveURL(/\/sign-up$/);
+  await page.goto("/org/create");
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/join");
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/app");
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test("retired workspace address is not served or indexed", async ({ page, request }) => {
+  const response = await request.get("/demo");
+  expect(response.status()).toBe(404);
+  const sitemap = await request.get("/sitemap.xml");
+  expect(await sitemap.text()).not.toContain("/demo");
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: /create your organisation/i }).first()).toBeVisible();
 });
 
 test("theme button switches its icon between sun and moon", async ({ page }) => {

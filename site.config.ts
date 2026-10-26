@@ -164,9 +164,9 @@ export const siteConfig = {
   ],
   footerLinks: [
     { label: "Campaign graph", href: "/campaign-consistency-graph" },
-    { label: "Create your organisation", href: "/sign-up" },
+    { label: "Create your organisation", href: "/signup" },
     { label: "Log in", href: "/login" },
-    { label: "Join with an invite code", href: "/app/invite" },
+    { label: "Join with an invite code", href: "/join" },
     { label: "Roadmap", href: "/roadmap" },
     { label: "Security", href: "/security" },
     { label: "Privacy", href: "/privacy" },

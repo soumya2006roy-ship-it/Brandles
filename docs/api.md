@@ -11,7 +11,7 @@ api\.venv\Scripts\python.exe api\scripts\export_openapi.py
 npx openapi-typescript api/openapi.json -o app/lib/api-schema.d.ts
 ```
 
-The live API schema is at `/api/openapi.json` outside production, and interactive docs are at `/api/docs` outside production. In production these endpoints are disabled.
+The live API schema is at `/api/openapi.json` outside production, and interactive docs are at `/docs` outside production. In production these endpoints are disabled.
 
 ## Tests
 

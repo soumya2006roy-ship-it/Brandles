@@ -36,7 +36,7 @@ app = FastAPI(
     title="BrandLens API",
     version="0.1.0",
     description="BrandLens organisation, source-evidence, campaign scanning, findings and version-bound review API.",
-    docs_url="/api/docs" if not settings.is_production else None,
+    docs_url="/docs" if not settings.is_production else None,
     redoc_url=None,
     openapi_url="/api/openapi.json",
 )

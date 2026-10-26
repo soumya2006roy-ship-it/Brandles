@@ -1,7 +1,7 @@
 const origin = (process.env.BRANDLENS_SITE_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const routes = [
   "/", "/problem", "/how-it-works", "/campaign-consistency-graph", "/features", "/roles",
-  "/security", "/roadmap", "/contact", "/privacy", "/cookies", "/login", "/sign-up",
+  "/security", "/roadmap", "/contact", "/privacy", "/cookies", "/login", "/sign-up", "/signup", "/org/create", "/join",
   "/verify-email", "/forgot-password", "/reset-password", "/app", "/app/invite",
   "/app/organisations/new", "/app/admin/verifications", "/app/account/sessions",
 ];
@@ -37,6 +37,12 @@ for (const path of ["/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/fa
     failures.push(`${path}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+try {
+  const retired = await fetch(new URL("/demo", origin), { redirect: "manual" });
+  if (retired.status !== 404) failures.push(`/demo: expected HTTP 404, got ${retired.status}`);
+  const sitemap = await fetch(new URL("/sitemap.xml", origin));
+  if ((await sitemap.text()).toLowerCase().includes("/demo")) failures.push("/sitemap.xml: retired route is listed");
+} catch (error) { failures.push(`/demo/sitemap check: ${error instanceof Error ? error.message : String(error)}`); }
 
 if (failures.length) {
   console.error(`Checked ${visited.size} internal routes; ${failures.length} failed:`);
