@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@/app/lib/api-client";
+import { buildFindingQuery } from "@/app/lib/finding-filters";
 
 type Finding = { id: string; campaign_id: string; campaign_name: string; asset_id: string | null; finding_type: string; severity: string; status: string; flagged_region: Record<string, unknown> | null; source_title: string | null; source_version: number | null; source_page_number: number | null; source_location_label: string | null; source_text: string | null; quoted_excerpt: string | null; confidence: number | null; suggested_fix: string | null };
 
@@ -17,7 +18,7 @@ export default function FindingsPage({ params }: { params: Promise<{ organizatio
   const [offset, setOffset] = useState(0);
   const [loadedQuery, setLoadedQuery] = useState("");
   const [error, setError] = useState("");
-  const requestQuery = new URLSearchParams({ offset: String(offset), limit: "25", ...(status ? { status } : {}), ...(severity ? { severity } : {}), ...(channel ? { channel } : {}), ...(applied ? { search: applied } : {}) }).toString();
+  const requestQuery = buildFindingQuery({ offset, limit: 25, status, severity, channel, search: applied });
   const loading = !orgId || loadedQuery !== `${orgId}?${requestQuery}`;
   useEffect(() => { void params.then(({ organizationId }) => setOrgId(organizationId)); }, [params]);
   useEffect(() => {

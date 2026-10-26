@@ -16,10 +16,38 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
 
   api-and-evals:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: brandlens
+          POSTGRES_USER: brandlens
+          POSTGRES_PASSWORD: brandlens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U brandlens -d brandlens"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://brandlens:brandlens@localhost:5432/brandlens
+      TEST_DATABASE_URL: postgresql+psycopg://brandlens:brandlens@localhost:5432/brandlens
+      REDIS_URL: redis://localhost:6379/0
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -28,9 +56,48 @@ jobs:
           cache: pip
           cache-dependency-path: api/requirements.txt
       - run: python -m pip install -r api/requirements.txt
+      - run: alembic upgrade head
+        working-directory: api
       - run: python -m pytest -q
         working-directory: api
       - run: python api/scripts/run_evals.py
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Start production web server
+        run: |
+          npm run start -- --hostname 127.0.0.1 > server.log 2>&1 &
+          for attempt in {1..30}; do curl --fail http://127.0.0.1:3000/ && break || sleep 2; done
+      - uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: lighthouserc.json
+          urls: |
+            http://127.0.0.1:3000/
+            http://127.0.0.1:3000/features
+            http://127.0.0.1:3000/security
+            http://127.0.0.1:3000/privacy
+          uploadArtifacts: true
+          temporaryPublicStorage: false
 
   security:
     runs-on: ubuntu-latest

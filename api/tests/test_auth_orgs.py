@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.db import get_db
 from app.core.security import digest_secret
-from app.db.models import Asset, AuthToken, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
+from app.db.models import Asset, AuditEvent, AuthToken, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
 from app.main import app
 from app.sources.documents import chunk_block, extract_document, identify_format, local_hash_embedding
 from app.campaigns import router as campaigns_router, scans as campaign_scans
@@ -59,6 +59,13 @@ def test_pending_organisation_cannot_issue_invites_until_platform_approval(clien
     org_id = organization["id"]
     assert client.post(f"/api/v1/orgs/{org_id}/invites", json={"role": "reviewer"}).status_code == 423
 
+    # Even an otherwise trusted operator cannot verify an organisation they submitted.
+    with next(app.dependency_overrides[get_db]()) as db:
+        owner = db.scalar(select(User).where(User.email_normalized == "owner@example.com"))
+        db.add(PlatformAdmin(user_id=owner.id))
+        db.commit()
+    assert client.post(f"/api/v1/platform/verifications/{org_id}/decision", json={"decision": "approved"}).status_code == 403
+
     register_user(client, mailer, email="platform@example.com", display_name="Platform Admin")
     client.post("/api/v1/auth/logout")
     with next(app.dependency_overrides[get_db]()) as db:
@@ -89,6 +96,21 @@ def test_pending_organisation_cannot_issue_invites_until_platform_approval(clien
     joined = client.post("/api/v1/invites/redeem", json={"code": code})
     assert joined.status_code == 201
     assert joined.json()["role"] == "reviewer"
+    assert client.post("/api/v1/invites/redeem", json={"code": code}).status_code == 400
+
+
+def test_expired_invite_is_rejected(client, mailer):
+    organization, _owner_email, _owner_password = create_approved_organization(client, mailer, "expired-invite@example.com")
+    org_id = organization["id"]
+    invite = client.post(f"/api/v1/orgs/{org_id}/invites", json={"role": "creator", "expires_in_days": 1})
+    assert invite.status_code == 201, invite.text
+    code = invite.json()["code"]
+    with next(app.dependency_overrides[get_db]()) as db:
+        stored = db.scalar(select(Invite).where(Invite.organization_id == org_id))
+        stored.expires_at = stored.expires_at.replace(year=2000)
+        db.commit()
+    register_user(client, mailer, email="expired-invite-member@example.com")
+    client.post("/api/v1/auth/login", json={"email": "expired-invite-member@example.com", "password": "Secure-password-123"})
     assert client.post("/api/v1/invites/redeem", json={"code": code}).status_code == 400
 
 
@@ -308,6 +330,19 @@ def test_campaign_review_submission_is_idempotent_and_version_bound(client, mail
     assert duplicate.status_code == 202
     assert duplicate.json()[0]["submission_id"] == submission_id
 
+    with factory() as db:
+        owner = db.scalar(select(User).where(User.email_normalized == "owner-review-team@example.com"))
+        membership = db.scalar(select(Membership).where(Membership.organization_id == org_id, Membership.user_id == owner.id))
+        membership.role = "reviewer"
+        db.commit()
+    self_decision = client.post(f"/api/v1/orgs/{org_id}/reviews/{submission_id}/decision", json={"decision": "approve"})
+    assert self_decision.status_code == 403
+    with factory() as db:
+        owner = db.scalar(select(User).where(User.email_normalized == "owner-review-team@example.com"))
+        membership = db.scalar(select(Membership).where(Membership.organization_id == org_id, Membership.user_id == owner.id))
+        membership.role = "admin"
+        db.commit()
+
     client.post("/api/v1/auth/logout")
     register_user(client, mailer, email="campaign-reviewer@example.com", display_name="Campaign Reviewer")
     with factory() as db:
@@ -325,6 +360,9 @@ def test_campaign_review_submission_is_idempotent_and_version_bound(client, mail
     assert duplicate_decision.status_code == 200
     assert client.get(f"/api/v1/orgs/{org_id}/reviews/queue").json() == []
     assert client.get(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}").json()["status"] == "approved"
+    with factory() as db:
+        actions = set(db.scalars(select(AuditEvent.action).where(AuditEvent.organization_id == org_id)).all())
+        assert {"campaign.submitted_for_review", "campaign.review_approved"}.issubset(actions)
 
 
 def test_brand_twin_cites_only_approved_evidence_and_refuses_gaps(client, mailer):

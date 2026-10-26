@@ -1,5 +1,15 @@
 # Product implementation decisions
 
+## Architecture choices for the remaining delivery phases
+
+- Preserve the completed Phases 1–8 and continue at Phase 9. Phase 9 uses the existing pytest/FastAPI suite, adds frontend Vitest unit tests and Playwright journeys, and uses GitHub Actions PostgreSQL/Redis service containers for integration and migration checks. Tests that need Docker remain an explicit local prerequisite; CI provides its own disposable services.
+- Keep runtime observability dependency-light: emit one JSON log record per API request with a generated or validated request ID, provide `/health` for process liveness and `/ready` for PostgreSQL/Redis readiness, and expose bounded Prometheus-format request, job and LLM-cost counters. Add an optional Sentry-compatible DSN integration through environment configuration; errors continue to log if Sentry is absent.
+- Phase 10 uses separate production images for Next.js, FastAPI and the worker. Keep development Compose for hot reload, add a production Compose file with health checks and release migrations as a separate one-shot service, and document managed-service deployment as an operator choice rather than claiming a specific provider was provisioned.
+- Keep migrations explicit and backward-compatible. `alembic upgrade head` is the release step; rollback instructions must distinguish application rollback from destructive schema downgrade. Document database and object-store backups and a restore rehearsal.
+- Keep model-provider integrations disabled by default. The existing lexical-hash retrieval, mock LLM, OCR and malware maturity statements remain authoritative until an adapter/tool is actually configured and verified.
+
+## Existing architecture decisions
+
 The user-provided product brief defines campaign scans, evidence-backed findings, campaign-level comparison, resolution and reviewer approval. Implementation follows these requirements while preserving explicit prototype limits.
 
 - The existing BrandLens public site and its content remain grounded in `docs/brandlens-proposal.md`. Product assumptions do not create new customer claims or pricing.

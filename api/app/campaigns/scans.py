@@ -16,6 +16,7 @@ from app.ai.clients import LLMDisabledError, get_llm_client
 from app.checks.judgement import JUDGEMENT_PROMPT_VERSION, JUDGEMENT_TASK_INSTRUCTIONS, parse_judgement, retrieve_top_passages
 from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, Organization, Rule, Scan, SourcePassage
 from app.core.config import get_settings
+from app.observability import increment
 
 PERCENT_RE = re.compile(r"(?<!\w)(\d{1,3}(?:\.\d+)?)\s*%")
 CLAIM_CUES = re.compile(r"\b(?:claim|cure[sd]?|treat[sd]?|prevent[sd]?|clinically proven|proven|guarantee[sd]?|eliminate[sd]?|reduce[sd]?|improve[sd]?|safe|effective|dermatologist[- ]tested)\b|दावा|ठीक|इलाज|गारंटी|प्रमाणित|सुरक्षित|प्रभावी", re.IGNORECASE)
@@ -278,11 +279,14 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                     latency_ms = 0
                     if llm_client and retrieved and judgement_count <= get_settings().scan_max_claims:
                         try:
+                            increment("llm_calls_total")
                             raw = llm_client.judge(JUDGEMENT_TASK_INSTRUCTIONS, retrieved, claim)
                             result = parse_judgement(raw, asset_text=claim, retrieved=retrieved)
                         except Exception:
                             result = None
                         latency_ms = round((time.monotonic() - started) * 1000)
+                    if llm_client and retrieved and judgement_count <= get_settings().scan_max_claims:
+                        increment("llm_latency_seconds_total", latency_ms / 1000)
                     if result and result.verdict == "compliant":
                         verdict = "compliant"
                     elif result and result.verdict == "breach":

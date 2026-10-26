@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: tests requiring PostgreSQL or Redis service containers"]
 pythonpath = ["."]
 addopts = "-q"

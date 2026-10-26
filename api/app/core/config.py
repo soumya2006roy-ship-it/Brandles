@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,8 +9,11 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
     app_secret_key: str = "local-only-change-me"
+    sentry_dsn: str | None = None
+    sentry_traces_sample_rate: float = 0
     database_url: str = "postgresql+psycopg://brandlens:brandlens@localhost:5432/brandlens"
     redis_url: str = "redis://localhost:6379/0"
+    rate_limit_multiplier: float = Field(default=1.0, gt=0, le=10)
     trusted_proxy_cidrs: str = ""
     frontend_origin: str = "http://localhost:3000"
     session_cookie_name: str = "brandlens_session"

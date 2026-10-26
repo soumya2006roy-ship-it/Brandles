@@ -6,6 +6,7 @@
 /api/__pycache__/
 /api/.pytest_cache/
 /api/private-uploads/
+/private-uploads/
 /api/.coverage
 /.pnp
 .pnp.*
@@ -17,11 +18,14 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
 /.next-build/
 /.next-brandlens-build/
+/.lighthouseci/
 /out/
 /brandlens-app/
 

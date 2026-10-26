@@ -109,6 +109,7 @@ def clear_login_failures(key: str) -> None:
 
 def enforce_rate_limit(key: str, *, limit: int, window_seconds: int) -> None:
     settings = get_settings()
+    limit = max(1, round(limit * settings.rate_limit_multiplier))
     try:
         redis = Redis.from_url(settings.redis_url, socket_connect_timeout=0.2, socket_timeout=0.2)
         redis_key = f"brandlens:rate:{key}"

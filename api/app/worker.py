@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.jobs.queue import QUEUE_NAME
 from app.campaigns.scans import execute_campaign_scan
 from app.data_controls import purge_expired_scan_history
+from app.observability import increment, log_json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("brandlens.worker")
@@ -31,11 +32,14 @@ def run() -> None:
             try:
                 if task_name == "campaign_scan":
                     payload = job.get("payload", {})
+                    increment("jobs_started_total")
                     execute_campaign_scan(str(payload["organization_id"]), str(payload["scan_id"]))
+                    increment("jobs_completed_total")
                 else:
                     client.rpush("brandlens:dead-letter", json.dumps({"task": task_name, "raw": raw_job}))
                     logger.warning("No handler registered for job type %s; moved it to the dead-letter queue", task_name)
             except Exception:
+                increment("jobs_failed_total")
                 logger.exception("Background job %s failed", task_name)
         if time.monotonic() >= next_retention_run:
             try:

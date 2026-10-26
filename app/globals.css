@@ -415,7 +415,7 @@ ins { color: var(--green); text-decoration: none; background: color-mix(in srgb,
 
 
 /* Editorial visual system */
-:root { --paper: #faf8f2; --surface: #fffefa; --surface-2: #eeece4; --ink: #18221e; --muted: #5c6961; --line: #7e867e; --accent: #bd452a; --accent-hover: #99361f; --accent-soft: #f3e5dd; --green: #286448; --amber: #80500d; --red: #9c352d; }
+:root { --paper: #faf8f2; --surface: #fffefa; --surface-2: #eeece4; --ink: #18221e; --muted: #5c6961; --line: #7e867e; --accent: #b13d23; --accent-hover: #99361f; --accent-soft: #f3e5dd; --green: #286448; --amber: #80500d; --red: #9c352d; }
 :root[data-theme="dark"] { --paper: #141916; --surface: #1c231f; --surface-2: #252d28; --ink: #f3f1e9; --muted: #bec7c0; --line: #7a887f; --accent: #ff9475; --accent-hover: #ffb199; --accent-soft: #352722; --green: #a2d7b5; --amber: #f0c47c; --red: #ff9a91; }
 html { scroll-behavior: smooth; }
 body { transition: background-color 120ms ease, color 120ms ease; }
