@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:all": "node scripts/dev-all.mjs",
-    "build": "node scripts/check-contrast.mjs && next build && node scripts/prepare-standalone.mjs",
+    "build": "node scripts/clean-next-build.mjs && node scripts/check-contrast.mjs && next build && node scripts/prepare-standalone.mjs",
     "start": "node .next-brandlens-build/standalone/server.js",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
