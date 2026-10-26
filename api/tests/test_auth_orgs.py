@@ -5,12 +5,15 @@ from docx import Document
 import pymupdf
 from PIL import Image
 from sqlalchemy import select
+from sqlalchemy.orm import sessionmaker
 
 from app.core.db import get_db
 from app.core.security import digest_secret
 from app.db.models import Asset, AuthToken, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
 from app.main import app
 from app.sources.documents import chunk_block, extract_document, identify_format, local_hash_embedding
+from app.campaigns import router as campaigns_router, scans as campaign_scans
+from app.campaigns.scans import execute_campaign_scan
 
 
 def register_user(client, mailer, *, email: str, display_name: str = "Test Person", password: str = "Secure-password-123"):
@@ -280,3 +283,45 @@ def test_campaign_assets_validate_content_strip_image_metadata_match_approved_lo
     assert malformed_pdf.status_code == 422
 
 
+def test_campaign_review_submission_is_idempotent_and_version_bound(client, mailer, monkeypatch):
+    organization, _owner_email, _owner_password = create_approved_organization(client, mailer, "review-team@example.com")
+    org_id = organization["id"]
+    campaign_response = client.post(f"/api/v1/orgs/{org_id}/campaigns", json={"name": "Reviewable campaign", "channels": ["Instagram"], "language": "en"})
+    assert campaign_response.status_code == 201
+    campaign_id = campaign_response.json()["id"]
+    asset_response = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets", data={"channel": "Instagram", "text_content": "A short caption for review."})
+    assert asset_response.status_code == 201
+    monkeypatch.setattr(campaigns_router, "enqueue", lambda *_args, **_kwargs: None)
+    scan_response = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/scans")
+    assert scan_response.status_code == 202
+    scan_id = scan_response.json()["id"]
+    db_generator = app.dependency_overrides[get_db]()
+    db = next(db_generator)
+    factory = sessionmaker(bind=db.get_bind(), autoflush=False, expire_on_commit=False)
+    db_generator.close()
+    monkeypatch.setattr(campaign_scans, "SessionLocal", factory)
+    execute_campaign_scan(org_id, scan_id)
+    submission = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/submit", json={"scan_id": scan_id})
+    assert submission.status_code == 202, submission.text
+    submission_id = submission.json()[0]["submission_id"]
+    duplicate = client.post(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}/submit", json={"scan_id": scan_id})
+    assert duplicate.status_code == 202
+    assert duplicate.json()[0]["submission_id"] == submission_id
+
+    client.post("/api/v1/auth/logout")
+    register_user(client, mailer, email="campaign-reviewer@example.com", display_name="Campaign Reviewer")
+    with factory() as db:
+        reviewer = db.scalar(select(User).where(User.email_normalized == "campaign-reviewer@example.com"))
+        db.add(Membership(organization_id=org_id, user_id=reviewer.id, role="reviewer"))
+        db.commit()
+    client.post("/api/v1/auth/login", json={"email": "campaign-reviewer@example.com", "password": "Secure-password-123"})
+    queue = client.get(f"/api/v1/orgs/{org_id}/reviews/queue")
+    assert queue.status_code == 200
+    assert queue.json()[0]["submission_id"] == submission_id
+    decision = client.post(f"/api/v1/orgs/{org_id}/reviews/{submission_id}/decision", json={"decision": "approve"})
+    assert decision.status_code == 200
+    assert decision.json()[0]["decision"] == "approved"
+    duplicate_decision = client.post(f"/api/v1/orgs/{org_id}/reviews/{submission_id}/decision", json={"decision": "approve"})
+    assert duplicate_decision.status_code == 200
+    assert client.get(f"/api/v1/orgs/{org_id}/reviews/queue").json() == []
+    assert client.get(f"/api/v1/orgs/{org_id}/campaigns/{campaign_id}").json()["status"] == "approved"

@@ -56,6 +56,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*`, `MINIO_*` | Private file storage configuration for approved sources and campaign assets |
 | `MALWARE_SCANNER_HOST`, `MALWARE_SCANNER_PORT`, `MALWARE_SCAN_TIMEOUT_SECONDS` | Optional ClamAV-compatible INSTREAM scanner. Unset means uploads are marked unscanned; a configured but unavailable scanner rejects the upload. |
 | `ALLOW_WORKSPACE_LLM`, `LLM_*`, `EMBEDDING_*` | External model provider settings; no live LLM or semantic embedding adapter is enabled, while source text extraction and local lexical vectors run without external providers |
+| `SCAN_MAX_ASSETS`, `SCAN_MAX_CLAIMS`, `SCAN_TIMEOUT_SECONDS` | Per-scan asset, judgement-candidate and elapsed-time limits; one active scan per organisation |
 | `OCR_PROVIDER`, `TESSERACT_COMMAND`, `TESSERACT_TIMEOUT_SECONDS` | Optional image OCR interface. Docker includes Tesseract; OCR stays off unless `OCR_PROVIDER=tesseract`. |
 | `VERIFICATION_TOKEN_TTL_MINUTES`, `PASSWORD_RESET_TTL_MINUTES` | One-time account token expiry |
 
@@ -63,11 +64,12 @@ The workspace AI setting defaults off, and live provider adapters are absent. Do
 
 ## Implemented scope and assumptions
 
-- The supplied product task contains architecture and data-model direction, detailed Phase 1 requirements, then Phase 2 approved-source and rules requirements and Phase 3 campaign and asset requirements. Later scan, finding, and reviewer workflow behavior is not specified here.
+- The supplied product task includes architecture and data-model direction, approved-source and rules workflows, campaign scans, campaign comparison, findings and reviewer decisions.
 - Users can register, verify email, sign in/out, reset passwords, and view/revoke their sessions. Organisations start in `pending_verification`; a platform administrator must approve them before workspace management and invites are available.
 - Approved-source upload and review, version history, page/location passages, search, highlighting, and structured rules are available in Phase 2. Passages receive deterministic local hashed lexical vectors; they are not semantic model embeddings. Admins approve each source version, and rules cite passages from approved sources.
 - Phase 3 provides campaign setup and versioned text, PDF, DOCX, PNG, JPEG, and WebP assets. Upload type is sniffed from content, image metadata is stripped, PDF/DOCX text is extracted, optional Tesseract OCR and ClamAV scanning are configurable, and asset updates invalidate prior scans. Perceptual logo comparison is a difference-hash prototype against Admin-approved logo files.
-- Campaign scan generation, findings, and reviewer approval remain disabled. The tables for scans, findings, and reviews are not evidence of working scan or reviewer workflows.
+- Phase 4 provides queued, cancellable and resumable campaign scans with asset/rule snapshots, progress and per-organisation limits. Deterministic exact checks cover offer validity/discounts, banned and required phrases, logo version, channel limits, and language-scoped rules. The judgement interface uses top-five deterministic lexical-hash retrieval, strict validated JSON, evidence citation checks, confidence caps, and human-verification fallback. Model/prompt, retrieved passage IDs and latency are recorded without secrets. Campaign facts are normalized where possible and compared across assets; conflicts and unsupported facts remain review prompts. These checks are prototypes; no live LLM or semantic embedding provider is included.
+- Phase 5 provides filtered and grouped findings, evidence and suggested-text comparison, creator edits as new asset versions, reasoned dismissal, clarification requests, and rescans. Reviewer submissions are idempotent and bind to exact asset versions and the current scan/rule snapshot; reviewers cannot review their own submissions. Approval, rejection, request-changes history, in-app notifications and email notices are recorded. Campaign status is set by the API. The workflow does not publish to platforms or certify legal or regulatory compliance.
 - Invitation codes are stored as hashes, are scoped to one organisation and role, and have expiry/use limits. Accepted invitations create memberships. Platform administrators are assigned with the trusted CLI, not by self-service registration.
 - The compose stack is the default full local environment. Docker is required for that path. If Docker is unavailable, marketing-only `npm run dev` remains available; API tests run with SQLite and do not require Docker.
 - `NEXT_PUBLIC_SITE_URL` should be set to the real HTTPS domain before deployment. Resend requires an API key and verified sender. Production API sessions require a strong random `APP_SECRET_KEY`, a TLS endpoint, and `SESSION_COOKIE_SECURE=true`.
@@ -81,11 +83,12 @@ npm run lint
 npm run typecheck
 npm run build
 Push-Location api
-python -m pytest -p no:cacheprovider
+.venv\Scripts\python.exe -m pytest -q
 Pop-Location
+api\.venv\Scripts\python.exe api\scripts\run_evals.py
 ```
 
-The build runs the WCAG contrast check before `next build`. API tests use an isolated in-memory SQLite database and a fake email sender. Run `npm run start` after a successful build to inspect the production server.
+The GitHub Actions workflow runs the frontend lint/typecheck/build, API tests and the evaluation script with the mock judgement client. API tests use an isolated in-memory SQLite database and a fake email sender. The evaluation script also uses temporary SQLite and reports exact-type precision/recall, citation validity and false-breach rate. To evaluate a real model, implement an approved provider adapter behind `LLMClient`, set the deployment `LLM_*` values, enable `ALLOW_WORKSPACE_LLM`, and explicitly enable processing for a test organisation. No live provider adapter is included. Run `npm run start` after a successful build to inspect the production server.
 
 ## Deployment
 
@@ -126,6 +129,9 @@ Deploy Next.js and FastAPI as separate Node and Python services. Provision Postg
 | P2 | Evidence-linked structured rules and Admin suggestions review | `api/app/sources/schemas.py`, `api/app/sources/router.py`, `app/app/organisations/rules/`, `app/app/organisations/[organizationId]/rules/page.tsx` |
 | P3 | Campaign setup, channel and date window, versioned assets, extraction and stale-scan invalidation | `api/app/campaigns/`, `api/app/assets/media.py`, `api/app/db/models.py`, `api/alembic/versions/0003_campaigns_and_asset_versions.py`, `app/app/organisations/campaigns/`, campaign route pages under `app/app/organisations/[organizationId]/campaigns/` |
 | P3 | Optional ClamAV scanning, Tesseract OCR, metadata stripping and approved logo matching | `.env.example`, `docker-compose.yml`, `api/app/assets/media.py`, `api/app/campaigns/router.py`, `api/Dockerfile` |
+| P4 | Asynchronous scans, exact checks, evidence validation, campaign fact comparison, progress and cancellation | `api/app/campaigns/scans.py`, `api/app/checks/judgement.py`, `api/app/worker.py`, `api/app/campaigns/router.py`, `app/app/organisations/campaigns/campaign-workspace.tsx` |
+| P4 | Labelled evaluation set and metrics | `evals/brandlens.json`, `api/scripts/run_evals.py`, `api/tests/test_campaign_scans.py` |
+| P5 | Filtered findings, creator resolution and clarification, version-bound review queue/history, notifications | `api/app/campaigns/router.py`, `api/app/notifications/`, `api/app/db/models.py`, `app/app/organisations/campaigns/campaign-workspace.tsx`, `app/app/organisations/reviews/` |
 
 ## Performance notes
 
