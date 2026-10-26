@@ -1,4 +1,4 @@
-"""Add sample workspace isolation and per-membership notification settings."""
+"""Add organization visibility and per-membership notification settings."""
 
 from alembic import op
 import sqlalchemy as sa

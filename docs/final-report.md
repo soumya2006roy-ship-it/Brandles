@@ -9,15 +9,15 @@ Date: 2026-10-26
 | 1 | Organisation workspace foundation and product structure. Commit `6d9245c`. |
 | 2 | Approved source uploads/versioning, passage parsing/provenance, effective dates, source search/history and evidence-linked rules. Commit `91121c0`. |
 | 3 | Campaigns, channel assets, content-based validation, versioning, stale-scan invalidation, metadata stripping, optional OCR/malware checks and approved-logo matching. Commit `6d06906`. |
-| 4 | Deterministic exact checks, evidence-constrained judgement parsing/fallback, campaign fact comparison, resumable/cancellable scans, labelled mock evaluation set. Commit `beb614a`. |
+| 4 | Deterministic exact checks, evidence-constrained judgement parsing/fallback, campaign fact comparison, resumable/cancellable scans, labelled evaluation set. Commit `beb614a`. |
 | 5 | Findings, creator resolution, version-bound reviewer decisions, idempotent submissions, derived campaign status and notifications. Commit `b296a03`. |
 | 6 | Evidence Map, date validity warnings, suggested guideline updates, bounded source-only Brand Twin, Hindi prototype and platform preview prototype. Commit `5f033d8`. |
-| 7 | Organisation dashboard, campaigns/assets/findings/reviews/sources/rules/audit/team/admin surfaces and read-only sample workspace. Commit `0920d8f`. |
+| 7 | Organisation dashboard, campaigns/assets/findings/reviews/sources/rules/audit/team/admin surfaces. Commit `0920d8f`. |
 | 8 | Tenant/RBAC protections, origin checks, security headers, Redis-backed limits, upload access controls, append-only audit and data export/deletion/retention. Commit `6708475`. |
 | 9 | Vitest and Playwright/axe setup, concurrency and workflow assertions, PostgreSQL integration test, CI jobs, request IDs/JSON logs, health/readiness/metrics, optional Sentry hook and npm dependency audit cleanup. Commit `132b03a`. |
 | 10 | Production Next.js image and Python API/worker image, production Compose release migration service, complete environment example, architecture/API/security/runbook/evaluation/admin docs and this report. This report is included in the final Phase 10 commit. |
 
-Phase 9 CI is configured, not observed on GitHub in this run. The full signup-to-approved-campaign journey is not automated end-to-end through the browser; only public-page/sample-workspace browser checks are run locally. Do not treat that acceptance item as demonstrated.
+Phase 9 CI is configured, not observed on GitHub in this run. The full signup-to-approved-campaign journey is not automated end-to-end through the browser; local checks cover public pages and selected account-entry behavior only. Do not treat that acceptance item as verified.
 
 ### Files changed in Phases 9–10
 
@@ -53,7 +53,7 @@ This migration step and Docker image have not been executed here because Docker 
 | `npm run build` | Passed. Built-in light/dark token contrast checks passed; Lighthouse itself was not run locally. |
 | `npm run test:e2e` | Passed: 3 Chromium tests, including axe on `/`, `/features`, `/security` and `/privacy`. |
 | `api\.venv\Scripts\python.exe -m pytest -q` | Passed twice: 45 passed, 1 skipped; latest run completed in 345.12s. The skipped check requires a PostgreSQL database; one Starlette/httpx deprecation warning remains. |
-| `api\.venv\Scripts\python.exe api\scripts\run_evals.py` | Passed the three labeled examples: precision 1.0, recall 1.0, cited excerpt validity 1.0, false-breach rate 0.0. These are mock-only results on a small set. |
+| `api\.venv\Scripts\python.exe api\scripts\run_evals.py` | Passed the three labeled examples: precision 1.0, recall 1.0, cited excerpt validity 1.0, false-breach rate 0.0. These are fixture-only results on a small set. |
 | `npm audit --audit-level=high` | Passed: 0 known vulnerabilities in the installed npm dependency tree. |
 | `api\.venv\Scripts\python.exe -m pip_audit -r api/requirements.txt` | Passed: no known vulnerabilities found. |
 | `git diff --check` | Passed. |
@@ -68,7 +68,7 @@ Implemented controls and test references are described in [security.md](security
 
 Operational metrics are process-local and reset on restart; they are not a durable metrics backend. LLM cost stays zero until a real provider adapter reports token usage. Sentry is opt-in. Production encryption, backups, TLS between managed services, secret rotation, object-store lifecycle, alerting and restore drills remain deployment responsibilities. CI, Lighthouse thresholds and secret scanning are configured but require an actual GitHub Actions run to produce results.
 
-The approval acceptance scenario is not fully demonstrated. The eval set covers a 20% versus 30% discount conflict, unsupported skincare claims and adversarial text, but it does not prove that the requested wrong-logo and post-30-Nov expiry findings each have citations in one complete seeded UI journey. Exact logo matching and expiry warnings have unit/API coverage; semantic logo matching remains prototype behavior.
+The approval acceptance scenario is not fully verified. The evaluation set covers a 20% versus 30% discount conflict, unsupported skincare claims and adversarial text, but it does not prove that the requested wrong-logo and post-30-Nov expiry findings each have citations in one complete UI journey. Exact logo matching and expiry warnings have unit/API coverage; semantic logo matching remains prototype behavior.
 
 ## Prototypes and limitations
 
@@ -104,10 +104,10 @@ For local checks, use the commands in `README.md`. With Docker, the existing `do
 
 | Area | Score | Weight | Evidence and limit |
 | --- | ---: | ---: | --- |
-| Functionality | 6.5/10 | 30% | Core source-to-campaign-to-review APIs and UI exist; the complete UI journey and all skincare acceptance findings are not demonstrated, and no real LLM adapter is available. |
+| Functionality | 6.5/10 | 30% | Core source-to-campaign-to-review APIs and UI exist; the complete UI journey and all skincare acceptance findings are not verified, and no real LLM adapter is available. |
 | Security | 6.5/10 | 25% | Tenant/RBAC/security tests and append-only audit controls exist; Postgres isolation/trigger behavior and production deployment were not exercised locally. |
 | UX | 7.5/10 | 20% | Responsive product screens, dark theme and public axe checks pass; authenticated product-page keyboard/axe coverage is incomplete. |
-| Testing | 6.0/10 | 15% | 45 API tests, 2 unit tests, 3 browser checks and a small mock eval pass; one DB integration check is skipped, and CI/Lighthouse have not run. |
+| Testing | 6.0/10 | 15% | 45 API tests, 2 unit tests, 3 browser checks and a small fixture evaluation pass; one DB integration check is skipped, and CI/Lighthouse have not run. |
 | Maintainability | 7.0/10 | 10% | Migrations, generated API schema, phase commits and operational docs are maintained; Docker images and production Compose remain unverified. |
 
 Weighted result: `6.5×0.30 + 6.5×0.25 + 7.5×0.20 + 6.0×0.15 + 7.0×0.10 = 6.675`, reported as **6.7/10**.
@@ -120,7 +120,7 @@ The additional website audit uses the separate rubric in the pasted master promp
 
 - Fixed production startup: `npm start` now runs Next's generated standalone server, and the build prepares standalone static and public assets. A production server run returned 200 for `/`, `/icon-192.png`, `/robots.txt` and `/sitemap.xml`, and 404 for an unknown route. Production theme hydration and four public routes passed browser/axe checks.
 - Replaced the contact form's process-local, spoofable `X-Forwarded-For` limiter with atomic Redis throttling in production, an IP digest in Redis keys, a bounded development fallback, `Retry-After`, and fail-closed production behavior when Redis or a valid trusted `X-Real-IP` is unavailable. The ingress must overwrite `X-Real-IP`.
-- Removed fixed confidence percentages and fabricated specific logo file/version strings from the older simulation component. The active `/demo` remains the read-only API-backed seeded workspace, per the earlier product requirement.
+- Removed the public fictional workspace route, seed API and browser-only campaign state. Account, invite and contact links now lead to actual product entry points. Runtime judgement-provider substitutes were removed; the deterministic evaluation fixture remains isolated to the evaluation script.
 - Added focused contact limiter unit and browser coverage. The browser test confirmed validation feedback, five accepted-to-limiter requests followed by 429, and that rotating `X-Forwarded-For` does not change the rate-limit key. No Resend key is configured, so the first five API attempts returned expected 503 responses rather than sending mail.
 - Added `docs/audit-report.md` and `docs/requirements-matrix.md`. Their Partial statuses identify the checks that still need a full route crawl, provider credentials, CI, Docker or manual device testing.
 
@@ -134,7 +134,7 @@ The additional website audit uses the separate rubric in the pasted master promp
 | `npm run build` | Passed, including light/dark contrast token checks and standalone asset preparation. |
 | `npm run test:e2e` against local dev server | Passed: 5 Chromium tests, including contact validation/rate limiting and axe on four public routes. |
 | Production `npm run start`, route and asset smoke | Passed: home and icons/robots/sitemap returned 200; unknown route returned 404. |
-| Production browser run (`npx playwright test -g 'key public|demo|theme'` with standalone server) | Passed: 4 checks (public routes, read-only demo, theme toggle, axe on four routes). |
+| Production browser smoke against the standalone server | Passed before Phase 2: 4 checks on public pages and the former unauthenticated workspace. This run predates route removal and is not the current result. |
 | `npm audit --audit-level=high` | Passed: 0 known vulnerabilities. |
 
 ### Remaining verification and risks
@@ -142,7 +142,7 @@ The additional website audit uses the separate rubric in the pasted master promp
 - The 21-item matrix is not fully green. Social image dimensions/content, route-wide metadata uniqueness, JSON-LD validity/parity, internal link crawl, AVIF/WebP response format, consent network behavior, reduced motion, full keyboard coverage, 320–400% zoom and responsive widths need additional browser checks.
 - Lighthouse was not run locally; no 95+ scores are claimed. CI thresholds are configuration, not a recorded Lighthouse result. Product routes were not covered by axe in this audit.
 - Redis production behavior was not verified against a running Redis service. Contact email delivery, Resend confirmation, payload/header injection, honeypot and 413 were not exercised here. Set `REDIS_URL` and ensure ingress overwrites `X-Real-IP` before deployment.
-- Docker, the API/Postgres stack and the complete signup-to-approved-campaign journey were not run in this audit. The interactive scan/resolve/approve demo acceptance flow remains unavailable because `/demo` is intentionally a read-only seeded workspace.
+- Docker, the API/Postgres stack and the complete signup-to-approved-campaign journey were not run in this audit. Full stack verification still requires Docker Desktop and a clean migrated PostgreSQL instance.
 - Some production-run asset requests during the audit surfaced a local Windows standalone Sharp optional-runtime warning on shutdown. Core page hydration, CSS/JS and direct public icon requests passed; optimized image delivery still needs a clean production-container check.
 
 ### Website audit score
@@ -152,9 +152,9 @@ The additional website audit uses the separate rubric in the pasted master promp
 | Category | Score | Weight | Evidence |
 | --- | ---: | ---: | --- |
 | Requirements completeness and correctness | 4.0/10 | 25% | 21 checks are inventoried, but most remain Partial pending broad runtime verification. |
-| Content truth and product fidelity | 7.5/10 | 15% | Active demo is identified as read-only seeded data; unsupported numeric confidence and version detail were removed from the legacy component. Full proposal line-by-line review remains incomplete. |
+| Content truth and product fidelity | 7.5/10 | 15% | Public copy now links to account, invite and contact entry points; unsupported fixed confidence values and the unauthenticated workspace route were removed. Full proposal line-by-line review remains incomplete. |
 | Security, privacy and consent | 6.0/10 | 20% | Production headers and contact limiter improvements were verified; consent network behavior, mail abuse paths and live Redis are not. |
-| UI/UX and design quality | 7.5/10 | 15% | Theme icon toggling, sample label, four public-page smoke checks and axe pass; no full responsive or human visual review. |
+| UI/UX and design quality | 7.5/10 | 15% | Theme icon toggling, account entry links, four public-page smoke checks and axe pass; no full responsive or human visual review. |
 | Accessibility and performance | 5.0/10 | 15% | Axe passed four public pages and contrast token pairs pass; Lighthouse, all routes/themes, keyboard and zoom remain unverified. |
 | Maintainability and test coverage | 6.5/10 | 10% | Focused tests and docs were added; the full CI, production container and route-wide acceptance suite were not run. |
 

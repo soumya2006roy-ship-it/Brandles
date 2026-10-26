@@ -10,10 +10,13 @@ test("key public pages load with headings and security metadata", async ({ page 
   }
 });
 
-test("demo is presented as a read-only sample workspace", async ({ page }) => {
-  await page.goto("/demo");
-  await expect(page.getByText("Read-only sample workspace", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/Changes and external model calls are disabled\./i)).toBeVisible();
+test("account entry points expose real sign-in and organisation flows", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/sign in|log in/i);
+  await expect(page.getByLabel(/email/i)).toBeVisible();
+  await page.goto("/sign-up");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/create|register/i);
+  await expect(page.getByLabel(/password/i)).toBeVisible();
 });
 
 test("theme button switches its icon between sun and moon", async ({ page }) => {

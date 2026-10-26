@@ -3393,27 +3393,6 @@
           }
         }
       }
-    },
-    "/api/v1/sample-workspace": {
-      "get": {
-        "tags": [
-          "sample-workspace"
-        ],
-        "summary": "Get Sample Workspace",
-        "operationId": "get_sample_workspace_api_v1_sample_workspace_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SampleWorkspaceResponse"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -5621,52 +5600,6 @@
           "source_passage_id"
         ],
         "title": "RuleWrite"
-      },
-      "SampleWorkspaceResponse": {
-        "properties": {
-          "organization_name": {
-            "type": "string",
-            "title": "Organization Name"
-          },
-          "campaign": {
-            "$ref": "#/components/schemas/CampaignResponse"
-          },
-          "assets": {
-            "items": {
-              "$ref": "#/components/schemas/AssetResponse"
-            },
-            "type": "array",
-            "title": "Assets"
-          },
-          "findings": {
-            "items": {
-              "$ref": "#/components/schemas/FindingResponse"
-            },
-            "type": "array",
-            "title": "Findings"
-          },
-          "facts": {
-            "items": {
-              "$ref": "#/components/schemas/FactResponse"
-            },
-            "type": "array",
-            "title": "Facts"
-          },
-          "read_only": {
-            "type": "boolean",
-            "title": "Read Only",
-            "default": true
-          }
-        },
-        "type": "object",
-        "required": [
-          "organization_name",
-          "campaign",
-          "assets",
-          "findings",
-          "facts"
-        ],
-        "title": "SampleWorkspaceResponse"
       },
       "ScanResponse": {
         "properties": {

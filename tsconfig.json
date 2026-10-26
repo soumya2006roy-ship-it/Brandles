@@ -32,15 +32,14 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
     "**/*.mts",
-    ".next-build/types/**/*.ts",
-    ".next-build/dev/types/**/*.ts",
     ".next-brandlens-build/types/**/*.ts",
     ".next-brandlens-build/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next",
+    ".next-build",
+    ".next-brandlens-build"
   ]
 }

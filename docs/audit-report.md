@@ -1,49 +1,37 @@
-# BrandLens website audit
+# BrandLens website and launch audit
 
-Audit started: 2026-10-26. Scope: repository routes, public copy, metadata, consent/tracking, UI controls, contact handler, security headers, assets, and available automated checks. Product claims are compared with `docs/brandlens-proposal.md`.
+Audit updated: 2026-10-26. Product claims are checked against `docs/brandlens-proposal.md`.
 
-## Baseline
+## Baseline and launcher findings
 
-- `npm run lint`: passed.
-- `npm run typecheck`: passed.
-- `npm run build`: passed; the built-in theme token contrast check passed.
-- `npm test`: passed, 2 Vitest tests.
-- `npm run test:e2e`: passed, 4 Chromium tests (public smoke, read-only sample label, theme toggle, axe on the four public pages).
-- `npm run start`: fixed to launch the generated standalone server. Production smoke checks returned HTTP 200 for `/`, icons, `/robots.txt` and `/sitemap.xml`, and HTTP 404 for an unknown path. A production browser run passed public route smoke, read-only demo, theme toggle and axe checks.
-- `npm test`: passed, 5 tests across 2 files, including contact rate-limit unit/concurrency coverage.
-- `npm run test:e2e` with a local dev server: passed, 5 Chromium checks including contact validation and six-request rate limiting with `Retry-After`. The five requests returned the expected dev 503 because no Resend key is configured; request six returned 429.
-- `npm audit --audit-level=high`: passed, 0 known vulnerabilities.
-- No Docker/production database/browser network crawl, Lighthouse run, external email delivery, or real AI provider run was performed as part of this baseline.
+- `npm run lint`, `npm run typecheck`, `npm run build`, `npm test`, and browser checks passed before the latest changes.
+- Production startup was corrected to use Next.js standalone output. Production smoke requests returned HTTP 200 for `/`, icons, robots and sitemap, and HTTP 404 for an unknown path.
+- Windows launcher reproduction established why the organisation workspace was unavailable: if Docker is missing or stopped, the launcher ran the web app alone. The web app responded on port 3000, but API 8000 and database, Redis, storage and mail ports had no listeners. See `docs/launch-diagnosis.md`.
+- The launcher will be changed to require the complete Compose stack and stop with a clear prerequisite error when Docker cannot start. It will no longer claim full product startup while only serving the public website.
 
-## Route and control inventory
-
-Public routes include `/`, `/{problem,how-it-works,campaign-consistency-graph,features,demo,roles,security,roadmap,contact,privacy,cookies}`, `/404`, auth routes `/login`, `/sign-up`, `/verify-email`, `/forgot-password`, `/reset-password`, product routes under `/app`, and `/api/contact` plus `/api/product/[...path]`. Generated routes include sitemap, robots, manifest, favicon/icons, and Open Graph images. The App Router also has loading states for `/demo` and the product shell; no general route `error.tsx` was found at audit start.
-
-Interactive controls include desktop/mobile navigation, the light/dark theme button, public CTAs and tracked links, sample-workspace disclosures, consent banner/preferences, contact form, toast dismissal, auth forms, organisation onboarding, tabs/forms/search/filter/pagination in campaign/source/rules/finding/review screens, evidence drawers, finding resolution/dismissal, review decisions, Brand Twin, platform preview, account sessions and admin verification.
-
-## Prioritized findings
+## Prioritized work
 
 ### P0 Critical
 
-- None confirmed in the baseline static checks. This is not a security certification or full production penetration test.
+- None identified in the latest static checks. This is not a penetration test or security certification.
 
 ### P1 High
 
-- **Production startup and local standalone assets.** Fixed `npm start` and standalone output preparation. Verified production home, static asset, icons, robots, sitemap, 404, theme hydration and axe on four public routes. The standalone server was not run inside Docker.
-- **Contact throttling depended on spoofable, process-local identity.** Replaced direct `X-Forwarded-For` use with a shared atomic Redis counter in production, hashed IP keys, bounded local development fallback, `Retry-After`, and fail-closed behavior when Redis or a valid trusted `X-Real-IP` is missing. E2E verified the dev behavior and spoofed `X-Forwarded-For` does not rotate the identity. Redis-backed multi-replica behavior still needs deployment verification.
-- **Acceptance coverage is incomplete.** Existing browser tests cover four public routes and do not exercise consent, contact delivery/validation/rate limiting, all public routes/metadata, keyboard flows, responsive widths, or the seeded organisation journey. Axe runs only on four public pages in the default theme. Add focused tests where credentials/runtime permit; explicitly list unavailable checks.
+- **Full-stack launch reliability:** launcher starts only the public web service on systems without Docker. Phase 3 will make it fail clearly and launch all services with readiness checks when Docker is available.
+- **The unauthenticated public workspace endpoint:** remove its page, API, seed data, tracking events and migration field. Product screens must use account and organisation APIs only.
+- **Runtime judgement fallback:** development used a fixed insufficient-evidence provider. Remove that runtime provider; keep deterministic fixtures confined to evaluation/test code so unavailable judgement remains an explicit human-verification state.
+- **Acceptance coverage remains incomplete:** Docker was not installed, so database migrations, API runtime and full signup-to-approval journey cannot be run here. Report this limit plainly.
 
 ### P2 Medium
 
-- **Demo is a read-only seeded workspace, not the earlier interactive browser simulation.** The current `/demo` page accurately labels itself read-only and depends on the sample seed command; it does not expose scan/resolve/approve actions or a date-sensitive expiry finding. Preserve the prior read-only sandbox requirement and explain this mismatch instead of presenting an interactive workflow as implemented.
-- **The older, unused browser demo component contains invented confidence percentages and sample file version details.** The active `/demo` is the read-only seeded API workspace. The legacy simulation is not part of that route; remove unsupported numbers and overly specific invented file names from the legacy component or delete it if references confirm it is unused.
-- **Design audit coverage is partial.** Automated axe coverage and contrast-token checks do not cover every route, theme, viewport, zoom level, keyboard path, runtime request, or image/font delivery.
-- **Metadata/SEO checks have not been crawled route-by-route.** Code provides metadata, sitemap, robots, JSON-LD and canonical settings, but uniqueness, actual production response status, every social image, and links need runtime verification.
+- **Product entry points:** replace public calls to action with organisation creation, login, invite redemption and contact links. Ensure sitemap, metadata, breadcrumbs and related reading contain only active routes.
+- **Prototype disclosures:** Hindi phrase checks and platform previews remain limited rule-based prototypes; no wording should imply production translation, publishing or exact platform rendering.
+- **Verification coverage:** Lighthouse, full route metadata crawl, consent network capture, keyboard coverage, responsive widths and product-route accessibility remain incomplete.
 
-### P3 Polish
+## Verification record
 
-- No verified polish-only defect recorded yet. Visual/real-device review remains outstanding.
+The previous website audit verified five unit tests, five browser tests, contrast token thresholds, a production standalone page/theme smoke check, and zero high-severity npm audit findings. For the current removal and launcher work, rerun lint, typecheck, build, API pytest, unit tests, browser tests, route/link checks and repository search after implementation. Docker-backed startup cannot be verified in this environment because Docker is not installed.
 
-## Applied fixes and follow-up
+## Remaining risks
 
-Production startup and contact throttling have been fixed and rechecked. Remaining items are tracked with honest evidence in `docs/requirements-matrix.md`; full journey, provider-backed email, consent network capture, exhaustive accessibility, Lighthouse and Docker checks remain incomplete or require deployment credentials/runtime.
+Redis-backed production rate limiting, real email delivery, database migration in a clean Postgres instance, Docker images, Lighthouse scores and the complete authenticated product workflow still require configured infrastructure. No claim of full production readiness is made until those checks have actual run results.

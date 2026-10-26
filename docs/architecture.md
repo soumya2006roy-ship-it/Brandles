@@ -8,7 +8,7 @@ Production builds are `Dockerfile.web` and `api/Dockerfile`; the API image also 
 
 ## Evidence and scanning
 
-Exact phrase, offer/date, logo, language and channel checks are deterministic. Judgement checks are disabled by default and fall back to human verification unless an explicitly enabled provider adapter returns schema-valid output with a passage-backed quote. The current vector representation is a deterministic lexical-hash vector, not a semantic embedding. OCR and malware scanning depend on optional configuration and installed services. Hindi checking and platform simulations are rule-based prototypes.
+Exact phrase, offer/date, logo, language and channel checks are deterministic. Judgement checks are disabled by default and fall back to human verification unless an explicitly enabled provider adapter returns schema-valid output with a passage-backed quote. The current vector representation is a deterministic lexical-hash vector, not a semantic embedding. OCR and malware scanning depend on optional configuration and installed services. Hindi checking and platform previews are rule-based prototypes.
 
 Campaign scan jobs store progress and version snapshots, support cancellation/resume, and reject stale evidence. The in-process operational counters are process-local. Redis is required for shared request throttling and queued scan jobs. No external LLM provider adapter or durable metrics exporter is included.
 

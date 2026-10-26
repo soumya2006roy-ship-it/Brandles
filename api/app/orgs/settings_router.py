@@ -134,8 +134,6 @@ def delete_organization_data(organization_id: str, payload: DeletionRequest, req
     organization = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)).with_for_update())
     if not organization:
         return {"status": "deleted"}
-    if organization.is_sample:
-        raise HTTPException(status_code=409, detail="The read-only sample workspace cannot be deleted.")
     if payload.confirmation_name != organization.name:
         raise HTTPException(status_code=422, detail="Type the organisation name exactly to confirm deletion.")
     storage = get_storage()

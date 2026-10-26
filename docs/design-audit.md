@@ -2,7 +2,7 @@
 
 Audit date: 2026-10-25
 
-The audit covers the shared visual system, page templates, demo, metadata and in-app copy. `docs/brandlens-proposal.md` remains the content source of truth; its punctuation and phrasing are intentionally preserved.
+The audit covers the shared visual system, page templates, metadata and in-app copy. `docs/brandlens-proposal.md` remains the content source of truth; its punctuation and phrasing are intentionally preserved.
 
 | Pattern | Location before rework | Planned replacement |
 | --- | --- | --- |
@@ -13,10 +13,10 @@ The audit covers the shared visual system, page templates, demo, metadata and in
 | Italic serif headline emphasis | `app/page.tsx:11,22,24,26,28`; `app/not-found.tsx:4`; `app/globals.css:86` | Use regular, non-italic display typography with no colored emphasis. |
 | Generic equal-width process cards | `app/page.tsx:26`; `app/globals.css:147-151` | Use a numbered editorial sequence with varied row widths. |
 | Equal-width feature cards | `app/features/page.tsx:9`; `app/globals.css` innovation grid rules | Use a single-column, source-led feature index and alternating evidence excerpts. |
-| Decorative arrows and theme glyphs | `app/page.tsx`, `app/ui.tsx`, `app/demo/demo-experience.tsx`, `app/not-found.tsx` | Remove ornamental arrows; use text labels for theme controls and navigation. |
+| Decorative arrows and theme glyphs | `app/(marketing)/page.tsx`, `app/ui.tsx`, `app/not-found.tsx` | Remove ornamental arrows; use text labels for theme controls and navigation. |
 | Side stripe as the main finding/status treatment | `app/globals.css:261,286,326` and toast styles | Use plain labels, headings and full-width semantic text, with no colored left-edge card motif. |
 | Serif italics plus DM Sans pairing | `app/layout.tsx:3,10-11` | Use IBM Plex Sans with Newsreader, both via `next/font`, swap display and Latin subsets. |
-| Punctuation dash used as sentence punctuation | `app/contact/contact-form.tsx:37`, `app/demo/demo-experience.tsx:71`, `app/opengraph-image.tsx:3`, `app/manifest.ts:5`, `app/api/contact/route.ts:79,118` | Replace punctuation dashes with commas, colons or full stops. Preserve functional minus signs and source proposal text. |
+| Punctuation dash used as sentence punctuation | `app/contact/contact-form.tsx:37`, `app/opengraph-image.tsx:3`, `app/manifest.ts:5`, `app/api/contact/route.ts:79,118` | Replace punctuation dashes with commas, colons or full stops. Preserve functional minus signs and source proposal text. |
 | Skeleton shimmer animation | `app/globals.css:305` | Use static, reduced-motion-safe loading blocks with a restrained color fill. |
 | Rotating/dashed graph lines and orbit | `app/globals.css:104,115-116` | Keep graph motion subtle and short, with the existing reduced-motion override. |
 | Dense card layout obscures the evidence trail | `app/page.tsx`, `app/features/page.tsx`, `app/globals.css` | Prioritise the approved passage, finding, comparison and 20% versus 30% conflict in a consistent editorial layout. |
@@ -26,7 +26,7 @@ The audit covers the shared visual system, page templates, demo, metadata and in
 
 Before: the site uses familiar gradient-era startup patterns such as a blurred sticky header, oversized shadows, rotated cards, a decorative dot texture, italicized display emphasis, arrows and repeated equal-width cards. Evidence exists in the content but does not consistently lead the visual hierarchy.
 
-After: the home page opens with a concrete campaign-review claim, then shows the 20% versus 30% offer conflict and a cited original-versus-suggestion example. The campaign graph uses only labelled, evidence-bearing links. Process and innovation content read as editorial rows. The palette has opaque surfaces, fine rules, semantic severity labels and regular display typography. The Hindi checker and platform previews remain labelled rule-based prototypes.
+After: the home page opens with a concrete campaign-review claim and account entry points. The campaign graph uses labelled, evidence-bearing links. Process and capability content read as editorial rows. The palette has opaque surfaces, fine rules, semantic severity labels and regular display typography. The Hindi checker and platform previews remain labelled rule-based prototypes.
 
 ## Verification
 
@@ -55,4 +55,4 @@ The build script reads the light and dark tokens from `app/globals.css` and chec
 
 ## Limitations
 
-The proposal describes a product concept. The site demo remains a seeded local simulation. The Hindi checker and platform previews remain simple rule-based prototypes. Contrast checks cover the declared token pairs, not every arbitrary color combination a future component could introduce. No production product capability is implied by the visuals.
+The proposal describes the product concept. The website uses account and organisation workflows rather than fictional records. The Hindi checker and platform previews remain simple rule-based prototypes. Contrast checks cover the declared token pairs, not every arbitrary color combination a future component could introduce. Marketing illustrations do not represent live organisation data.

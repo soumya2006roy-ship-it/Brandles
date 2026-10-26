@@ -110,9 +110,9 @@ When the system has no approved evidence either way, it says “Insufficient app
 
 - It does not change brand rules on its own.
 
-### Demonstration scenario
+### Skincare scenario
 
-To make this concrete, we will demonstrate with an imaginary skincare brand. Its approved material says two things: the moisturiser “helps to keep the skin hydrated”, and the current offer is 20% off until 30 November. A creator then prepares three assets: an Instagram post that says the product “cures acne in 24 hours”, a promotional email offering 30% off, and a poster that still uses the old logo. When the creator runs the scan, BrandLens raises these flags:
+To make this concrete, consider an imaginary skincare brand. Its approved material says two things: the moisturiser “helps to keep the skin hydrated”, and the current offer is 20% off until 30 November. A creator then prepares three assets: an Instagram post that says the product “cures acne in 24 hours”, a promotional email offering 30% off, and a poster that still uses the old logo. When the creator runs the scan, BrandLens raises these flags:
 
 - Unsupported claim. Nothing in the approved product sheet says the product cures acne. The flag shows the sheet’s approved wording next to the creator’s line.
 
@@ -122,7 +122,7 @@ To make this concrete, we will demonstrate with an imaginary skincare brand. Its
 
 - Wrong logo version. The poster uses a logo that has since been replaced.
 
-If the planned send date falls after 30 November, an expiry flag appears as well. The creator fixes the claim and the discount, swaps in the current logo, rescans, and sends the campaign to a reviewer, who approves it. The whole story takes a few minutes and shows every part of the idea: evidence, consistency, explanation and human sign-off.
+If the planned send date falls after 30 November, an expiry flag appears as well. The creator fixes the claim and the discount, swaps in the current logo, rescans, and sends the campaign to a reviewer, who approves it. This scenario describes the intended workflow: evidence, consistency, explanation and human sign-off.
 
 ## 3  Technical Plan
 
@@ -130,7 +130,7 @@ If the planned send date falls after 30 November, an expiry flag appears as well
 
 ### Architecture
 
-Upload → parsing to secure store → approved-source database (document versions + embeddings) → retrieval → hybrid processing (rule-based exact + LLM + referenced passages + cross-channel comparison) → structured results → review by creator → review by approver → audit log and metrics. For the multilingual pilot: extract structured facts from both English and Hindi text and compare to the same approved facts; flag dubious translation for review. For the platform simulator: use responsive preview templates and channel rules, not social-media posting APIs.
+Upload → parsing to secure store → approved-source database (document versions + embeddings) → retrieval → hybrid processing (rule-based exact + LLM + referenced passages + cross-channel comparison) → structured results → review by creator → review by approver → audit log and metrics. For multilingual checks: extract structured facts from both English and Hindi text and compare to the same approved facts; flag dubious translation for review. For platform previews: use responsive preview templates and channel rules, not social-media posting APIs.
 
 ### Hardest technical challenge: trustworthy, explainable findings
 
@@ -162,7 +162,7 @@ BrandLens is built for the gap between these: quick like software, grounded like
 
 ### Seven ideas that make the graph useful
 
-Around the core idea sit seven features. Each is small on its own, and each was chosen because it can be shown working in a first-round demo.
+Around the core idea sit seven features. Each is small on its own, and each was chosen because it contributes to the first product workflow.
 
 ### Why we consider this approach original
 
@@ -188,7 +188,7 @@ The English/Hindi consistency checker and the Instagram/LinkedIn preview are del
 
 ### Measurable success criteria
 
-- End to end Demo: Source file is uploaded by Admin → Two assets are created → Results are shown → Revision → Approval by Reviewer.
+- End-to-end workflow: a source file is uploaded by Admin → two assets are created → results are shown → revision → approval by Reviewer.
 
 - Each factual discovery comes with an accurate source citation or is marked as “unverified.”
 
@@ -198,7 +198,7 @@ The English/Hindi consistency checker and the Instagram/LinkedIn preview are del
 
 ### Risks and mitigation
 
-False positives in models → override by reviewer and labelling for confidence/evidence. Bad extraction from PDF → revert to text editing. Short build times → focus on text extraction, two-asset comparison and static preview for platforms; extend languages only when core review functionality is working. API not working → deterministic rules still apply and demo cases are clearly marked.
+False positives in models → override by reviewer and labelling for confidence/evidence. Bad extraction from PDF → revert to text editing. Short build times → focus on text extraction, two-asset comparison and static preview for platforms; extend languages only when core review functionality is working. API unavailable → deterministic rules remain available and evaluation cases are clearly marked.
 
 ## Closing pitch
 
@@ -219,7 +219,7 @@ BrandLens changes the practice of brand governance from a tedious, subjective qu
 
 | Layer | Technology | Reason |
 | --- | --- | --- |
-| Frontend | Next.js / React + Tailwind CSS | Responsive dashboard, annotation UI and fast demo development. |
+| Frontend | Next.js / React + Tailwind CSS | Responsive dashboard, annotation UI and fast product iteration. |
 | Backend | Python FastAPI | Simple API design; strong document and AI tooling. |
 | Data & access | PostgreSQL + role-based permissions | Campaigns, versions, comments, approvals and audit history. |
 | Document processing | PyMuPDF / python-docx; OCR as needed | Extracts text from PDF/DOCX and selected image assets. |
@@ -228,7 +228,7 @@ BrandLens changes the practice of brand governance from a tedious, subjective qu
 
 ## Source table 3
 
-| Innovation | Why it matters | Round 1 demonstration |
+| Innovation | Why it matters | First product workflow |
 | --- | --- | --- |
 | Cross-channel contradiction detection | Prevents Instagram, email and poster from communicating conflicting offers. | 20% versus 30% discount highlighted across two assets. |
 | Evidence Map | Every factual finding links to a specific approved source and version. | Click a claim to see the relevant approved passage. |
@@ -236,7 +236,7 @@ BrandLens changes the practice of brand governance from a tedious, subjective qu
 | Expiry-aware checks | Catches promotions or facts that are invalid on planned publication dates. | Expired campaign offer flagged automatically. |
 | Feedback-to-guideline loop | Repeated overrides become suggestions for admin review, never automatic policy changes. | Dashboard lists recurring ambiguity and reviewer overrides. |
 | Multilingual Brand Consistency Checker | Checks whether key claims, prices and brand terminology retain the same meaning in English and Hindi; avoids relying on literal translation alone. | Show an English offer and a Hindi version with a changed discount; flag the mismatch and display the approved wording. |
-| Platform-Specific Content Simulator | Previews content in Instagram and LinkedIn-style layouts and checks channel rules such as caption length, tone, CTA and hashtag usage. | Switch between two channel previews; see a formal LinkedIn alternative without changing the approved facts. |
+| Platform-specific content preview | Previews content in Instagram and LinkedIn-style layouts and checks channel rules such as caption length, tone, CTA and hashtag usage. | Switch between two channel previews; see a formal LinkedIn alternative without changing the approved facts. |
 
 ## Source table 4
 
@@ -253,7 +253,7 @@ BrandLens changes the practice of brand governance from a tedious, subjective qu
 
 | Phase | Deliverable / acceptance check |
 | --- | --- |
-| Foundation · first 25% | Working authentication/roles, brand setup, sample approved sources and content submission. |
+| Foundation · first 25% | Working authentication/roles, brand setup, approved source documents and content submission. |
 | Intelligence · next 35% | Structured findings for tone, terminology, claims and offers with source references; two-asset contradiction detection. |
 | Workflow · next 25% | Revision history, comments, reviewer decision and re-scan; end-to-end happy path. |
-| Polish · final 15% | Seeded demo campaign, edge-case tests, UX cleanup and pitch rehearsal. |
+| Polish · final 15% | Labelled evaluation cases, edge-case tests, UX cleanup and final review. |

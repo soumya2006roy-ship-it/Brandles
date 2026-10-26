@@ -56,7 +56,6 @@ class Organization(Base):
     contact_person: Mapped[str] = mapped_column(String(120), nullable=False)
     verification_status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending_verification")
     llm_processing_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    is_sample: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     retention_days: Mapped[int] = mapped_column(Integer, nullable=False, default=365)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)

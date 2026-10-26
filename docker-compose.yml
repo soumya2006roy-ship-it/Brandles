@@ -43,10 +43,10 @@ services:
       S3_ACCESS_KEY_ID: brandlens-local
       S3_SECRET_ACCESS_KEY: brandlens-local-secret
       S3_REGION: us-east-1
-      LLM_PROVIDER: mock
-      LLM_MODEL: mock
-      EMBEDDING_PROVIDER: mock
-      EMBEDDING_MODEL: mock
+      LLM_PROVIDER: none
+      LLM_MODEL: none
+      EMBEDDING_PROVIDER: none
+      EMBEDDING_MODEL: none
       ALLOW_WORKSPACE_LLM: "false"
       OCR_PROVIDER: ${OCR_PROVIDER:-none}
       TESSERACT_COMMAND: ${TESSERACT_COMMAND:-/usr/bin/tesseract}

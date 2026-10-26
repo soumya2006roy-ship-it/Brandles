@@ -10,7 +10,10 @@ export default function HomePage() {
           <h1>Catch campaign conflicts before approval.</h1>
           <p className="hero-position">Brand governance, made reviewable.</p>
           <p className="hero-lede">Compare campaign assets with approved brand material and with one another. Each finding points to its evidence, and a person decides what changes.</p>
-          <div className="actions"><TrackedLink className="button button-primary" href="/demo" label="Explore the guided demo">Explore the guided demo</TrackedLink><Link className="text-link" href="/how-it-works">How it works</Link></div>
+          <div className="actions">
+            <TrackedLink className="button button-primary" href="/sign-up" label="Create your organisation">Create your organisation</TrackedLink>
+            <Link className="text-link" href="/login">Log in</Link>
+          </div>
           <p className="prototype-note">A source-based reviewer. Not a publishing engine or compliance certification.</p>
         </div>
         <div className="hero-visual" aria-label="Campaign facts connected to approved sources and assets">
@@ -19,19 +22,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="band"><div className="wrap band-inner"><p className="eyebrow">The gap in today’s workflow</p><h2>A campaign can be wrong between the assets.</h2><p>Each post may look fine by itself. But one says 20% off, another says 30%. BrandLens compares the whole campaign and points back to the approved material behind each finding.</p><Link className="text-link" href="/problem">See the problem clearly</Link></div></section>
+      <section className="band"><div className="wrap band-inner"><p className="eyebrow">The gap in today’s workflow</p><h2>A campaign can be wrong between the assets.</h2><p>BrandLens compares approved sources with campaign assets and checks how the assets agree with one another. Reviewers can trace each finding to evidence before deciding what to do.</p><Link className="text-link" href="/problem">See the problem clearly</Link></div></section>
 
-      <section className="conflict-section wrap" aria-labelledby="conflict-heading"><div className="conflict-copy"><p className="eyebrow">A campaign-level check</p><h2 id="conflict-heading">One approved offer. One conflicting asset.</h2><p>The demo compares each asset against the approved offer. It flags the mismatch for a person to review.</p></div><div className="conflict-panel"><div><span>APPROVED SOURCE</span><strong>20% off</strong><small>Product sheet</small></div><div className="conflict-mark" aria-hidden="true">≠</div><div><span>EMAIL ASSET</span><strong>30% off</strong><small>Promotional email</small></div><p>Offer values disagree. Reviewer decision required.</p></div></section>
+      <section className="section section-muted"><div className="wrap"><div className="section-heading"><div><p className="eyebrow">A shared review workflow</p><h2>From trusted sources<br />to a recorded decision.</h2></div><p>Organisation members use role-based access to maintain evidence, prepare campaigns and review findings.</p></div><div className="steps-grid">{["Set up approved sources", "Create a campaign and add assets", "Scan and resolve findings", "Submit for reviewer approval"].map((step, index) => <div className="step-card" key={step}><span>0{index + 1}</span><h3>{step}</h3></div>)}</div><Link className="text-link" href="/how-it-works">Read how the workflow works</Link></div></section>
 
-      <section className="section wrap"><div className="section-heading"><div><p className="eyebrow">Evidence before opinion</p><h2>Review the change.<br />See the source.</h2></div><p>Each finding shows the original text beside a suggested edit. The source, confidence and resolution remain visible for review.</p></div><FindingPreview /></section>
+      <section className="section wrap"><div className="section-heading"><div><p className="eyebrow">Evidence before opinion</p><h2>Inspect the source.<br />Make the decision.</h2></div><p>Findings link to approved passages and campaign facts. A reviewer makes the decision, and the selected asset version is recorded.</p></div><div className="actions"><Link className="button button-primary" href="/sign-up">Create your organisation</Link><Link className="text-link" href="/app/invite">Join with an invite code</Link></div></section>
 
-      <section className="section section-muted"><div className="wrap"><div className="section-heading"><div><p className="eyebrow">How it works</p><h2>From trusted material<br />to human sign-off.</h2></div><p>Exact rules, evidence-backed checks and campaign comparison work together. A named reviewer keeps the final decision.</p></div><div className="steps-grid">{["Set up approved sources", "Create a campaign", "Scan and resolve findings", "Record reviewer approval"].map((step, index) => <div className="step-card" key={step}><span>0{index + 1}</span><h3>{step}</h3></div>)}</div><Link className="text-link" href="/how-it-works">Walk through the workflow</Link></div></section>
-
-      <section className="closing-cta wrap"><p className="eyebrow">See the review flow</p><h2>Try the skincare<br />campaign simulation.</h2><p>Explore the proposal’s seeded scenario: a claim, a conflicting offer, a logo version and a reviewer decision.</p><TrackedLink className="button button-primary" href="/demo" label="Open the demo">Open the demo</TrackedLink></section>
+      <section className="closing-cta wrap"><p className="eyebrow">Questions about access?</p><h2>Start with your organisation.</h2><p>Create an organisation, log in to an existing account, or contact the BrandLens team.</p><div className="actions"><TrackedLink className="button button-primary" href="/sign-up" label="Create your organisation">Create your organisation</TrackedLink><Link className="text-link" href="/contact">Contact us</Link></div></section>
     </>
   );
-}
-
-function FindingPreview() {
-  return <div className="finding-preview" aria-label="Example finding with its approved evidence"><div className="finding-source"><div className="mini-label">APPROVED PRODUCT SHEET · VERSION 3</div><p>“The moisturiser <mark>helps to keep the skin hydrated</mark>.”</p><span className="source-tag">Approved passage</span></div><div className="finding-suggested"><div className="mini-label">INSTAGRAM CAPTION · CLAIM CHECK</div><p>“Our moisturiser <del>cures acne in 24 hours</del> <ins>helps keep skin hydrated</ins>.”</p><div className="finding-meta"><span className="severity severity-high">Needs review</span><span>Evidence linked · 92% confidence</span></div></div></div>;
 }

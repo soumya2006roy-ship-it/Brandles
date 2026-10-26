@@ -13,9 +13,19 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core.db import Base
-from app.ai.clients import MockLLMClient
 from app.db.models import Asset, BrandGuidelineSource, Campaign, Finding, Rule, Scan, SourcePassage, User
 from app.campaigns import scans
+
+
+class EvaluationLLMClient:
+    """Deterministic test fixture: judgement is always insufficient evidence."""
+
+    vendor = "evaluation-fixture"
+    model = "insufficient-evidence-v1"
+
+    def judge(self, task, approved_passages, asset_excerpt):
+        del task, approved_passages, asset_excerpt
+        return {"verdict": "insufficient_evidence", "flagged_text": None, "source_id": None, "quoted_excerpt": None, "rationale": "No model judgement is configured in this evaluation.", "confidence": 0.0, "suggested_fix": None}
 
 
 def main() -> int:
@@ -24,7 +34,7 @@ def main() -> int:
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     scans.SessionLocal = factory
-    scans.get_llm_client = lambda _organization: MockLLMClient()
+    scans.get_llm_client = lambda _organization: EvaluationLLMClient()
     expected_total = predicted_total = correct = 0
     high_false_breaches = possible_false_breaches = 0
     valid_citations = citations = 0
@@ -79,7 +89,7 @@ def main() -> int:
         recall = correct / expected_total if expected_total else 1.0
         citation_validity = valid_citations / citations if citations else 1.0
         false_breach_rate = high_false_breaches / possible_false_breaches if possible_false_breaches else 0.0
-        print(json.dumps({"precision": round(precision, 4), "recall": round(recall, 4), "citation_validity": round(citation_validity, 4), "false_breach_rate": round(false_breach_rate, 4), "mock_llm": "enabled; unsupported judgement cases become Needs human verification"}, indent=2))
+        print(json.dumps({"precision": round(precision, 4), "recall": round(recall, 4), "citation_validity": round(citation_validity, 4), "false_breach_rate": round(false_breach_rate, 4), "evaluation_judgement": "fixed insufficient-evidence fixture; no provider is called"}, indent=2))
         return 0 if precision == 1 and recall == 1 and citation_validity == 1 and false_breach_rate == 0 else 1
     finally:
         Base.metadata.drop_all(engine)

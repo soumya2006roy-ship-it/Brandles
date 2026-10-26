@@ -15,18 +15,7 @@ npm run dev:all
 
 `dev:all` starts Next.js, FastAPI, PostgreSQL with pgvector, Redis, MinIO, a background worker, and Mailpit. Visit `http://localhost:3000`; local email is captured at `http://localhost:8025`. The compose stack uses development-only credentials from `.env.example`. Change them before exposing any service outside localhost.
 
-On Windows, `start-brandlens.bat` opens the full stack when Docker Desktop is running; without Docker, it starts the public marketing site only.
-
-### Sample workspace
-
-`/demo` reads the fictional skincare workspace from the public, read-only `GET /api/v1/sample-workspace` endpoint. After starting the API and applying migrations, seed the sample with:
-
-```powershell
-Set-Location api
-.venv\Scripts\python.exe scripts\seed_sample_workspace.py
-```
-
-The seed command is idempotent. It creates a dedicated sample organization and campaign scan, and refuses to expose regular customer workspaces through the public route. The sample is unavailable until this command has run in the deployment database.
+On Windows, `start-brandlens.bat` requires Docker Desktop and launches the complete product stack. It opens the sign-in page after web and API readiness checks pass. If Docker is unavailable, the script reports the prerequisite and does not start a website-only fallback. To start only the public website intentionally, use `npm run dev` from a terminal.
 
 To run only the marketing site, use `npm run dev`; account and organisation features require the API and database. To run the API outside Docker on Windows, create and activate a venv, install the requirements, then run Alembic and Uvicorn:
 
@@ -82,7 +71,7 @@ The workspace AI setting defaults off, and live provider adapters are absent. Do
 - Phase 4 provides queued, cancellable and resumable campaign scans with asset/rule snapshots, progress and per-organisation limits. Deterministic exact checks cover offer validity/discounts, banned and required phrases, logo version, channel limits, and language-scoped rules. The judgement interface uses top-five deterministic lexical-hash retrieval, strict validated JSON, evidence citation checks, confidence caps, and human-verification fallback. Model/prompt, retrieved passage IDs and latency are recorded without secrets. Campaign facts are normalized where possible and compared across assets; conflicts and unsupported facts remain review prompts. These checks are prototypes; no live LLM or semantic embedding provider is included.
 - Phase 5 provides filtered and grouped findings, evidence and suggested-text comparison, creator edits as new asset versions, reasoned dismissal, clarification requests, and rescans. Reviewer submissions are idempotent and bind to exact asset versions and the current scan/rule snapshot; reviewers cannot review their own submissions. Approval, rejection, request-changes history, in-app notifications and email notices are recorded. Campaign status is set by the API. The workflow does not publish to platforms or certify legal or regulatory compliance.
 - Phase 6 adds an expandable Evidence Map with source passage/page/version, expiry warnings for referenced offers, and Admin-only feedback suggestions after repeated creator decisions. Accepting a guideline suggestion records an Admin decision and never edits a rule. Brand Twin is an extractive assistant limited to effective approved passages; it cites each excerpt and refuses unmatched questions. Hindi exact checks and lexical retrieval are a limited-accuracy prototype. Instagram/LinkedIn-style previews use rule-based truncation and hashtag/link counts; they do not reflect live platform rendering or post content.
-- Phase 7 adds a server-data dashboard, campaign and finding views, review queue, sources/rules, team and invite management, notification/AI settings, platform verification and append-only audit history. `/demo` is now a read-only sandbox backed by explicitly seeded sample records; it does not use editable browser-only state. Dashboard and finding APIs are tenant-scoped and list endpoints provide bounded filters and pagination.
+- Phase 7 adds a server-data dashboard, campaign and finding views, review queue, sources/rules, team and invite management, notification/AI settings, platform verification and append-only audit history. Dashboard and finding APIs are tenant-scoped and list endpoints provide bounded filters and pagination.
 - Phase 8 adds strict request models, same-origin and Fetch Metadata checks for browser mutations, response security headers, scoped access to private signed downloads, Redis-backed rate limits with `Retry-After`, prompt-injection instructions for untrusted model inputs, append-only audit protection, workspace export/deletion, and configurable scan/finding history retention. The worker purges expired scan history hourly. Workspace deletion removes uploaded objects and operational records but retains minimal append-only audit history and the user account. Export is JSON with uploaded originals and is limited to 100 MB total files. Deployments must provide TLS, private networking, Redis, strong environment secrets and correctly configured trusted proxies.
 - Invitation codes are stored as hashes, are scoped to one organisation and role, and have expiry/use limits. Accepted invitations create memberships. Platform administrators are assigned with the trusted CLI, not by self-service registration.
 - The compose stack is the default full local environment. Docker is required for that path. If Docker is unavailable, marketing-only `npm run dev` remains available; API tests run with SQLite and do not require Docker.
@@ -115,15 +104,15 @@ Production images are defined by `Dockerfile.web` and `api/Dockerfile`; `compose
 | ---: | --- | --- |
 | 1 | Custom 404 | `app/not-found.tsx` |
 | 2 | Favicon, touch/app/maskable icons and manifest | `app/favicon.ico`, `app/icon.svg`, `public/apple-touch-icon.png`, `public/icon-192.png`, `public/icon-512.png`, `public/maskable-icon-512.png`, `app/manifest.ts` |
-| 3 | Loading skeletons and empty states | `app/(marketing)/demo/loading.tsx`, `app/(marketing)/demo/demo-loader.tsx`, `app/(marketing)/demo/demo-experience.tsx`, `app/app/page.tsx` |
-| 4 | Toast notifications | `app/ui.tsx`, `app/(marketing)/demo/demo-experience.tsx`, `app/contact/contact-form.tsx` |
+| 3 | Loading skeletons and empty states | `app/app/page.tsx`, product loading states, campaign/source/review lists |
+| 4 | Toast notifications | `app/ui.tsx`, `app/contact/contact-form.tsx` |
 | 5 | Reduced-motion support | `app/globals.css` (`prefers-reduced-motion`) |
-| 6 | Per-page 1200×630 social images | `app/opengraph-image.tsx`, `app/(marketing)/[slug]/opengraph-image.tsx`, `app/(marketing)/features/opengraph-image.tsx`, `app/(marketing)/demo/opengraph-image.tsx`, `app/og-image.tsx` |
-| 7 | Typed, consent-gated tracking events | `app/track.ts`, `app/privacy-consent.tsx`, `app/ui.tsx`, `app/(marketing)/page.tsx`, `app/(marketing)/demo/demo-experience.tsx`, `app/contact/contact-form.tsx` |
+| 6 | Per-page 1200×630 social images | `app/opengraph-image.tsx`, `app/(marketing)/[slug]/opengraph-image.tsx`, `app/(marketing)/features/opengraph-image.tsx`, `app/og-image.tsx` |
+| 7 | Typed, consent-gated tracking events | `app/track.ts`, `app/privacy-consent.tsx`, `app/ui.tsx`, `app/(marketing)/page.tsx`, `app/contact/contact-form.tsx` |
 | 8 | Cookie banner and preferences | `app/privacy-consent.tsx`, `app/consent.ts`, `app/ui.tsx`, `app/globals.css` |
 | 9 | CSP and security headers | `proxy.ts`, `next.config.ts` |
 | 10 | Validated, rate-limited contact email workflow | `app/api/contact/route.ts`, `app/contact/contact-form.tsx`, `.env.example` |
-| 11 | Unique titles/descriptions and title template | `app/layout.tsx`, `app/(marketing)/[slug]/page.tsx`, `app/(marketing)/features/page.tsx`, `app/(marketing)/demo/page.tsx` |
+| 11 | Unique titles/descriptions and title template | `app/layout.tsx`, `app/(marketing)/[slug]/page.tsx`, `app/(marketing)/features/page.tsx` |
 | 12 | Open Graph and Twitter metadata | `app/layout.tsx`, marketing metadata files, generated social image files in #6 |
 | 13 | Sitemap | `app/sitemap.ts` |
 | 14 | Robots rules | `app/robots.ts` |
@@ -132,7 +121,7 @@ Production images are defined by `Dockerfile.web` and `api/Dockerfile`; `compose
 | 17 | Breadcrumb navigation and BreadcrumbList JSON-LD | `app/ui.tsx`, `app/structured-data.tsx`, marketing route components |
 | 18 | Related reading and contextual links | `app/ui.tsx`, `site.config.ts`, marketing route components |
 | 19 | AVIF/WebP image optimisation with `next/image` | `next.config.ts`, `app/ui.tsx` |
-| 20 | Lazy-loaded demo and graph | `app/(marketing)/demo/demo-loader.tsx`, `app/lazy-graph.tsx`, `app/graph.tsx` |
+| 20 | Lazy-loaded campaign graph | `app/lazy-graph.tsx`, `app/graph.tsx` |
 | 21 | Display and sans fonts through `next/font` | `app/layout.tsx` |
 | P1 | Authentication, verification, reset, and sessions | `api/app/auth/router.py`, `api/app/auth/dependencies.py`, `app/auth/auth-form.tsx`, account routes under `app/` |
 | P1 | Organisations, memberships, roles, invites, and verification | `api/app/orgs/router.py`, `api/app/orgs/settings_router.py`, `api/app/db/models.py`, `app/app/organisations/`, `app/app/invite/`, `app/app/admin/verifications/` |
@@ -148,9 +137,9 @@ Production images are defined by `Dockerfile.web` and `api/Dockerfile`; `compose
 | P4 | Labelled evaluation set and metrics | `evals/brandlens.json`, `api/scripts/run_evals.py`, `api/tests/test_campaign_scans.py` |
 | P5 | Filtered findings, creator resolution and clarification, version-bound review queue/history, notifications | `api/app/campaigns/router.py`, `api/app/notifications/`, `api/app/db/models.py`, `app/app/organisations/campaigns/campaign-workspace.tsx`, `app/app/organisations/reviews/` |
 | P6 | Evidence Map, offer expiry warnings, feedback suggestions, bounded source Q&A and rule-based previews | `api/app/campaigns/router.py`, `api/app/campaigns/scans.py`, `api/app/checks/`, `app/app/organisations/brand-twin.tsx`, `app/app/organisations/campaigns/platform-preview.tsx` |
-| P7 | Dashboard, findings and audit views, organization workspace navigation, read-only seeded sample workspace | `api/app/campaigns/router.py`, `api/app/orgs/router.py`, `api/app/sample/`, `api/scripts/seed_sample_workspace.py`, `app/app/organisations/dashboard.tsx`, `app/app/organisations/audit-log.tsx`, `app/app/organisations/[organizationId]/findings/`, `app/(marketing)/demo/` |
+| P7 | Dashboard, findings and audit views, organization workspace navigation | `api/app/campaigns/router.py`, `api/app/orgs/router.py`, `app/app/organisations/dashboard.tsx`, `app/app/organisations/audit-log.tsx`, `app/app/organisations/[organizationId]/findings/` |
 | P8 | Tenant/RBAC protections, CSRF/origin checks, Redis throttles, private file access, append-only audit, export/deletion/retention, prompt-injection safeguards and CI scans | `api/app/auth/dependencies.py`, `api/app/core/rate_limit.py`, `api/app/data_controls.py`, `api/app/orgs/settings_router.py`, `api/alembic/versions/0007_append_only_audit.py`, `api/alembic/versions/0008_retention_controls.py`, `api/tests/test_security_controls.py`, `.github/workflows/ci.yml` |
 
 ## Performance notes
 
-The first viewport uses text and a small inline SVG graph rather than a large raster hero image. The demo is dynamically loaded, and public images use `next/image`. Fixed-size images and layout containers avoid image-driven layout shift. The consent controls are fixed-position. Re-run Lighthouse on the deployed origin after configuring the final domain and production runtime; cold server starts and deployment infrastructure affect LCP and total JavaScript measurements.
+The first viewport uses text and a small inline SVG graph rather than a large raster hero image. Public images use `next/image`. Fixed-size images and layout containers avoid image-driven layout shift. The consent controls are fixed-position. Re-run Lighthouse on the deployed origin after configuring the final domain and production runtime; cold server starts and deployment infrastructure affect LCP and total JavaScript measurements.

@@ -1015,23 +1015,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/sample-workspace": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Sample Workspace */
-        get: operations["get_sample_workspace_api_v1_sample_workspace_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1744,23 +1727,6 @@ export interface components {
             valid_to?: string | null;
             /** Source Passage Id */
             source_passage_id: string;
-        };
-        /** SampleWorkspaceResponse */
-        SampleWorkspaceResponse: {
-            /** Organization Name */
-            organization_name: string;
-            campaign: components["schemas"]["CampaignResponse"];
-            /** Assets */
-            assets: components["schemas"]["AssetResponse"][];
-            /** Findings */
-            findings: components["schemas"]["FindingResponse"][];
-            /** Facts */
-            facts: components["schemas"]["FactResponse"][];
-            /**
-             * Read Only
-             * @default true
-             */
-            read_only: boolean;
         };
         /** ScanResponse */
         ScanResponse: {
@@ -4112,26 +4078,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_sample_workspace_api_v1_sample_workspace_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SampleWorkspaceResponse"];
                 };
             };
         };

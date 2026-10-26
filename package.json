@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
+    "check:links": "node scripts/check-site-links.mjs",
     "contrast-check": "node scripts/check-contrast.mjs",
     "api:openapi": "python api/scripts/export_openapi.py",
     "api:types": "npm run api:openapi && openapi-typescript api/openapi.json -o app/lib/api-schema.d.ts"

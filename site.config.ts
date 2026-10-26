@@ -38,7 +38,7 @@ export const siteConfig = {
         { title: "03 · Analyse and explain", body: "Exact rule checks run alongside evidence-based judgement checks and cross-channel comparison. Each finding shows severity, highlighted text, its rule or source, confidence and a suggested edit." },
         { title: "04 · Resolve and approve", body: "The creator can accept, edit or dismiss a suggestion with a reason. A named reviewer makes the final decision. Identity, decision, version and timestamp are saved in the audit trail." },
       ],
-      related: ["demo", "features", "roles"],
+      related: ["features", "roles", "contact"],
     },
     "campaign-consistency-graph": {
       title: "Check the campaign as a whole",
@@ -52,17 +52,17 @@ export const siteConfig = {
         { title: "Mismatches become visible", body: "Facts of the same kind are compared across the campaign. When two discounts do not agree, the graph marks both places so the reviewer can see the conflict and its source." },
         { title: "Consistency and evidence together", body: "The same structure helps answer two questions: do the campaign assets agree with each other, and do their claims agree with approved material? Where the material cannot confirm a claim, the system says so." },
       ],
-      related: ["problem", "demo", "features"],
+      related: ["problem", "features", "roles"],
     },
     features: {
-      title: "Seven ideas that make the graph useful",
+      title: "Capabilities for source-based campaign review",
       description:
-        "Explore the seven BrandLens innovations proposed for the first-round demonstration.",
-      eyebrow: "Seven innovations",
+        "Explore the source, campaign, evidence and review capabilities available in BrandLens.",
+      eyebrow: "Product capabilities",
       intro:
-        "Each idea adds a practical part to campaign review. The first-round demonstration focuses on showing the principle clearly, with prototypes labelled where they are rule-based.",
+        "BrandLens brings approved sources, campaign comparison, evidence-linked findings and reviewer decisions into one organisation workspace. Hindi checks and channel previews remain limited rule-based prototypes.",
       sections: [],
-      related: ["campaign-consistency-graph", "demo", "roadmap"],
+      related: ["campaign-consistency-graph", "how-it-works", "roadmap"],
     },
     roles: {
       title: "One shared workflow, clear responsibilities",
@@ -76,7 +76,7 @@ export const siteConfig = {
         { title: "Creator", body: "Uploads content, starts scans and resolves each finding by accepting a suggestion, editing the text or dismissing it with a recorded reason." },
         { title: "Reviewer", body: "Reviews the content and its findings, then approves, comments or requests changes. Only reviewers can approve a campaign." },
       ],
-      related: ["how-it-works", "demo", "security"],
+      related: ["how-it-works", "security", "contact"],
     },
     security: {
       title: "Evidence, access and accountability by design",
@@ -89,15 +89,15 @@ export const siteConfig = {
         { title: "Evidence and access checks", body: "The API checks organisation membership and role on workspace requests, scopes product queries by organisation, validates private-file downloads and rejects untrusted browser origins. These application controls do not replace deployment-level network security or a production security review." },
         { title: "Files and operational limits", body: "Uploads are type-checked, size-limited and stored under random private object keys. File downloads require membership and a short-lived signed URL. Redis-backed limits protect account, invite, upload and scan endpoints; production deployments must configure Redis and trusted proxy CIDRs." },
         { title: "Audit and retention", body: "Audit records are append-only at the application and database layers and omit invite codes, secrets and document text. Admins can export workspace records and files, configure completed scan and finding history retention, or delete a workspace. Minimal audit history remains after workspace deletion." },
-        { title: "AI and prototype boundaries", body: "No live LLM adapter is included, and the mock judgement client does not send workspace content to an external model. Lexical-hash retrieval, Hindi checks and platform previews are prototypes. OCR and malware scanning require optional configuration." },
+        { title: "AI and prototype boundaries", body: "No live LLM provider adapter is included. When judgement is unavailable, findings require human verification. Retrieval uses deterministic lexical-hash vectors, not semantic embeddings. Hindi checks and platform previews are rule-based prototypes. OCR and malware scanning require optional configuration." },
         { title: "Deployment responsibility", body: "The API applies security headers and requires a strong secret and secure session cookies in production. Operators must provide TLS, private database and storage networking, Redis, secrets management, backups and a trusted proxy configuration. This page is not a security certification." },
       ],
       related: ["how-it-works", "roles", "privacy"],
     },
     roadmap: {
-      title: "A focused path from a demo to a broader system",
+      title: "A focused path from core workflow to broader capabilities",
       description:
-        "The proposal prioritises source setup, evidence-backed findings, campaign comparison and reviewer sign-off before stretch goals.",
+        "BrandLens prioritises source setup, evidence-backed findings, campaign comparison and reviewer sign-off before broader integrations.",
       eyebrow: "Roadmap & scope",
       intro:
         "The first build prioritises a complete review story over broad integrations: trusted sources, submitted content, explainable findings, revision and approval.",
@@ -106,7 +106,7 @@ export const siteConfig = {
         { title: "Stretch goals", body: "Advanced logo similarity, broad image OCR, deeper multilingual tone evaluation, publishing integrations and adaptive learning from reviewer decisions are listed as work for only if time permits." },
         { title: "Honest prototype boundaries", body: "The English/Hindi consistency checker and Instagram/LinkedIn preview are simple, rule-based prototypes. They do not promise perfect translation or exact platform rendering. The platform does not connect to publishing APIs." },
       ],
-      related: ["features", "demo", "security"],
+      related: ["features", "how-it-works", "security"],
     },
     privacy: {
       title: "Privacy principles for campaign review",
@@ -117,7 +117,7 @@ export const siteConfig = {
         "This page describes the data controls implemented in this repository. A deployment operator still configures the infrastructure, TLS, backups, email and storage services.",
       sections: [
         { title: "Workspace data and files", body: "Workspace API reads and writes require membership and role checks, and queries are scoped by organisation. Source and asset files use random private storage keys, allow-listed formats, size limits, membership checks and short-lived signed downloads. Configure HTTPS and private networking in deployment." },
-        { title: "AI processing", body: "This repository has no live LLM provider adapter. The mock judgement client returns insufficient evidence, and Brand Twin uses local lexical retrieval over approved sources. External OCR and malware scanning are optional and remain unavailable until configured." },
+        { title: "AI processing", body: "This repository has no live LLM provider adapter. Judgement checks require human verification when no provider is configured, and Brand Twin uses local lexical retrieval over approved sources. External OCR and malware scanning are optional and remain unavailable until configured." },
         { title: "Export and deletion", body: "An organisation Admin can download a JSON export containing workspace records and uploaded originals up to a 100 MB total file limit. Admins can delete workspace content after typing the exact organisation name. The minimal append-only audit history is retained." },
         { title: "Retention", body: "Admins can set completed scan and finding history retention from 30 to 3,650 days. The worker checks the policy hourly and removes expired scan details. Current assets and approved sources remain until the organisation is deleted; append-only audit history is retained." },
         { title: "Audit and cookies", body: "Audit records retain action metadata and omit invite codes, secrets and full document text. Necessary site storage remembers preferences and core features. Optional analytics and marketing tracking stay disabled until consent." },
@@ -142,34 +142,36 @@ export const siteConfig = {
     contact: {
       title: "Start a conversation about brand governance",
       description:
-        "Get in touch with the BrandLens team to discuss source-based campaign review and the demonstration.",
+        "Contact the BrandLens team about source-based campaign review and organisation access.",
       eyebrow: "Contact",
       intro:
         "BrandLens is an AI-assisted review concept for teams working across channels. Use the form to share what you would like to discuss.",
       sections: [
-        { title: "What the demo covers", body: "The seeded skincare scenario shows an unsupported claim, a 20% versus 30% offer conflict, an old logo finding and a human approval record." },
-        { title: "What it does not do", body: "The demo is a local simulation. It does not publish to social platforms, certify compliance or connect to customer accounts." },
+        { title: "A source-based review workflow", body: "Organisation teams approve source material, scan campaign assets, resolve findings and record reviewer decisions. Access requires an account and verified organisation." },
+        { title: "Product boundaries", body: "BrandLens does not publish to social platforms or certify legal compliance. Hindi checks and platform-style previews are limited rule-based prototypes." },
       ],
-      related: ["demo", "how-it-works", "privacy"],
+      related: ["how-it-works", "privacy", "security"],
     },
   },
   innovations: [
-    { id: "cross-channel", title: "Cross-channel contradiction detection", summary: "Finds conflicting offers across Instagram, email and poster assets.", demo: "20% versus 30% discount highlighted across two assets.", status: "Core concept" },
-    { id: "evidence-map", title: "Evidence Map", summary: "Connects every factual finding to an approved source and version.", demo: "Open a claim to inspect its approved passage.", status: "Core concept" },
-    { id: "brand-twin", title: "Brand Twin (bounded)", summary: "A brand voice profile derived from explicit tone examples and guidelines.", demo: "Compare an off-tone caption with a source-aligned rewrite.", status: "Proposed" },
-    { id: "expiry-aware", title: "Expiry-aware checks", summary: "Checks whether an offer or fact is valid on the planned publishing date.", demo: "Flag an offer after its approved end date.", status: "Rule-based" },
-    { id: "feedback-loop", title: "Feedback-to-guideline loop", summary: "Surfaces repeated overrides for admin review; it never changes policy automatically.", demo: "Review recurring ambiguity and reviewer overrides.", status: "Proposed" },
-    { id: "multilingual", title: "Multilingual Brand Consistency Checker", summary: "Checks whether key claims, prices and terms retain the same meaning in English and Hindi.", demo: "A simple rule-based prototype flags a changed offer and displays approved wording.", status: "Rule-based prototype" },
-    { id: "platform-simulator", title: "Platform-Specific Content Simulator", summary: "Previews content in Instagram and LinkedIn-style layouts with channel rules.", demo: "A simple rule-based prototype switches previews and suggests a formal LinkedIn alternative.", status: "Rule-based prototype" },
+    { id: "cross-channel", title: "Cross-channel contradiction detection", summary: "Compares normalized facts across the current campaign assets.", example: "Campaign facts are linked to their assets and compared for conflicts.", status: "Available" },
+    { id: "evidence-map", title: "Evidence Map", summary: "Connects findings to approved source passages, page locations and versions.", example: "Inspect the cited passage alongside the finding.", status: "Available" },
+    { id: "brand-twin", title: "Brand Twin (bounded)", summary: "Answers questions using matching passages from approved sources and cites the evidence.", example: "Ask a source-based question and inspect the returned citations.", status: "Available · retrieval only" },
+    { id: "expiry-aware", title: "Expiry-aware checks", summary: "Checks whether source-backed offers are valid on the planned publication date.", example: "Review validity warnings against source effective dates.", status: "Available · exact rules" },
+    { id: "feedback-loop", title: "Feedback-to-guideline loop", summary: "Surfaces repeated finding resolutions for Admin review without changing policy automatically.", example: "Review and accept or ignore a suggested guideline update.", status: "Available · Admin decision" },
+    { id: "multilingual", title: "Multilingual Brand Consistency Checker", summary: "Runs limited Hindi phrase and exact rule checks alongside English checks.", example: "Prototype checks use rules and have limited accuracy.", status: "Rule-based prototype" },
+    { id: "platform-preview", title: "Platform-specific content preview", summary: "Shows channel-style previews with character counts, hashtags, links and truncation.", example: "Previews approximate layouts and are not connected to social platforms.", status: "Rule-based prototype" },
   ],
   footerLinks: [
     { label: "Campaign graph", href: "/campaign-consistency-graph" },
-    { label: "Demo", href: "/demo" },
+    { label: "Create your organisation", href: "/sign-up" },
+    { label: "Log in", href: "/login" },
+    { label: "Join with an invite code", href: "/app/invite" },
     { label: "Roadmap", href: "/roadmap" },
     { label: "Security", href: "/security" },
     { label: "Privacy", href: "/privacy" },
     { label: "Cookies", href: "/cookies" },
-    { label: "Contact", href: "/contact" },
+    { label: "Contact us", href: "/contact" },
   ],
   faqs: [
     { question: "What does BrandLens check?", answer: "It checks campaign content against approved brand guidelines, verified facts, terminology and visual assets, and compares facts across the campaign’s channels." },
