@@ -29,6 +29,24 @@ test("theme button switches its icon between sun and moon", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Switch to dark mode" })).toHaveText("☀️");
 });
 
+test("contact form shows validation feedback and shared rate limit returns Retry-After", async ({ page, request }) => {
+  await page.goto("/contact");
+  await page.getByRole("button", { name: "Send message" }).click();
+  await expect(page.locator(".form-error-summary")).toContainText("Check the highlighted fields");
+
+  const octet = Math.floor(Math.random() * 200) + 20;
+  const results = [];
+  for (let index = 0; index < 6; index += 1) {
+    results.push(await request.post("/api/contact", {
+      headers: { "x-real-ip": `198.51.100.${octet}`, "x-forwarded-for": `203.0.113.${index + 1}` },
+      data: { name: "Test Person", email: "test@example.test", organization: "", message: "A valid but unconfigured test submission." },
+    }));
+  }
+  expect(results.slice(0, 5).every((response) => response.status() === 503)).toBe(true);
+  expect(results[5].status()).toBe(429);
+  expect(Number(results[5].headers()["retry-after"])).toBeGreaterThan(0);
+});
+
 test("key public pages have no automated axe violations", async ({ page }) => {
   for (const route of ["/", "/features", "/security", "/privacy"]) {
     await page.goto(route);

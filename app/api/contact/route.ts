@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
+import { consumeContactSubmission } from "@/app/lib/contact-rate-limit";
 
 const plainText = (value: string) => value
   .replace(/<[^>]*>/g, "")
@@ -14,25 +15,6 @@ const contactSchema = z.object({
   message: z.string().transform(plainText).pipe(z.string().min(20, "Add a little more detail (at least 20 characters).").max(3000, "Keep your message under 3,000 characters.")),
   website: z.string().max(300).optional().default(""),
 });
-
-type RateEntry = { startedAt: number; count: number };
-const rateWindowMs = 60 * 60 * 1000;
-const maxSubmissions = 5;
-const rateEntries = new Map<string, RateEntry>();
-
-function isRateLimited(key: string, now = Date.now()) {
-  for (const [storedKey, entry] of rateEntries) {
-    if (now - entry.startedAt >= rateWindowMs) rateEntries.delete(storedKey);
-  }
-  const current = rateEntries.get(key);
-  if (!current || now - current.startedAt >= rateWindowMs) {
-    rateEntries.set(key, { startedAt: now, count: 1 });
-    return false;
-  }
-  if (current.count >= maxSubmissions) return true;
-  current.count += 1;
-  return false;
-}
 
 export async function POST(request: Request) {
   const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -78,10 +60,12 @@ export async function POST(request: Request) {
   // Honeypot submissions look successful to bots but are not stored or emailed.
   if (parsed.data.website) return NextResponse.json({ message: "Thanks : your note has been received." });
 
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const remoteAddress = request.headers.get("x-real-ip")?.trim() || forwarded || "unknown";
-  if (isRateLimited(remoteAddress)) {
-    return NextResponse.json({ message: "Please wait a while before sending another message." }, { status: 429 });
+  const limit = await consumeContactSubmission(request.headers.get("x-real-ip"));
+  if (limit.unavailable) {
+    return NextResponse.json({ message: "The contact form is temporarily unavailable. Please try again later." }, { status: 503 });
+  }
+  if (limit.limited) {
+    return NextResponse.json({ message: "Please wait a while before sending another message." }, { status: 429, headers: { "Retry-After": String(limit.retryAfter) } });
   }
 
   const apiKey = process.env.RESEND_API_KEY;

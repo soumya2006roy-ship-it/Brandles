@@ -111,3 +111,51 @@ For local checks, use the commands in `README.md`. With Docker, the existing `do
 | Maintainability | 7.0/10 | 10% | Migrations, generated API schema, phase commits and operational docs are maintained; Docker images and production Compose remain unverified. |
 
 Weighted result: `6.5×0.30 + 6.5×0.25 + 7.5×0.20 + 6.0×0.15 + 7.0×0.10 = 6.675`, reported as **6.7/10**.
+
+## Website audit follow-up (2026-10-26)
+
+The additional website audit uses the separate rubric in the pasted master prompt. The existing Phase 1–10 score above is retained as a record of the product delivery assessment.
+
+### Important findings and fixes
+
+- Fixed production startup: `npm start` now runs Next's generated standalone server, and the build prepares standalone static and public assets. A production server run returned 200 for `/`, `/icon-192.png`, `/robots.txt` and `/sitemap.xml`, and 404 for an unknown route. Production theme hydration and four public routes passed browser/axe checks.
+- Replaced the contact form's process-local, spoofable `X-Forwarded-For` limiter with atomic Redis throttling in production, an IP digest in Redis keys, a bounded development fallback, `Retry-After`, and fail-closed production behavior when Redis or a valid trusted `X-Real-IP` is unavailable. The ingress must overwrite `X-Real-IP`.
+- Removed fixed confidence percentages and fabricated specific logo file/version strings from the older simulation component. The active `/demo` remains the read-only API-backed seeded workspace, per the earlier product requirement.
+- Added focused contact limiter unit and browser coverage. The browser test confirmed validation feedback, five accepted-to-limiter requests followed by 429, and that rotating `X-Forwarded-For` does not change the rate-limit key. No Resend key is configured, so the first five API attempts returned expected 503 responses rather than sending mail.
+- Added `docs/audit-report.md` and `docs/requirements-matrix.md`. Their Partial statuses identify the checks that still need a full route crawl, provider credentials, CI, Docker or manual device testing.
+
+### Audit verification
+
+| Command/check | Result |
+| --- | --- |
+| `npm run lint` | Passed. |
+| `npm run typecheck` | Passed. |
+| `npm test` | Passed: 5 tests across 2 files. |
+| `npm run build` | Passed, including light/dark contrast token checks and standalone asset preparation. |
+| `npm run test:e2e` against local dev server | Passed: 5 Chromium tests, including contact validation/rate limiting and axe on four public routes. |
+| Production `npm run start`, route and asset smoke | Passed: home and icons/robots/sitemap returned 200; unknown route returned 404. |
+| Production browser run (`npx playwright test -g 'key public|demo|theme'` with standalone server) | Passed: 4 checks (public routes, read-only demo, theme toggle, axe on four routes). |
+| `npm audit --audit-level=high` | Passed: 0 known vulnerabilities. |
+
+### Remaining verification and risks
+
+- The 21-item matrix is not fully green. Social image dimensions/content, route-wide metadata uniqueness, JSON-LD validity/parity, internal link crawl, AVIF/WebP response format, consent network behavior, reduced motion, full keyboard coverage, 320–400% zoom and responsive widths need additional browser checks.
+- Lighthouse was not run locally; no 95+ scores are claimed. CI thresholds are configuration, not a recorded Lighthouse result. Product routes were not covered by axe in this audit.
+- Redis production behavior was not verified against a running Redis service. Contact email delivery, Resend confirmation, payload/header injection, honeypot and 413 were not exercised here. Set `REDIS_URL` and ensure ingress overwrites `X-Real-IP` before deployment.
+- Docker, the API/Postgres stack and the complete signup-to-approved-campaign journey were not run in this audit. The interactive scan/resolve/approve demo acceptance flow remains unavailable because `/demo` is intentionally a read-only seeded workspace.
+- Some production-run asset requests during the audit surfaced a local Windows standalone Sharp optional-runtime warning on shutdown. Core page hydration, CSS/JS and direct public icon requests passed; optimized image delivery still needs a clean production-container check.
+
+### Website audit score
+
+**5.9/10**, using the pasted prompt's weighted rubric. This reflects the uncompleted verification requirements; it is not a score for the prior Phase 1–10 product build.
+
+| Category | Score | Weight | Evidence |
+| --- | ---: | ---: | --- |
+| Requirements completeness and correctness | 4.0/10 | 25% | 21 checks are inventoried, but most remain Partial pending broad runtime verification. |
+| Content truth and product fidelity | 7.5/10 | 15% | Active demo is identified as read-only seeded data; unsupported numeric confidence and version detail were removed from the legacy component. Full proposal line-by-line review remains incomplete. |
+| Security, privacy and consent | 6.0/10 | 20% | Production headers and contact limiter improvements were verified; consent network behavior, mail abuse paths and live Redis are not. |
+| UI/UX and design quality | 7.5/10 | 15% | Theme icon toggling, sample label, four public-page smoke checks and axe pass; no full responsive or human visual review. |
+| Accessibility and performance | 5.0/10 | 15% | Axe passed four public pages and contrast token pairs pass; Lighthouse, all routes/themes, keyboard and zoom remain unverified. |
+| Maintainability and test coverage | 6.5/10 | 10% | Focused tests and docs were added; the full CI, production container and route-wide acceptance suite were not run. |
+
+Weighted result: `4.0×0.25 + 7.5×0.15 + 6.0×0.20 + 7.5×0.15 + 5.0×0.15 + 6.5×0.10 = 5.85`, reported as **5.9/10**.

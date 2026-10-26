@@ -3,7 +3,7 @@
 ## Release
 
 1. Build and publish immutable web and API image tags from the reviewed commit.
-2. Configure `.env.example` variables in the deployment secret manager. Set production `APP_SECRET_KEY` to a unique random value of at least 32 characters, `SESSION_COOKIE_SECURE=true`, the public HTTPS origins, managed PostgreSQL with pgvector, Redis and private S3-compatible storage. Configure trusted proxy CIDRs only when the ingress overwrites forwarding headers.
+2. Configure `.env.example` variables in the deployment secret manager. Set production `APP_SECRET_KEY` to a unique random value of at least 32 characters, `SESSION_COOKIE_SECURE=true`, the public HTTPS origins, managed PostgreSQL with pgvector, Redis and private S3-compatible storage. Configure the ingress to overwrite `X-Real-IP`; configure API trusted proxy CIDRs only when it sanitizes forwarding headers.
 3. Take a database backup and verify the latest backup is restorable in a separate environment.
 4. Run `docker compose -f compose.production.yaml run --rm migrate` (or the platform's release command `alembic upgrade head` in the API image).
 5. Roll out the API, worker and web image tags. Verify `/health`, `/ready`, login, a private upload/download and one scan in a non-production tenant.

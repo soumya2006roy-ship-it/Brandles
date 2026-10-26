@@ -6,6 +6,7 @@ services:
     environment:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       BRANDLENS_BACKEND_URL: http://api:8000
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "3000:3000"
     volumes:
@@ -15,6 +16,8 @@ services:
     depends_on:
       api:
         condition: service_started
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   api:

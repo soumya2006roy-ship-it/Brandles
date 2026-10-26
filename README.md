@@ -61,7 +61,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL`, `BRANDLENS_BACKEND_URL`, `FRONTEND_ORIGIN` | Canonical metadata origin and private Next-to-FastAPI routing |
 | `APP_ENV`, `APP_SECRET_KEY`, `SESSION_*` | Runtime mode, signing secret, and secure session cookie settings |
-| `DATABASE_URL`, `REDIS_URL`, `TRUSTED_PROXY_CIDRS` | PostgreSQL/pgvector, shared rate limits/job queue, and explicitly trusted API reverse-proxy peers (comma-separated CIDRs; configure only when the ingress sanitizes forwarded IP headers) |
+| `DATABASE_URL`, `REDIS_URL`, `TRUSTED_PROXY_CIDRS` | PostgreSQL/pgvector, shared API/contact rate limits and job queue, and explicitly trusted API reverse-proxy peers (comma-separated CIDRs; configure only when the ingress sanitizes forwarded IP headers) |
 | `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Verification, reset, invite, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |
 | `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*`, `MINIO_*` | Private file storage configuration for approved sources and campaign assets |
@@ -88,6 +88,8 @@ The workspace AI setting defaults off, and live provider adapters are absent. Do
 - The compose stack is the default full local environment. Docker is required for that path. If Docker is unavailable, marketing-only `npm run dev` remains available; API tests run with SQLite and do not require Docker.
 - `NEXT_PUBLIC_SITE_URL` should be set to the real HTTPS domain before deployment. Resend requires an API key and verified sender. Production API sessions require a strong random `APP_SECRET_KEY`, a TLS endpoint, and `SESSION_COOKIE_SECURE=true`.
 - The marketing Privacy and Security pages describe implemented repository controls and deployment requirements. They are not a compliance or security certification.
+
+The contact form allows five submissions per hour per trusted `X-Real-IP`. Production requires `REDIS_URL`; counters are atomic and shared across web replicas, and the route returns 503 if Redis is not configured or available. The reverse proxy must overwrite `X-Real-IP`; the route intentionally ignores client-supplied `X-Forwarded-For`. Local development falls back to a bounded in-process counter when Redis is unavailable.
 
 ## Checks
 
