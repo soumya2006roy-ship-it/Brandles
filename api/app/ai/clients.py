@@ -27,10 +27,9 @@ class MockLLMClient:
     model = "mock-v1"
 
     def judge(self, task: str, approved_passages: list[dict[str, str]], asset_excerpt: str) -> dict[str, Any]:
-        del task, asset_excerpt
-        if not approved_passages:
-            return {"verdict": "Needs human verification", "source_id": None, "quoted_excerpt": None, "confidence": 0.0, "severity": "info", "suggested_fix": None}
-        return {"verdict": "Needs human verification", "source_id": approved_passages[0]["source_id"], "quoted_excerpt": approved_passages[0]["text"], "confidence": 0.0, "severity": "info", "suggested_fix": None}
+        del task, approved_passages
+        del asset_excerpt
+        return {"verdict": "insufficient_evidence", "flagged_text": None, "source_id": None, "quoted_excerpt": None, "rationale": "The mock model does not make content judgements.", "confidence": 0.0, "suggested_fix": None}
 
 
 class MockEmbeddingClient:

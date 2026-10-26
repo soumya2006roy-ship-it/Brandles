@@ -319,6 +319,10 @@ class Scan(Base):
     model_version: Mapped[str | None] = mapped_column(String(120))
     prompt_version: Mapped[str | None] = mapped_column(String(80))
     rules_version: Mapped[str | None] = mapped_column(String(80))
+    asset_versions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False, default=dict)
+    progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    completed_asset_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     llm_vendor: Mapped[str | None] = mapped_column(String(80))
     requested_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
@@ -356,14 +360,23 @@ class Finding(Base):
 
 class Review(Base):
     __tablename__ = "reviews"
-    __table_args__ = (CheckConstraint("(finding_id IS NOT NULL) != (asset_id IS NOT NULL)", name="ck_reviews_target_xor"), Index("ix_reviews_org_created", "organization_id", "created_at"))
+    __table_args__ = (
+        CheckConstraint("(finding_id IS NOT NULL) != (asset_id IS NOT NULL)", name="ck_reviews_target_xor"),
+        ForeignKeyConstraint(["organization_id", "asset_id"], ["assets.organization_id", "assets.id"], ondelete="CASCADE", name="fk_review_asset_tenant"),
+        ForeignKeyConstraint(["organization_id", "scan_id"], ["scans.organization_id", "scans.id"], ondelete="CASCADE", name="fk_review_scan_tenant"),
+        Index("ix_reviews_org_created", "organization_id", "created_at"),
+        Index("ix_reviews_submission_id", "submission_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     finding_id: Mapped[str | None] = mapped_column(ForeignKey("findings.id", ondelete="CASCADE"))
     asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id", ondelete="CASCADE"))
     asset_version: Mapped[int | None] = mapped_column(Integer)
-    reviewer_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    submission_id: Mapped[str | None] = mapped_column(String(36))
+    reviewer_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    submitted_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    scan_id: Mapped[str | None] = mapped_column(String(36))
     decision: Mapped[str] = mapped_column(String(24), nullable=False)
     comment: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)

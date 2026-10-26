@@ -19,7 +19,7 @@ if settings.is_production:
 app = FastAPI(
     title="BrandLens API",
     version="0.1.0",
-    description="Organisation accounts, verification, membership and invitation API for BrandLens.",
+    description="BrandLens organisation, source-evidence, campaign scanning, findings and version-bound review API.",
     docs_url="/api/docs" if not settings.is_production else None,
     redoc_url=None,
     openapi_url="/api/openapi.json",

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "skincare-offer-consistency",
+    "approved_passage": "The Glow Serum offer is 20% off through 2026-12-31.",
+    "rule": {"type": "discount_percent", "parameters": {"percent": 20}},
+    "assets": [
+      {"channel": "Instagram", "text": "Glow Serum: 20% off through 2026-12-31."},
+      {"channel": "Email", "text": "Glow Serum: 30% off through 2026-12-31."}
+    ],
+    "expected_types": ["discount_percent", "campaign_fact_conflict"],
+    "expect_high_finding": true
+  },
+  {
+    "name": "unsupported-skincare-claim",
+    "approved_passage": "The moisturiser helps keep skin hydrated.",
+    "assets": [
+      {"channel": "Instagram", "text": "Our moisturiser cures acne in 24 hours."}
+    ],
+    "expected_types": ["needs_human_verification", "fact_without_approved_evidence"],
+    "expect_high_finding": false
+  }
+]

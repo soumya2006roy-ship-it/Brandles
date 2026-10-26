@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     llm_timeout_seconds: int = 30
     llm_max_tokens: int = 1200
+    scan_max_assets: int = 100
+    scan_max_claims: int = 100
+    scan_timeout_seconds: int = 300
     embedding_provider: str = "mock"
     embedding_model: str = "mock"
     embedding_api_key: str | None = None

@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_auth_context, get_current_user, require_org_role, require_platform_admin
 from app.auth.schemas import OrganizationSummary
 from app.core.db import get_db
+from app.core.mail import EmailSender, get_email_sender
 from app.core.rate_limit import enforce_rate_limit
 from app.core.security import as_utc, digest_secret
 from app.db.models import AuditEvent, Invite, Membership, Organization, User, VerificationDecision
+from app.notifications.service import record_notification, send_user_email
 from app.orgs.schemas import InviteCreate, InviteRedeem, InviteResponse, InviteSummary, OrganizationCreate, OrganizationResponse, VerificationDecisionRequest, VerificationHistoryItem
 
 router = APIRouter(tags=["organisations"])
@@ -117,7 +119,7 @@ def regenerate_invite(organization_id: str, invite_id: str, membership: Membersh
 
 
 @router.post("/invites/redeem", status_code=status.HTTP_201_CREATED)
-def redeem_invite(payload: InviteRedeem, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def redeem_invite(payload: InviteRedeem, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db), sender: EmailSender = Depends(get_email_sender)):
     host = request.client.host if request.client else "unknown"
     enforce_rate_limit(f"redeem-invite:{user.id}:{host}", limit=10, window_seconds=3600)
     invite = db.scalar(select(Invite).where(Invite.code_hash == digest_secret(payload.code)).with_for_update())
@@ -133,11 +135,13 @@ def redeem_invite(payload: InviteRedeem, request: Request, user: User = Depends(
     db.add(membership)
     db.flush()
     db.add(AuditEvent(organization_id=org.id, actor_user_id=user.id, action="invite.redeemed", entity_type="membership", entity_id=membership.id, details={"role": invite.role}))
+    record_notification(db, user_id=user.id, organization_id=org.id, kind="invite_received", payload={"organization_id": org.id, "organization_name": org.name, "role": invite.role})
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="You already belong to this organisation.") from None
+    send_user_email(db, sender, user_id=user.id, subject=f"You joined {org.name} on BrandLens", text=f"You joined {org.name} as {invite.role}.")
     return {"message": "You joined the organisation.", "organization_id": org.id, "role": invite.role}
 
 
@@ -155,7 +159,7 @@ def verification_history(organization_id: str, _: User = Depends(require_platfor
 
 
 @router.post("/platform/verifications/{organization_id}/decision", response_model=OrganizationResponse)
-def decide_verification(organization_id: str, payload: VerificationDecisionRequest, admin: User = Depends(require_platform_admin), db: Session = Depends(get_db)):
+def decide_verification(organization_id: str, payload: VerificationDecisionRequest, admin: User = Depends(require_platform_admin), db: Session = Depends(get_db), sender: EmailSender = Depends(get_email_sender)):
     org = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)).with_for_update())
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found.")
@@ -168,8 +172,10 @@ def decide_verification(organization_id: str, payload: VerificationDecisionReque
     org.verification_status = payload.decision
     db.add(VerificationDecision(organization_id=org.id, actor_user_id=admin.id, decision=payload.decision, note=payload.note.strip() if payload.note else None))
     db.add(AuditEvent(organization_id=org.id, actor_user_id=admin.id, action=f"organization.verification.{payload.decision}", entity_type="organization", entity_id=org.id, details={"status": payload.decision}))
+    record_notification(db, user_id=org.created_by, organization_id=org.id, kind="organization_verification_result", payload={"organization_id": org.id, "organization_name": org.name, "decision": payload.decision, "note": payload.note})
     db.commit()
     db.refresh(org)
+    send_user_email(db, sender, user_id=org.created_by, subject=f"BrandLens organisation verification: {org.name}", text=f"Your organisation status is now {payload.decision.replace('_', ' ')}.\n{payload.note or ''}")
     return org
 
 

@@ -66,3 +66,86 @@ class CampaignResponse(BaseModel):
 
 class CampaignDetailResponse(CampaignResponse):
     assets: list[AssetResponse]
+
+
+class ScanResponse(BaseModel):
+    id: str
+    campaign_id: str | None
+    status: str
+    requested_by: str
+    rules_version: str | None
+    created_at: datetime
+    completed_at: datetime | None = None
+    finding_count: int = 0
+    progress: int = 0
+    cancel_requested: bool = False
+
+
+class FindingResponse(BaseModel):
+    id: str
+    scan_id: str
+    asset_id: str | None
+    finding_type: str
+    severity: str
+    status: str
+    flagged_region: dict[str, Any] | None
+    rule_id: str | None
+    source_passage_id: str | None
+    source_title: str | None = None
+    source_version: int | None = None
+    source_text: str | None = None
+    quoted_excerpt: str | None
+    confidence: float | None
+    suggested_fix: str | None
+    resolution: str | None
+    dismissal_reason: str | None
+    created_at: datetime
+
+
+class FindingDecision(BaseModel):
+    decision: str = Field(pattern="^(resolve|dismiss)$")
+    resolution: str | None = Field(default=None, max_length=2000)
+    dismissal_reason: str | None = Field(default=None, max_length=1000)
+
+
+class ClarificationRequest(BaseModel):
+    question: str = Field(min_length=5, max_length=1000)
+
+
+class CampaignApproval(BaseModel):
+    scan_id: str
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+class ReviewSubmit(BaseModel):
+    scan_id: str
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+class ReviewDecision(BaseModel):
+    decision: str = Field(pattern="^(approve|reject|request_changes)$")
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+class ReviewResponse(BaseModel):
+    id: str
+    submission_id: str
+    campaign_id: str
+    campaign_name: str
+    asset_id: str
+    asset_version: int
+    decision: str
+    submitted_by_user_id: str | None
+    reviewer_user_id: str | None
+    comment: str | None
+    created_at: datetime
+
+
+class FactResponse(BaseModel):
+    id: str
+    asset_id: str
+    channel: str
+    fact_type: str
+    value: str
+    asset_location: dict[str, Any] | None
+    source_passage_id: str | None
