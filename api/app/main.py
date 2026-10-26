@@ -3,6 +3,7 @@ import re
 import uuid
 
 from fastapi import FastAPI, Request
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, PlainTextResponse
 from redis import Redis
 from sqlalchemy import text
@@ -40,6 +41,49 @@ app = FastAPI(
     redoc_url=None,
     openapi_url="/api/openapi.json",
 )
+
+
+def custom_openapi() -> dict:
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema.setdefault("components", {}).setdefault("securitySchemes", {})[
+        "BrandLensSession"
+    ] = {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": settings.session_cookie_name,
+        "description": "Session cookie set by the BrandLens login endpoint.",
+    }
+    public_routes = {
+        ("GET", "/health"),
+        ("GET", "/ready"),
+        ("GET", "/metrics"),
+        ("POST", "/api/v1/auth/register"),
+        ("POST", "/api/v1/auth/verification-email"),
+        ("GET", "/api/v1/auth/verify-email"),
+        ("POST", "/api/v1/auth/login"),
+        ("POST", "/api/v1/auth/password-reset"),
+        ("POST", "/api/v1/auth/password-reset/confirm"),
+    }
+    for path, path_item in schema.get("paths", {}).items():
+        for method, operation in path_item.items():
+            if method.upper() not in {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}:
+                continue
+            if (method.upper(), path) in public_routes:
+                operation.pop("security", None)
+            else:
+                operation["security"] = [{"BrandLensSession": []}]
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi
 
 
 @app.middleware("http")

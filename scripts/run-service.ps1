@@ -1,5 +1,11 @@
 param([ValidateSet('api', 'worker', 'web')][string]$Service, [ValidateSet('dev', 'prod')][string]$Mode)
 $ErrorActionPreference = 'Continue'
+# PowerShell 7 can turn native stderr output into terminating errors. Uvicorn
+# and the worker write ordinary startup logs to stderr, so do not treat those
+# lines as process failures while teeing the service log.
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $logDir = Join-Path $root 'logs'
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -19,7 +25,13 @@ if ($Service -eq 'api' -or $Service -eq 'worker') {
 }
 Set-Location -LiteralPath $workingDirectory
 Write-Host "Starting $Service; output is also written to logs/$Service.log."
-& $program @arguments 2>&1 | Tee-Object -FilePath (Join-Path $logDir "$Service.log")
+# Windows PowerShell 5.1 wraps native stderr lines in ErrorRecord formatting.
+# Keep the original text so normal Uvicorn/worker startup messages are not
+# written as misleading `NativeCommandError` diagnostics.
+& $program @arguments 2>&1 | ForEach-Object {
+  if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.TargetObject }
+  else { $_ }
+} | Tee-Object -FilePath (Join-Path $logDir "$Service.log")
 $exitCode = $LASTEXITCODE
 if ($null -eq $exitCode) { $exitCode = 1 }
 Write-Host "$Service exited with code $exitCode. Press Enter to close this log window."

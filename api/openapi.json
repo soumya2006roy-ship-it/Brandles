@@ -233,7 +233,12 @@
           "204": {
             "description": "Successful Response"
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/auth/me": {
@@ -254,7 +259,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/auth/password-reset": {
@@ -357,7 +367,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/auth/sessions/{session_id}": {
@@ -392,7 +407,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs": {
@@ -417,7 +437,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -456,7 +481,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}": {
@@ -498,7 +528,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/audit-events": {
@@ -580,7 +615,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/invites": {
@@ -632,7 +672,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "get": {
         "tags": [
@@ -676,7 +721,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/invites/{invite_id}": {
@@ -720,7 +770,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/invites/{invite_id}/regenerate": {
@@ -771,7 +826,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/invites/redeem": {
@@ -810,7 +870,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/platform/verifications": {
@@ -835,7 +900,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/platform/verifications/{organization_id}/history": {
@@ -881,7 +951,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/platform/verifications/{organization_id}/decision": {
@@ -933,7 +1008,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/settings": {
@@ -983,7 +1063,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/notification-preferences": {
@@ -1023,7 +1108,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "patch": {
         "tags": [
@@ -1071,7 +1161,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/retention-settings": {
@@ -1111,7 +1206,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "patch": {
         "tags": [
@@ -1159,7 +1259,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/data-export": {
@@ -1199,7 +1304,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{organization_id}/data-deletion": {
@@ -1249,7 +1359,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/private-files/{organization_id}/{object_key}": {
@@ -1319,7 +1434,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/sources": {
@@ -1414,7 +1534,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -1464,7 +1589,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/sources/{source_id}": {
@@ -1532,7 +1662,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/passages/{passage_id}": {
@@ -1583,7 +1718,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/sources/{source_id}/download": {
@@ -1632,7 +1772,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/sources/{source_id}/approve": {
@@ -1693,7 +1838,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/rules": {
@@ -1771,7 +1921,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -1821,7 +1976,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/rules/{rule_id}/decision": {
@@ -1882,7 +2042,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns": {
@@ -1928,7 +2093,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -1978,7 +2148,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/dashboard": {
@@ -2020,7 +2195,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/findings": {
@@ -2166,7 +2346,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}": {
@@ -2217,7 +2402,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets": {
@@ -2278,7 +2468,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets/{asset_id}/download": {
@@ -2336,7 +2531,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/scans": {
@@ -2387,7 +2587,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       },
       "get": {
         "tags": [
@@ -2440,7 +2645,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/scans/{scan_id}/cancel": {
@@ -2500,7 +2710,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/scans/{scan_id}/resume": {
@@ -2560,7 +2775,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/scans/{scan_id}": {
@@ -2620,7 +2840,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/scans/{scan_id}/findings": {
@@ -2684,7 +2909,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/scans/{scan_id}/facts": {
@@ -2748,7 +2978,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/findings/{finding_id}/decision": {
@@ -2818,7 +3053,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/findings/{finding_id}/clarification": {
@@ -2888,7 +3128,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/submit": {
@@ -2953,7 +3198,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/reviews/queue": {
@@ -2999,7 +3249,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/reviews": {
@@ -3054,7 +3309,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/reviews/{submission_id}/decision": {
@@ -3119,7 +3379,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/notifications": {
@@ -3165,7 +3430,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/guideline-update-suggestions": {
@@ -3227,7 +3497,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/guideline-update-suggestions/{suggestion_id}/decision": {
@@ -3288,7 +3563,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/brand-twin/ask": {
@@ -3340,7 +3620,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     },
     "/api/v1/orgs/{org_id}/notifications/{notification_id}/read": {
@@ -3391,7 +3676,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
       }
     }
   },
@@ -6242,6 +6532,14 @@
           "llm_processing_allowed"
         ],
         "title": "WorkspaceSettings"
+      }
+    },
+    "securitySchemes": {
+      "BrandLensSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "brandlens_session",
+        "description": "Session cookie set by the BrandLens login endpoint."
       }
     }
   }

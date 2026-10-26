@@ -24,7 +24,7 @@ GET Mailpit inbox           200
 
 ## Production mode
 
-`npm run build` and therefore the production launcher could not complete in this OneDrive-synced checkout. Next.js returned `EPERM: operation not permitted, unlink` for a generated path under `.next-brandlens-build`. This remains unverified here. README now advises using a normal non-synced local checkout for production builds if Files On-Demand holds generated output open.
+At the time of this earlier run, `npm run build` failed with `EPERM` unlinking generated output in this OneDrive-synced checkout. This was fixed later by a guarded cleanup of only `.next-brandlens-build`; the current result is recorded in [final-simulation-report.md](final-simulation-report.md).
 
 ## Checks
 

@@ -29,3 +29,13 @@ Audit date: 2026-10-26. `Pass` means directly verified; `Partial` means code exi
 ## Route inventory
 
 Public content routes: `/`, `/problem`, `/how-it-works`, `/campaign-consistency-graph`, `/features`, `/roles`, `/security`, `/roadmap`, `/contact`, `/privacy`, `/cookies`. Utility/auth routes: `/404`, `/login`, `/sign-up`, `/verify-email`, `/forgot-password`, `/reset-password`. Product routes: `/app`, `/app/account/sessions`, `/app/admin/verifications`, `/app/invite`, `/app/organisations/new`, organisation overview, campaigns, campaign detail, findings, reviews, sources, rules, audit and workspace security. APIs: `/api/contact`, `/api/product/[...path]`. Framework routes include sitemap, robots, manifest, favicon, icons, and Open Graph images.
+
+## Final simulation evidence update
+
+- Production `npm run build` passed in the OneDrive checkout after the generated-output cleanup fix; the build was also completed by `start.bat prod` from an empty exported checkout.
+- `npm run check:links` on the production server checked 32 internal routes and required metadata assets; all returned below HTTP 400. The retired `/demo` route was separately checked in Playwright and returns 404.
+- The 6-test Chromium suite passed, including axe checks on the key public pages. It does not crawl every product route, run every persona, or prove zero violations across all routes and both themes.
+- Production responses for home/login included CSP, HSTS, `nosniff`, frame and referrer protections. API `/health`, `/ready`, and `/docs` returned 200; readiness reported database and Redis healthy. This is a local development-mode API runtime, not a production deployment verification.
+- `scripts/check-contrast.mjs` completed during each successful build; all configured foreground, boundary, and focus token pairs in light and dark modes passed their stated thresholds.
+- Docker-backed clean setup applied migrations `0001` through `0009`; the existing data-bearing database was retained and `alembic check` reported `No new upgrade operations detected.` Docker Compose development ports now bind to `127.0.0.1` and this mapping was observed on the running containers.
+- Remaining Partial items above stay Partial: full public metadata/schema parity, every-route keyboard/product axe checks, responsive device matrix, Lighthouse scores, provider delivery, and persona journeys were not all exercised.

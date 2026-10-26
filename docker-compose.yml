@@ -8,7 +8,7 @@ services:
       BRANDLENS_BACKEND_URL: http://api:8000
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - .:/workspace
       - web_node_modules:/workspace/node_modules
@@ -25,7 +25,7 @@ services:
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     environment: &api_environment
       APP_ENV: development
-      APP_SECRET_KEY: ${APP_SECRET_KEY:-local-development-key-change-before-deploy}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:?Set APP_SECRET_KEY in .env; start.bat generates it on first run}
       DATABASE_URL: postgresql+psycopg://brandlens:brandlens@db:5432/brandlens
       REDIS_URL: redis://redis:6379/0
       FRONTEND_ORIGIN: http://localhost:3000
@@ -48,7 +48,7 @@ services:
       TESSERACT_COMMAND: ${TESSERACT_COMMAND:-/usr/bin/tesseract}
       TESSERACT_TIMEOUT_SECONDS: ${TESSERACT_TIMEOUT_SECONDS:-20}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./api:/code
       - private_uploads:/code/private-uploads
@@ -80,7 +80,7 @@ services:
       POSTGRES_USER: brandlens
       POSTGRES_PASSWORD: brandlens
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -92,7 +92,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -104,8 +104,8 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "${MAILPIT_UI_PORT:-8025}:8025"
-      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
     restart: unless-stopped
 
 volumes:
