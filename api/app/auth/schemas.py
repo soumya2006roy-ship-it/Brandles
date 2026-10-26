@@ -8,22 +8,26 @@ Password = Annotated[str, StringConstraints(min_length=12, max_length=128)]
 SafeName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
 
 
-class RegisterRequest(BaseModel):
+class StrictInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class RegisterRequest(StrictInput):
     email: EmailStr
     password: Password
     display_name: SafeName
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(StrictInput):
     email: EmailStr
     password: Annotated[str, Field(min_length=1, max_length=128)]
 
 
-class PasswordResetRequest(BaseModel):
+class PasswordResetRequest(StrictInput):
     email: EmailStr
 
 
-class PasswordResetConfirm(BaseModel):
+class PasswordResetConfirm(StrictInput):
     token: Annotated[str, Field(min_length=20, max_length=200)]
     password: Password
 

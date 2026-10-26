@@ -36,7 +36,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".next-build/types/**/*.ts",
-    ".next-build/dev/types/**/*.ts"
+    ".next-build/dev/types/**/*.ts",
+    ".next-brandlens-build/types/**/*.ts",
+    ".next-brandlens-build/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

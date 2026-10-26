@@ -398,6 +398,58 @@ export interface paths {
         patch: operations["update_notification_preferences_api_v1_orgs__organization_id__notification_preferences_patch"];
         trace?: never;
     };
+    "/api/v1/orgs/{organization_id}/retention-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Retention Settings */
+        get: operations["get_retention_settings_api_v1_orgs__organization_id__retention_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Retention Settings */
+        patch: operations["update_retention_settings_api_v1_orgs__organization_id__retention_settings_patch"];
+        trace?: never;
+    };
+    "/api/v1/orgs/{organization_id}/data-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Organization Data */
+        get: operations["export_organization_data_api_v1_orgs__organization_id__data_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{organization_id}/data-deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Organization Data */
+        post: operations["delete_organization_data_api_v1_orgs__organization_id__data_deletion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/private-files/{organization_id}/{object_key}": {
         parameters: {
             query?: never;
@@ -1167,6 +1219,11 @@ export interface components {
              */
             created_at: string;
         };
+        /** DeletionRequest */
+        DeletionRequest: {
+            /** Confirmation Name */
+            confirmation_name: string;
+        };
         /** ExpiringOffer */
         ExpiringOffer: {
             /** Rule Id */
@@ -1548,6 +1605,11 @@ export interface components {
             password: string;
             /** Display Name */
             display_name: string;
+        };
+        /** RetentionSettings */
+        RetentionSettings: {
+            /** Retention Days */
+            retention_days: number;
         };
         /** ReviewDecision */
         ReviewDecision: {
@@ -2644,6 +2706,138 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_retention_settings_api_v1_orgs__organization_id__retention_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_retention_settings_api_v1_orgs__organization_id__retention_settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetentionSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_organization_data_api_v1_orgs__organization_id__data_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_organization_data_api_v1_orgs__organization_id__data_deletion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

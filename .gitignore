@@ -21,6 +21,7 @@
 # next.js
 /.next/
 /.next-build/
+/.next-brandlens-build/
 /out/
 /brandlens-app/
 

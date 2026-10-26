@@ -10,13 +10,22 @@ from app.auth.dependencies import get_auth_context, get_current_user, require_or
 from app.auth.schemas import OrganizationSummary
 from app.core.db import get_db
 from app.core.mail import EmailSender, get_email_sender
-from app.core.rate_limit import enforce_rate_limit
+from app.core.rate_limit import client_ip, enforce_rate_limit
 from app.core.security import as_utc, digest_secret
 from app.db.models import AuditEvent, Invite, Membership, Organization, User, VerificationDecision
 from app.notifications.service import record_notification, send_user_email
 from app.orgs.schemas import AuditEventResponse, InviteCreate, InviteRedeem, InviteResponse, InviteSummary, OrganizationCreate, OrganizationResponse, VerificationDecisionRequest, VerificationHistoryItem
 
 router = APIRouter(tags=["organisations"])
+_AUDIT_PRIVATE_KEYS = {"question", "suggested_change", "comment", "note", "token", "secret", "code", "text", "excerpt", "content", "email", "document_text", "raw"}
+
+
+def _safe_audit_details(value):
+    if isinstance(value, dict):
+        return {key: _safe_audit_details(item) for key, item in value.items() if key.casefold() not in _AUDIT_PRIVATE_KEYS}
+    if isinstance(value, list):
+        return [_safe_audit_details(item) for item in value]
+    return value
 
 
 def now_utc() -> datetime:
@@ -42,7 +51,7 @@ def list_organizations(user: User = Depends(get_current_user), db: Session = Dep
 
 @router.post("/orgs", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 def create_organization(payload: OrganizationCreate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    host = request.client.host if request.client else "unknown"
+    host = client_ip(request)
     enforce_rate_limit(f"create-org:{user.id}:{host}", limit=3, window_seconds=3600)
     org = Organization(
         name=payload.name,
@@ -79,11 +88,12 @@ def list_audit_events(organization_id: str, action: str | None = None, offset: i
     if action:
         statement = statement.where(AuditEvent.action.ilike(f"%{action[:80]}%"))
     rows = db.execute(statement.order_by(AuditEvent.created_at.desc(), AuditEvent.id).offset(offset).limit(limit)).all()
-    return [AuditEventResponse(id=event.id, actor_user_id=event.actor_user_id, actor_name=actor_name, action=event.action, entity_type=event.entity_type, entity_id=event.entity_id, details=event.details, created_at=event.created_at) for event, actor_name in rows]
+    return [AuditEventResponse(id=event.id, actor_user_id=event.actor_user_id, actor_name=actor_name, action=event.action, entity_type=event.entity_type, entity_id=event.entity_id, details=_safe_audit_details(event.details or {}), created_at=event.created_at) for event, actor_name in rows]
 
 
 @router.post("/orgs/{organization_id}/invites", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
-def create_invite(payload: InviteCreate, organization_id: str, membership: Membership = Depends(require_org_role("admin")), db: Session = Depends(get_db)):
+def create_invite(payload: InviteCreate, organization_id: str, request: Request, membership: Membership = Depends(require_org_role("admin")), db: Session = Depends(get_db)):
+    enforce_rate_limit(f"invite-create:{organization_id}:{membership.user_id}:{client_ip(request)}", limit=10, window_seconds=3600)
     code = new_invite_code()
     invite = Invite(organization_id=organization_id, code_hash=digest_secret(code), role=payload.role, expires_at=now_utc() + timedelta(days=payload.expires_in_days), usage_limit=payload.usage_limit, created_by=membership.user_id)
     db.add(invite)
@@ -131,7 +141,7 @@ def regenerate_invite(organization_id: str, invite_id: str, membership: Membersh
 
 @router.post("/invites/redeem", status_code=status.HTTP_201_CREATED)
 def redeem_invite(payload: InviteRedeem, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db), sender: EmailSender = Depends(get_email_sender)):
-    host = request.client.host if request.client else "unknown"
+    host = client_ip(request)
     enforce_rate_limit(f"redeem-invite:{user.id}:{host}", limit=10, window_seconds=3600)
     invite = db.scalar(select(Invite).where(Invite.code_hash == digest_secret(payload.code)).with_for_update())
     if not invite or invite.revoked_at or as_utc(invite.expires_at) <= now_utc() or invite.usage_count >= invite.usage_limit:

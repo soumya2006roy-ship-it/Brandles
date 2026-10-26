@@ -4,7 +4,8 @@ from uuid import uuid4
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import event
+from sqlalchemy.orm import Mapped, Session as OrmSession, mapped_column
 
 from app.core.db import Base
 
@@ -56,6 +57,7 @@ class Organization(Base):
     verification_status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending_verification")
     llm_processing_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_sample: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    retention_days: Mapped[int] = mapped_column(Integer, nullable=False, default=365)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
@@ -142,13 +144,21 @@ class AuditEvent(Base):
     __table_args__ = (Index("ix_audit_events_org_created", "organization_id", "created_at"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    organization_id: Mapped[str | None] = mapped_column(ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=True)
     actor_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     action: Mapped[str] = mapped_column(String(80), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(80), nullable=False)
     entity_id: Mapped[str] = mapped_column(String(36), nullable=False)
     details: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+
+@event.listens_for(OrmSession, "before_flush")
+def prevent_audit_event_mutation(session: OrmSession, _flush_context, _instances) -> None:
+    if any(isinstance(item, AuditEvent) for item in session.deleted):
+        raise ValueError("Audit events are append-only and cannot be deleted.")
+    if any(isinstance(item, AuditEvent) and session.is_modified(item, include_collections=True) for item in session.dirty):
+        raise ValueError("Audit events are append-only and cannot be modified.")
 
 
 class BrandGuidelineSource(Base):

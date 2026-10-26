@@ -46,7 +46,7 @@ def require_platform_admin(context: AuthContext = Depends(get_auth_context), db:
     return context.user
 
 
-def require_org_role(*roles: str) -> Callable:
+def require_org_role(*roles: str, allow_unapproved: bool = False) -> Callable:
     def dependency(request: Request, context: AuthContext = Depends(get_auth_context), db: Session = Depends(get_db)) -> Membership:
         organization_id = request.path_params.get("organization_id") or request.path_params.get("org_id")
         if not organization_id:
@@ -62,7 +62,7 @@ def require_org_role(*roles: str) -> Callable:
         org = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)))
         if not org:
             raise HTTPException(status_code=404, detail="Organisation not found.")
-        if org.verification_status != "approved":
+        if not allow_unapproved and org.verification_status != "approved":
             raise HTTPException(status_code=423, detail="This organisation is not approved for workspace actions.")
         return membership
 

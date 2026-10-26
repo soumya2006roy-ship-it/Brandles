@@ -4,7 +4,7 @@ from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,7 @@ from app.auth.dependencies import get_auth_context, require_org_role
 from app.assets.media import scan_for_malware, sniff_and_normalize
 from app.core.db import get_db
 from app.core.security import as_utc
+from app.core.rate_limit import client_ip, enforce_rate_limit
 from app.db.models import AuditEvent, BrandGuidelineSource, Membership, Organization, Rule, SourcePassage, User
 from app.sources.documents import chunk_block, extract_document, identify_format, local_hash_embedding, read_upload
 from app.sources.schemas import PassageDetailResponse, RuleDecision, RuleResponse, RuleWrite, SourceDetailResponse, SourceEffectiveDates, SourcePassageResponse, SourceResponse
@@ -62,12 +63,14 @@ def list_sources(org_id: str, status: str | None = None, query: str | None = Que
 @router.post("/orgs/{org_id}/sources", response_model=SourceResponse, status_code=201)
 async def upload_source(
     org_id: str,
+    request: Request,
     title: str = Form(min_length=2, max_length=240),
     source_family_id: str | None = Form(default=None),
     document: UploadFile = File(),
     membership: Membership = Depends(require_org_role("admin")),
     db: Session = Depends(get_db),
 ):
+    enforce_rate_limit(f"source-upload:{org_id}:{membership.user_id}:{client_ip(request)}", limit=20, window_seconds=3600)
     title = title.strip()
     if not title:
         raise HTTPException(status_code=422, detail="Add a title for this source.")
@@ -254,7 +257,7 @@ def decide_rule(org_id: str, rule_id: str, decision: RuleDecision, membership: M
         rule.status = "active"
     else:
         rule.status = "rejected"
-    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"rule.suggestion_{'approved' if decision.decision == 'approve' else 'rejected'}", entity_type="rule", entity_id=rule.id, details={"note": decision.note}))
+    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"rule.suggestion_{'approved' if decision.decision == 'approve' else 'rejected'}", entity_type="rule", entity_id=rule.id, details={"note_present": bool(decision.note)}))
     db.commit()
     db.refresh(rule)
     return rule

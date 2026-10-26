@@ -17,6 +17,10 @@ RuleType = Literal[
 ]
 
 
+class StrictInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
 class SourceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -59,12 +63,12 @@ class SourceDetailResponse(SourceResponse):
     passages: list[SourcePassageResponse]
 
 
-class SourceEffectiveDates(BaseModel):
+class SourceEffectiveDates(StrictInput):
     effective_from: date | None = None
     effective_to: date | None = None
 
 
-class RuleWrite(BaseModel):
+class RuleWrite(StrictInput):
     rule_type: RuleType
     parameters: dict[str, Any] = Field(default_factory=dict)
     channel: Annotated[str | None, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)] = None
@@ -112,6 +116,6 @@ class RuleResponse(BaseModel):
     created_at: datetime
 
 
-class RuleDecision(BaseModel):
+class RuleDecision(StrictInput):
     decision: Literal["approve", "reject"]
     note: Annotated[str | None, StringConstraints(strip_whitespace=True, max_length=1000)] = None

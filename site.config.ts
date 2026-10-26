@@ -86,9 +86,11 @@ export const siteConfig = {
       intro:
         "A useful review system must make its evidence inspectable and its decisions traceable. The proposal describes a private workspace for each brand, role-based permissions and careful handling of source material.",
       sections: [
-        { title: "Approved and versioned sources", body: "Findings point to the exact approved passage used at the time. Admins confirm extracted material before it becomes a source, and BrandLens does not create brand rules on its own." },
-        { title: "Private workspaces and limited access", body: "The proposed system uses authentication and least-privilege access, server-side API keys, encryption in transit, allowed file formats and size limits, access-controlled source fetching and limited logging of private data." },
-        { title: "People retain the decision", body: "BrandLens flags and explains; it does not certify legal or regulatory compliance or publish content. Reviewer identity, decision, version and timestamp are saved for an audit trail. Provider settings and sensitive-source handling require verification before production use." },
+        { title: "Evidence and access checks", body: "The API checks organisation membership and role on workspace requests, scopes product queries by organisation, validates private-file downloads and rejects untrusted browser origins. These application controls do not replace deployment-level network security or a production security review." },
+        { title: "Files and operational limits", body: "Uploads are type-checked, size-limited and stored under random private object keys. File downloads require membership and a short-lived signed URL. Redis-backed limits protect account, invite, upload and scan endpoints; production deployments must configure Redis and trusted proxy CIDRs." },
+        { title: "Audit and retention", body: "Audit records are append-only at the application and database layers and omit invite codes, secrets and document text. Admins can export workspace records and files, configure completed scan and finding history retention, or delete a workspace. Minimal audit history remains after workspace deletion." },
+        { title: "AI and prototype boundaries", body: "No live LLM adapter is included, and the mock judgement client does not send workspace content to an external model. Lexical-hash retrieval, Hindi checks and platform previews are prototypes. OCR and malware scanning require optional configuration." },
+        { title: "Deployment responsibility", body: "The API applies security headers and requires a strong secret and secure session cookies in production. Operators must provide TLS, private database and storage networking, Redis, secrets management, backups and a trusted proxy configuration. This page is not a security certification." },
       ],
       related: ["how-it-works", "roles", "privacy"],
     },
@@ -112,11 +114,14 @@ export const siteConfig = {
         "How the BrandLens proposal approaches private brand workspaces, limited logging and AI processing transparency.",
       eyebrow: "Privacy",
       intro:
-        "BrandLens is designed for private brand workspaces and careful handling of campaign material. This page describes the proposal’s intended approach, not a claim that a production service is already operating.",
+        "This page describes the data controls implemented in this repository. A deployment operator still configures the infrastructure, TLS, backups, email and storage services.",
       sections: [
-        { title: "Campaign material stays access-controlled", body: "The proposed design includes private workspaces for each brand, least-privilege permissions, access-controlled source fetching and limited logging of private content." },
-        { title: "AI processing should be transparent", body: "The proposal calls for explicit notification when a provider processes content. Provider settings and handling of sensitive sources should be verified before production use." },
-        { title: "Human review remains central", body: "The product does not autonomously certify claims, change brand rules or publish content. Review decisions are recorded with the reviewer, decision, version and timestamp." },
+        { title: "Workspace data and files", body: "Workspace API reads and writes require membership and role checks, and queries are scoped by organisation. Source and asset files use random private storage keys, allow-listed formats, size limits, membership checks and short-lived signed downloads. Configure HTTPS and private networking in deployment." },
+        { title: "AI processing", body: "This repository has no live LLM provider adapter. The mock judgement client returns insufficient evidence, and Brand Twin uses local lexical retrieval over approved sources. External OCR and malware scanning are optional and remain unavailable until configured." },
+        { title: "Export and deletion", body: "An organisation Admin can download a JSON export containing workspace records and uploaded originals up to a 100 MB total file limit. Admins can delete workspace content after typing the exact organisation name. The minimal append-only audit history is retained." },
+        { title: "Retention", body: "Admins can set completed scan and finding history retention from 30 to 3,650 days. The worker checks the policy hourly and removes expired scan details. Current assets and approved sources remain until the organisation is deleted; append-only audit history is retained." },
+        { title: "Audit and cookies", body: "Audit records retain action metadata and omit invite codes, secrets and full document text. Necessary site storage remembers preferences and core features. Optional analytics and marketing tracking stay disabled until consent." },
+        { title: "Human review", body: "BrandLens does not autonomously certify legal or regulatory compliance or publish content. Reviewer decisions are stored against the exact asset version. Prototype checks may be inaccurate and require human review." },
       ],
       related: ["security", "cookies", "contact"],
     },

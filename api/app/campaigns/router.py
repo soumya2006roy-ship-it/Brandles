@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
@@ -24,7 +24,7 @@ from app.storage.local import safe_filename
 from app.jobs.queue import enqueue
 from app.campaigns.scans import active_rules_version
 from app.checks.judgement import retrieve_top_passages
-from app.core.rate_limit import enforce_rate_limit
+from app.core.rate_limit import client_ip, enforce_rate_limit
 
 router = APIRouter(tags=["campaigns-and-assets"])
 MAX_PASTED_TEXT_CHARACTERS = 200_000
@@ -245,6 +245,7 @@ def get_campaign(org_id: str, campaign_id: str, context=Depends(get_auth_context
 async def create_asset_version(
     org_id: str,
     campaign_id: str,
+    request: Request,
     channel: str = Form(min_length=2, max_length=50),
     language: str | None = Form(default=None, max_length=32),
     text_content: str | None = Form(default=None, max_length=MAX_PASTED_TEXT_CHARACTERS),
@@ -253,6 +254,7 @@ async def create_asset_version(
     membership: Membership = Depends(require_org_role("admin", "creator")),
     db: Session = Depends(get_db),
 ):
+    enforce_rate_limit(f"asset-upload:{org_id}:{membership.user_id}:{client_ip(request)}", limit=30, window_seconds=3600)
     campaign = _campaign(org_id, campaign_id, db, lock=True)
     if channel not in campaign.channels:
         raise HTTPException(status_code=422, detail="Choose a channel that belongs to this campaign.")
@@ -377,7 +379,9 @@ def get_asset_download(org_id: str, campaign_id: str, asset_id: str, context=Dep
 
 
 @router.post("/orgs/{org_id}/campaigns/{campaign_id}/scans", response_model=ScanResponse, status_code=202)
-def create_campaign_scan(org_id: str, campaign_id: str, membership: Membership = Depends(require_org_role("admin", "creator")), db: Session = Depends(get_db)):
+def create_campaign_scan(org_id: str, campaign_id: str, request: Request, membership: Membership = Depends(require_org_role("admin", "creator")), db: Session = Depends(get_db)):
+    enforce_rate_limit(f"campaign-scan:{org_id}", limit=20, window_seconds=3600)
+    enforce_rate_limit(f"campaign-scan-user:{org_id}:{membership.user_id}:{client_ip(request)}", limit=10, window_seconds=3600)
     campaign = _campaign(org_id, campaign_id, db, lock=True)
     if db.get_bind().dialect.name == "postgresql":
         db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:organization_id))"), {"organization_id": org_id})
@@ -529,7 +533,7 @@ def request_finding_clarification(org_id: str, campaign_id: str, finding_id: str
     admins = db.scalars(select(Membership.user_id).where(Membership.organization_id == org_id, Membership.role == "admin")).all()
     for admin_id in admins:
         record_notification(db, user_id=admin_id, organization_id=org_id, kind="finding_clarification_requested", payload={"campaign_id": campaign_id, "finding_id": finding_id, "question": payload.question})
-    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action="finding.clarification_requested", entity_type="finding", entity_id=finding.id, details={"scan_id": finding.scan_id, "question": payload.question}))
+    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action="finding.clarification_requested", entity_type="finding", entity_id=finding.id, details={"scan_id": finding.scan_id, "question_length": len(payload.question)}))
     db.commit()
     db.refresh(finding)
     for admin_id in admins:
@@ -646,7 +650,7 @@ def decide_review_submission(org_id: str, submission_id: str, payload: ReviewDec
     recipients.update(asset.created_by for asset in current_assets if asset.created_by != membership.user_id)
     for recipient in recipients:
         record_notification(db, user_id=recipient, organization_id=org_id, kind=f"review_{decision}", payload={"campaign_id": campaign.id, "campaign_name": campaign.name, "submission_id": submission_id, "comment": payload.comment})
-    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"campaign.review_{decision}", entity_type="campaign", entity_id=campaign.id, details={"scan_id": scan.id, "submission_id": submission_id, "asset_versions": {asset.id: asset.version for asset in current_assets}, "comment": payload.comment}))
+    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"campaign.review_{decision}", entity_type="campaign", entity_id=campaign.id, details={"scan_id": scan.id, "submission_id": submission_id, "asset_versions": {asset.id: asset.version for asset in current_assets}, "comment_present": bool(payload.comment)}))
     db.commit()
     for recipient in recipients:
         send_user_email(db, sender, user_id=recipient, organization_id=org_id, subject=f"BrandLens review {decision.replace('_', ' ')}: {campaign.name}", text=f"A reviewer recorded {decision.replace('_', ' ')} for campaign {campaign.name}.\n{payload.comment or ''}")
@@ -682,16 +686,16 @@ def decide_guideline_update_suggestion(org_id: str, suggestion_id: str, payload:
         raise HTTPException(status_code=409, detail="This suggestion already has a different decision.")
     suggestion.status = "accepted" if payload.decision == "accept" else "ignored"
     suggestion.reviewed_by = membership.user_id
-    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"guideline_update_suggestion.{suggestion.status}", entity_type="guideline_update_suggestion", entity_id=suggestion.id, details={"suggested_change": suggestion.suggested_change, "rules_changed": False}))
+    db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action=f"guideline_update_suggestion.{suggestion.status}", entity_type="guideline_update_suggestion", entity_id=suggestion.id, details={"rules_changed": False}))
     db.commit()
     db.refresh(suggestion)
     return suggestion
 
 
 @router.post("/orgs/{org_id}/brand-twin/ask", response_model=BrandTwinAnswer)
-def ask_brand_twin(org_id: str, payload: BrandTwinQuestion, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+def ask_brand_twin(org_id: str, payload: BrandTwinQuestion, request: Request, context=Depends(get_auth_context), db: Session = Depends(get_db)):
     _campaign_member(org_id, context.user.id, db)
-    enforce_rate_limit(f"brand-twin:{org_id}:{context.user.id}", limit=30, window_seconds=3600)
+    enforce_rate_limit(f"brand-twin:{org_id}:{context.user.id}:{client_ip(request)}", limit=30, window_seconds=3600)
     question = payload.question.strip()
     retrieved = retrieve_top_passages(db, org_id, question, datetime.now(UTC).date())
     query_terms = {token for token in re.findall(r"[^\W_]{2,}", question.casefold(), flags=re.UNICODE)}

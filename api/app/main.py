@@ -31,8 +31,11 @@ app = FastAPI(
 async def check_browser_origin(request: Request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
+        fetch_site = request.headers.get("sec-fetch-site", "").casefold()
         if origin and origin.rstrip("/") != settings.frontend_origin.rstrip("/"):
             return JSONResponse(status_code=403, content={"detail": "Request origin is not allowed."})
+        if fetch_site == "cross-site":
+            return JSONResponse(status_code=403, content={"detail": "Cross-site requests are not allowed."})
     return await call_next(request)
 
 
@@ -45,6 +48,7 @@ async def api_security_headers(request: Request, call_next):
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    response.headers["Cache-Control"] = "no-store"
     if settings.is_production:
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     return response

@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.db import Base, get_db
 from app.core.mail import OutboundEmail, get_email_sender
-from app.core.rate_limit import _memory
+from app.core.rate_limit import _login_blocks, _login_failures, _memory
 from app.db import models  # noqa: F401
 from app.main import app
 
@@ -29,6 +29,8 @@ def mailer() -> FakeEmailSender:
 @pytest.fixture
 def client(mailer: FakeEmailSender) -> Generator[TestClient, None, None]:
     _memory.clear()
+    _login_blocks.clear()
+    _login_failures.clear()
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)

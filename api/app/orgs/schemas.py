@@ -8,7 +8,11 @@ OrgText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, 
 OrgRole = Literal["admin", "creator", "reviewer"]
 
 
-class OrganizationCreate(BaseModel):
+class StrictInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class OrganizationCreate(StrictInput):
     name: OrgText
     industry: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
     official_email: EmailStr
@@ -29,7 +33,7 @@ class OrganizationResponse(BaseModel):
     created_at: datetime
 
 
-class VerificationDecisionRequest(BaseModel):
+class VerificationDecisionRequest(StrictInput):
     decision: Literal["approved", "rejected", "more_information_required"]
     note: Annotated[str | None, Field(max_length=1200)] = None
 
@@ -53,7 +57,7 @@ class AuditEventResponse(BaseModel):
     created_at: datetime
 
 
-class InviteCreate(BaseModel):
+class InviteCreate(StrictInput):
     role: OrgRole
     expires_in_days: int = Field(default=7, ge=1, le=30)
     usage_limit: int = Field(default=1, ge=1, le=100)
@@ -76,5 +80,5 @@ class InviteSummary(BaseModel):
     revoked_at: datetime | None
 
 
-class InviteRedeem(BaseModel):
+class InviteRedeem(StrictInput):
     code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=20, max_length=200)]

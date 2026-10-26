@@ -9,7 +9,11 @@ CampaignName = Annotated[str, StringConstraints(strip_whitespace=True, min_lengt
 CampaignChannel = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=50)]
 
 
-class CampaignCreate(BaseModel):
+class StrictInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class CampaignCreate(StrictInput):
     name: CampaignName
     channels: list[CampaignChannel] = Field(min_length=1, max_length=10)
     starts_at: date | None = None
@@ -104,27 +108,27 @@ class FindingResponse(BaseModel):
     created_at: datetime
 
 
-class FindingDecision(BaseModel):
+class FindingDecision(StrictInput):
     decision: str = Field(pattern="^(resolve|dismiss)$")
     resolution: str | None = Field(default=None, max_length=2000)
     dismissal_reason: str | None = Field(default=None, max_length=1000)
 
 
-class ClarificationRequest(BaseModel):
+class ClarificationRequest(StrictInput):
     question: str = Field(min_length=5, max_length=1000)
 
 
-class CampaignApproval(BaseModel):
+class CampaignApproval(StrictInput):
     scan_id: str
     comment: str | None = Field(default=None, max_length=1000)
 
 
-class ReviewSubmit(BaseModel):
+class ReviewSubmit(StrictInput):
     scan_id: str
     comment: str | None = Field(default=None, max_length=1000)
 
 
-class ReviewDecision(BaseModel):
+class ReviewDecision(StrictInput):
     decision: str = Field(pattern="^(approve|reject|request_changes)$")
     comment: str | None = Field(default=None, max_length=1000)
 
@@ -163,11 +167,11 @@ class GuidelineSuggestionResponse(BaseModel):
     created_at: datetime
 
 
-class GuidelineSuggestionDecision(BaseModel):
+class GuidelineSuggestionDecision(StrictInput):
     decision: str = Field(pattern="^(accept|ignore)$")
 
 
-class BrandTwinQuestion(BaseModel):
+class BrandTwinQuestion(StrictInput):
     question: str = Field(min_length=3, max_length=1000)
 
 

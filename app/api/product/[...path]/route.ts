@@ -1,13 +1,13 @@
 import { type NextRequest } from "next/server";
 
-const allowedResponseHeaders = ["content-type", "cache-control", "set-cookie", "x-content-type-options", "referrer-policy", "x-frame-options", "cross-origin-opener-policy", "permissions-policy", "content-security-policy", "strict-transport-security"];
+const allowedResponseHeaders = ["content-type", "cache-control", "set-cookie", "retry-after", "x-content-type-options", "referrer-policy", "x-frame-options", "cross-origin-opener-policy", "permissions-policy", "content-security-policy", "strict-transport-security"];
 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const backend = process.env.BRANDLENS_BACKEND_URL ?? "http://127.0.0.1:8000";
   const target = new URL(`/api/v1/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`, backend);
   const headers = new Headers();
-  for (const key of ["accept", "content-type", "cookie", "origin", "user-agent"]) {
+  for (const key of ["accept", "content-type", "cookie", "origin", "user-agent", "sec-fetch-site", "x-forwarded-for"]) {
     const value = request.headers.get(key);
     if (value) headers.set(key, value);
   }

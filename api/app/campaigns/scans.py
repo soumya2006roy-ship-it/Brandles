@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
 from app.ai.clients import LLMDisabledError, get_llm_client
-from app.checks.judgement import parse_judgement, retrieve_top_passages
+from app.checks.judgement import JUDGEMENT_PROMPT_VERSION, JUDGEMENT_TASK_INSTRUCTIONS, parse_judgement, retrieve_top_passages
 from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, Organization, Rule, Scan, SourcePassage
 from app.core.config import get_settings
 
@@ -149,7 +149,7 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                 except Exception:
                     # Any unavailable provider is handled as human verification below.
                     llm_client = None
-            scan.prompt_version = "brand-claim-evidence-v1"
+            scan.prompt_version = JUDGEMENT_PROMPT_VERSION
             # Persist immutable scan inputs before refreshing cancellation state in the loop.
             db.commit()
             scan_started = time.monotonic()
@@ -278,7 +278,7 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                     latency_ms = 0
                     if llm_client and retrieved and judgement_count <= get_settings().scan_max_claims:
                         try:
-                            raw = llm_client.judge("Evaluate this claim only against the supplied approved passages.", retrieved, claim)
+                            raw = llm_client.judge(JUDGEMENT_TASK_INSTRUCTIONS, retrieved, claim)
                             result = parse_judgement(raw, asset_text=claim, retrieved=retrieved)
                         except Exception:
                             result = None

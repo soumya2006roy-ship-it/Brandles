@@ -1034,6 +1034,184 @@
         }
       }
     },
+    "/api/v1/orgs/{organization_id}/retention-settings": {
+      "get": {
+        "tags": [
+          "organisation-settings"
+        ],
+        "summary": "Get Retention Settings",
+        "operationId": "get_retention_settings_api_v1_orgs__organization_id__retention_settings_get",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Organization Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "organisation-settings"
+        ],
+        "summary": "Update Retention Settings",
+        "operationId": "update_retention_settings_api_v1_orgs__organization_id__retention_settings_patch",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Organization Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetentionSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orgs/{organization_id}/data-export": {
+      "get": {
+        "tags": [
+          "organisation-settings"
+        ],
+        "summary": "Export Organization Data",
+        "operationId": "export_organization_data_api_v1_orgs__organization_id__data_export_get",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Organization Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orgs/{organization_id}/data-deletion": {
+      "post": {
+        "tags": [
+          "organisation-settings"
+        ],
+        "summary": "Delete Organization Data",
+        "operationId": "delete_organization_data_api_v1_orgs__organization_id__data_deletion_post",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Organization Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/private-files/{organization_id}/{object_key}": {
       "get": {
         "tags": [
@@ -3591,6 +3769,7 @@
             "title": "Question"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "question"
@@ -3648,6 +3827,7 @@
             "default": "en"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "name",
@@ -3844,6 +4024,7 @@
             "title": "Question"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "question"
@@ -3878,6 +4059,22 @@
           "created_at"
         ],
         "title": "DashboardCampaign"
+      },
+      "DeletionRequest": {
+        "properties": {
+          "confirmation_name": {
+            "type": "string",
+            "maxLength": 180,
+            "minLength": 2,
+            "title": "Confirmation Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmation_name"
+        ],
+        "title": "DeletionRequest"
       },
       "ExpiringOffer": {
         "properties": {
@@ -4015,6 +4212,7 @@
             "title": "Dismissal Reason"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "decision"
@@ -4457,6 +4655,7 @@
             "title": "Decision"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "decision"
@@ -4560,6 +4759,7 @@
             "default": 1
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "role"
@@ -4575,6 +4775,7 @@
             "title": "Code"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "code"
@@ -4676,6 +4877,7 @@
             "title": "Password"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "email",
@@ -4694,6 +4896,7 @@
             "title": "Email"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "in_app",
@@ -4777,6 +4980,7 @@
             "title": "Contact Person"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "name",
@@ -4981,6 +5185,7 @@
             "title": "Password"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "token",
@@ -4996,6 +5201,7 @@
             "title": "Email"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "email"
@@ -5022,6 +5228,7 @@
             "title": "Display Name"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "email",
@@ -5029,6 +5236,22 @@
           "display_name"
         ],
         "title": "RegisterRequest"
+      },
+      "RetentionSettings": {
+        "properties": {
+          "retention_days": {
+            "type": "integer",
+            "maximum": 3650.0,
+            "minimum": 30.0,
+            "title": "Retention Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "retention_days"
+        ],
+        "title": "RetentionSettings"
       },
       "ReviewDecision": {
         "properties": {
@@ -5050,6 +5273,7 @@
             "title": "Comment"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "decision"
@@ -5160,6 +5384,7 @@
             "title": "Comment"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "scan_id"
@@ -5189,6 +5414,7 @@
             "title": "Note"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "decision"
@@ -5348,6 +5574,7 @@
             "title": "Source Passage Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "rule_type",
@@ -5661,6 +5888,7 @@
             "title": "Effective To"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "title": "SourceEffectiveDates"
       },
@@ -5946,6 +6174,7 @@
             "title": "Note"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "decision"
@@ -6034,6 +6263,7 @@
             "title": "Llm Processing Allowed"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "llm_processing_allowed"

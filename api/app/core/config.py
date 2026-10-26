@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_secret_key: str = "local-only-change-me"
     database_url: str = "postgresql+psycopg://brandlens:brandlens@localhost:5432/brandlens"
     redis_url: str = "redis://localhost:6379/0"
+    trusted_proxy_cidrs: str = ""
     frontend_origin: str = "http://localhost:3000"
     session_cookie_name: str = "brandlens_session"
     session_ttl_hours: int = 12

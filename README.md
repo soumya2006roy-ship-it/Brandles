@@ -61,7 +61,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL`, `BRANDLENS_BACKEND_URL`, `FRONTEND_ORIGIN` | Canonical metadata origin and private Next-to-FastAPI routing |
 | `APP_ENV`, `APP_SECRET_KEY`, `SESSION_*` | Runtime mode, signing secret, and secure session cookie settings |
-| `DATABASE_URL`, `REDIS_URL` | PostgreSQL/pgvector and shared rate limits/job queue |
+| `DATABASE_URL`, `REDIS_URL`, `TRUSTED_PROXY_CIDRS` | PostgreSQL/pgvector, shared rate limits/job queue, and explicitly trusted API reverse-proxy peers (comma-separated CIDRs; configure only when the ingress sanitizes forwarded IP headers) |
 | `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Verification, reset, invite, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |
 | `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*`, `MINIO_*` | Private file storage configuration for approved sources and campaign assets |
@@ -83,11 +83,11 @@ The workspace AI setting defaults off, and live provider adapters are absent. Do
 - Phase 5 provides filtered and grouped findings, evidence and suggested-text comparison, creator edits as new asset versions, reasoned dismissal, clarification requests, and rescans. Reviewer submissions are idempotent and bind to exact asset versions and the current scan/rule snapshot; reviewers cannot review their own submissions. Approval, rejection, request-changes history, in-app notifications and email notices are recorded. Campaign status is set by the API. The workflow does not publish to platforms or certify legal or regulatory compliance.
 - Phase 6 adds an expandable Evidence Map with source passage/page/version, expiry warnings for referenced offers, and Admin-only feedback suggestions after repeated creator decisions. Accepting a guideline suggestion records an Admin decision and never edits a rule. Brand Twin is an extractive assistant limited to effective approved passages; it cites each excerpt and refuses unmatched questions. Hindi exact checks and lexical retrieval are a limited-accuracy prototype. Instagram/LinkedIn-style previews use rule-based truncation and hashtag/link counts; they do not reflect live platform rendering or post content.
 - Phase 7 adds a server-data dashboard, campaign and finding views, review queue, sources/rules, team and invite management, notification/AI settings, platform verification and append-only audit history. `/demo` is now a read-only sandbox backed by explicitly seeded sample records; it does not use editable browser-only state. Dashboard and finding APIs are tenant-scoped and list endpoints provide bounded filters and pagination.
+- Phase 8 adds strict request models, same-origin and Fetch Metadata checks for browser mutations, response security headers, scoped access to private signed downloads, Redis-backed rate limits with `Retry-After`, prompt-injection instructions for untrusted model inputs, append-only audit protection, workspace export/deletion, and configurable scan/finding history retention. The worker purges expired scan history hourly. Workspace deletion removes uploaded objects and operational records but retains minimal append-only audit history and the user account. Export is JSON with uploaded originals and is limited to 100 MB total files. Deployments must provide TLS, private networking, Redis, strong environment secrets and correctly configured trusted proxies.
 - Invitation codes are stored as hashes, are scoped to one organisation and role, and have expiry/use limits. Accepted invitations create memberships. Platform administrators are assigned with the trusted CLI, not by self-service registration.
 - The compose stack is the default full local environment. Docker is required for that path. If Docker is unavailable, marketing-only `npm run dev` remains available; API tests run with SQLite and do not require Docker.
 - `NEXT_PUBLIC_SITE_URL` should be set to the real HTTPS domain before deployment. Resend requires an API key and verified sender. Production API sessions require a strong random `APP_SECRET_KEY`, a TLS endpoint, and `SESSION_COOKIE_SECURE=true`.
-- Contact submissions use a process-local rate limit. Use shared Redis-backed limiting before running multiple Next.js instances in production.
-- The privacy/security marketing copy describes the proposal's intended product posture and is not a compliance certification.
+- The marketing Privacy and Security pages describe implemented repository controls and deployment requirements. They are not a compliance or security certification.
 
 ## Checks
 
@@ -102,6 +102,8 @@ api\.venv\Scripts\python.exe api\scripts\run_evals.py
 ```
 
 The GitHub Actions workflow runs the frontend lint/typecheck/build, API tests and the evaluation script with the mock judgement client. API tests use an isolated in-memory SQLite database and a fake email sender. The evaluation script also uses temporary SQLite and reports exact-type precision/recall, citation validity and false-breach rate. To evaluate a real model, implement an approved provider adapter behind `LLMClient`, set the deployment `LLM_*` values, enable `ALLOW_WORKSPACE_LLM`, and explicitly enable processing for a test organisation. No live provider adapter is included. Run `npm run start` after a successful build to inspect the production server.
+
+CI also runs npm and Python dependency audits and Gitleaks secret scanning. GitHub organisation repositories must configure `GITLEAKS_LICENSE` as a repository or organisation secret for the Gitleaks action; personal repositories do not need it. Rate-limit counters are shared through Redis in production, with bounded expiry windows and `Retry-After` hints. Repeated login failures add progressive delays up to one minute; a successful login clears that delay. The API only uses forwarded client addresses when the direct peer matches `TRUSTED_PROXY_CIDRS`; configure the ingress to replace untrusted forwarded headers before setting this value.
 
 ## Deployment
 
@@ -147,6 +149,7 @@ Deploy Next.js and FastAPI as separate Node and Python services. Provision Postg
 | P5 | Filtered findings, creator resolution and clarification, version-bound review queue/history, notifications | `api/app/campaigns/router.py`, `api/app/notifications/`, `api/app/db/models.py`, `app/app/organisations/campaigns/campaign-workspace.tsx`, `app/app/organisations/reviews/` |
 | P6 | Evidence Map, offer expiry warnings, feedback suggestions, bounded source Q&A and rule-based previews | `api/app/campaigns/router.py`, `api/app/campaigns/scans.py`, `api/app/checks/`, `app/app/organisations/brand-twin.tsx`, `app/app/organisations/campaigns/platform-preview.tsx` |
 | P7 | Dashboard, findings and audit views, organization workspace navigation, read-only seeded sample workspace | `api/app/campaigns/router.py`, `api/app/orgs/router.py`, `api/app/sample/`, `api/scripts/seed_sample_workspace.py`, `app/app/organisations/dashboard.tsx`, `app/app/organisations/audit-log.tsx`, `app/app/organisations/[organizationId]/findings/`, `app/(marketing)/demo/` |
+| P8 | Tenant/RBAC protections, CSRF/origin checks, Redis throttles, private file access, append-only audit, export/deletion/retention, prompt-injection safeguards and CI scans | `api/app/auth/dependencies.py`, `api/app/core/rate_limit.py`, `api/app/data_controls.py`, `api/app/orgs/settings_router.py`, `api/alembic/versions/0007_append_only_audit.py`, `api/alembic/versions/0008_retention_controls.py`, `api/tests/test_security_controls.py`, `.github/workflows/ci.yml` |
 
 ## Performance notes
 
