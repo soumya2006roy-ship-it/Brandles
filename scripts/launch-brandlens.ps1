@@ -1,5 +1,11 @@
 param([ValidateSet('dev', 'prod')][string]$Mode = 'dev')
 $ErrorActionPreference = 'Stop'
+# PowerShell 7 can turn a native program's stderr into a terminating error.
+# Docker uses stderr for daemon connection failures, which should be handled by
+# its exit code so this script can show the actionable launcher diagnostic.
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $logs = Join-Path $root 'logs'
 $script:StartedDataServices = $false
@@ -47,7 +53,7 @@ $pythonVersion = Get-CommandVersion 'python.exe' @('--version')
 if (-not $pythonVersion -or (Get-MajorMinor $pythonVersion) -lt [version]::new(3, 12)) { Stop-WithMessage "Python 3.12 or newer is required; detected $pythonVersion." }
 if (-not (Get-Command docker.exe -ErrorAction SilentlyContinue)) { Stop-WithMessage 'Docker Desktop with Docker Compose is required for PostgreSQL, Redis and MinIO. Install it from https://www.docker.com/products/docker-desktop/, start Docker Desktop, then run this launcher again.' }
 & docker.exe info *> $null
-if ($LASTEXITCODE -ne 0) { Stop-WithMessage 'Docker Desktop is installed but not running. Start Docker Desktop and wait for its engine to be ready.' }
+if ($LASTEXITCODE -ne 0) { Stop-WithMessage 'Docker Desktop is installed, but its engine is unavailable. Start Docker Desktop, wait until it reports that the engine is running, then run this launcher again.' }
 & docker.exe compose version *> $null
 if ($LASTEXITCODE -ne 0) { Stop-WithMessage 'Docker Compose is unavailable. Update Docker Desktop, then try again.' }
 
@@ -155,10 +161,10 @@ if (-not (Test-Path $requirementsMarker) -or (Get-Content -Raw $requirementsMark
 Write-Host 'Starting PostgreSQL, Redis, MinIO and local mail capture...'
 $script:StartedDataServices = $true
 Push-Location $root
-& docker.exe compose up -d db redis minio minio-init mailpit
+& docker.exe compose up -d db redis minio minio-init mailpit *> $null
 $composeCode = $LASTEXITCODE
 Pop-Location
-if ($composeCode -ne 0) { Stop-WithMessage 'Docker Compose could not start the data services. Run docker compose logs db redis minio minio-init mailpit for details.' }
+if ($composeCode -ne 0) { Stop-WithMessage 'Docker Compose could not start the data services. Check that Docker Desktop is running, then run docker compose logs db redis minio minio-init mailpit for details.' }
 
 $healthDeadline = [DateTime]::UtcNow.AddMinutes(2)
 while ([DateTime]::UtcNow -lt $healthDeadline) {

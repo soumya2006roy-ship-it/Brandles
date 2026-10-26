@@ -1,5 +1,8 @@
 param([switch]$Containers)
 $ErrorActionPreference = 'Continue'
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $logs = Join-Path $root 'logs'
 foreach ($service in @('web', 'worker', 'api')) {
@@ -17,8 +20,23 @@ foreach ($service in @('web', 'worker', 'api')) {
   Remove-Item -LiteralPath $pidPath -Force -ErrorAction SilentlyContinue
 }
 if ($Containers) {
-  Push-Location $root
-  & docker.exe compose stop db redis minio minio-init mailpit
-  Pop-Location
+  $docker = Get-Command docker.exe -ErrorAction SilentlyContinue
+  if (-not $docker) {
+    Write-Host 'Docker data services were not stopped because docker.exe is unavailable.'
+  }
+  else {
+    & docker.exe info *> $null
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host 'Docker data services were not stopped because the Docker engine is unavailable. Start Docker Desktop and run stop.bat containers again.'
+    }
+    else {
+      Push-Location $root
+      & docker.exe compose stop db redis minio minio-init mailpit *> $null
+      $stopCode = $LASTEXITCODE
+      Pop-Location
+      if ($stopCode -eq 0) { Write-Host 'Docker data services have been stopped.' }
+      else { Write-Host 'Docker could not stop all data services. Check Docker Desktop and run docker compose ps for their status.' }
+    }
+  }
 }
-Write-Host 'BrandLens web, API and worker processes have been stopped. Use -Containers to stop local data services too.'
+Write-Host 'BrandLens web, API and worker processes have been stopped.'
