@@ -42,6 +42,13 @@ function Get-MajorMinor([string]$Version) {
   return [version]::new([int]$match.Groups[1].Value, [int]$match.Groups[2].Value)
 }
 
+function Get-FileSha256([string]$Path) {
+  $algorithm = [Security.Cryptography.SHA256]::Create()
+  $stream = [IO.File]::OpenRead($Path)
+  try { return ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '') }
+  finally { $stream.Dispose(); $algorithm.Dispose() }
+}
+
 if (-not (Get-Command node.exe -ErrorAction SilentlyContinue)) { Stop-WithMessage 'Node.js 20.9 or newer is required. Install the LTS release from https://nodejs.org/ and reopen this window.' }
 if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) { Stop-WithMessage 'npm is required. Reinstall Node.js 20.9 or newer from https://nodejs.org/.' }
 $nodeVersion = Get-CommandVersion 'node.exe' @('--version')
@@ -51,7 +58,15 @@ if (-not $npmVersion -or (Get-MajorMinor $npmVersion) -lt [version]::new(10, 0))
 if (-not (Get-Command python.exe -ErrorAction SilentlyContinue)) { Stop-WithMessage 'Python 3.12 or newer is required. Install it from https://www.python.org/downloads/windows/ and enable Add Python to PATH.' }
 $pythonVersion = Get-CommandVersion 'python.exe' @('--version')
 if (-not $pythonVersion -or (Get-MajorMinor $pythonVersion) -lt [version]::new(3, 12)) { Stop-WithMessage "Python 3.12 or newer is required; detected $pythonVersion." }
-if (-not (Get-Command docker.exe -ErrorAction SilentlyContinue)) { Stop-WithMessage 'Docker Desktop with Docker Compose is required for PostgreSQL, Redis and MinIO. Install it from https://www.docker.com/products/docker-desktop/, start Docker Desktop, then run this launcher again.' }
+$dockerCommand = Get-Command docker.exe -ErrorAction SilentlyContinue
+if (-not $dockerCommand -and $env:LOCALAPPDATA) {
+  $perUserDocker = Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin'
+  if (Test-Path (Join-Path $perUserDocker 'docker.exe')) {
+    $env:PATH = "$perUserDocker;$env:PATH"
+    $dockerCommand = Get-Command docker.exe -ErrorAction SilentlyContinue
+  }
+}
+if (-not $dockerCommand) { Stop-WithMessage 'Docker Desktop with Docker Compose is required for PostgreSQL and Redis. Install it from https://www.docker.com/products/docker-desktop/, start Docker Desktop, then run this launcher again.' }
 & docker.exe info *> $null
 if ($LASTEXITCODE -ne 0) { Stop-WithMessage 'Docker Desktop is installed, but its engine is unavailable. Start Docker Desktop, wait until it reports that the engine is running, then run this launcher again.' }
 & docker.exe compose version *> $null
@@ -70,8 +85,8 @@ if ($priorRunHealthy) {
   $apiHealthy = $false; $webHealthy = $false
   try { $apiHealthy = (Invoke-WebRequest 'http://127.0.0.1:8000/health' -TimeoutSec 3 -UseBasicParsing).StatusCode -eq 200 } catch { }
   try { $webHealthy = (Invoke-WebRequest 'http://127.0.0.1:3000/' -TimeoutSec 3 -UseBasicParsing).StatusCode -eq 200 } catch { }
-  $currentLockHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'package-lock.json')).Hash
-  $currentRequirementsHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'api/requirements.txt')).Hash
+  $currentLockHash = Get-FileSha256 (Join-Path $root 'package-lock.json')
+  $currentRequirementsHash = Get-FileSha256 (Join-Path $root 'api/requirements.txt')
   $modePath = Join-Path $logs '.mode'
   $sameMode = (Test-Path $modePath) -and ((Get-Content -Raw $modePath).Trim() -eq "$Mode $currentLockHash $currentRequirementsHash")
   if ($sameMode -and $apiHealthy -and $webHealthy) {
@@ -82,10 +97,35 @@ if ($priorRunHealthy) {
   & (Join-Path $PSScriptRoot 'stop-brandlens.ps1') | Out-Null
 }
 
-$ports = @(3000, 8000, 5432, 6379, 9000, 9001, 8025, 1025)
+$servicePorts = [ordered]@{ POSTGRES_PORT = 5432; REDIS_PORT = 6379; MAILPIT_UI_PORT = 8025; MAILPIT_SMTP_PORT = 1025 }
+$existingEnvPath = Join-Path $root '.env'
+if (Test-Path $existingEnvPath) {
+  foreach ($line in Get-Content -LiteralPath $existingEnvPath) {
+    if ($line -match '^\s*(POSTGRES_PORT|REDIS_PORT|MAILPIT_UI_PORT|MAILPIT_SMTP_PORT)=(\d+)\s*$') { $servicePorts[$Matches[1]] = [int]$Matches[2] }
+  }
+}
+foreach ($portName in $servicePorts.Keys) {
+  if ($servicePorts[$portName] -lt 1 -or $servicePorts[$portName] -gt 65535) { Stop-WithMessage "$portName in .env must be a valid TCP port from 1 to 65535." }
+}
+$ports = @(3000, 8000, $servicePorts.POSTGRES_PORT, $servicePorts.REDIS_PORT, $servicePorts.MAILPIT_UI_PORT, $servicePorts.MAILPIT_SMTP_PORT)
+$composePortMappings = @(
+  @{ Host = $servicePorts.POSTGRES_PORT; Service = 'db'; Container = 5432 },
+  @{ Host = $servicePorts.REDIS_PORT; Service = 'redis'; Container = 6379 },
+  @{ Host = $servicePorts.MAILPIT_UI_PORT; Service = 'mailpit'; Container = 8025 },
+  @{ Host = $servicePorts.MAILPIT_SMTP_PORT; Service = 'mailpit'; Container = 1025 }
+)
 foreach ($port in $ports) {
   $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)
   if ($listeners.Count -gt 0) {
+    $ownedByBrandLensDataService = $false
+    foreach ($mapping in $composePortMappings | Where-Object { $_.Host -eq $port }) {
+      Push-Location $root
+      $publishedPort = & docker.exe compose port $mapping.Service $mapping.Container 2>$null
+      $publishCode = $LASTEXITCODE
+      Pop-Location
+      if ($publishCode -eq 0 -and (($publishedPort -join "`n") -match ":$port\s*$")) { $ownedByBrandLensDataService = $true; break }
+    }
+    if ($ownedByBrandLensDataService) { continue }
     $owners = @($listeners | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {
       $process = Get-CimInstance Win32_Process -Filter "ProcessId = $_" -ErrorAction SilentlyContinue
       if ($process) { "$($process.Name) (PID $_)" } else { "PID $_" }
@@ -109,7 +149,6 @@ if (-not (Test-Path $envPath)) {
   $content = [IO.File]::ReadAllText($example)
   $content = [regex]::Replace($content, '(?m)^APP_SECRET_KEY=.*$', "APP_SECRET_KEY=$secret")
   $content = [regex]::Replace($content, '(?m)^BOOTSTRAP_ADMIN_PASSWORD=.*$', "BOOTSTRAP_ADMIN_PASSWORD=$adminPassword")
-  $content = [regex]::Replace($content, '(?m)^MINIO_ROOT_PASSWORD=.*$', "MINIO_ROOT_PASSWORD=$secret")
   $content = [regex]::Replace($content, '(?m)^S3_SECRET_ACCESS_KEY=.*$', "S3_SECRET_ACCESS_KEY=$secret")
   [IO.File]::WriteAllText($envPath, $content, [System.Text.UTF8Encoding]::new($false))
   Write-Host 'First-run settings created. The generated development administrator password is stored in .env; change it after signing in.'
@@ -129,7 +168,7 @@ $env:BRANDLENS_LAUNCH_MODE = $Mode
 
 $lockPath = Join-Path $root 'package-lock.json'
 $npmMarker = Join-Path $root '.brandlens-npm-lock-hash'
-$lockHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $lockPath).Hash
+$lockHash = Get-FileSha256 $lockPath
 if (-not (Test-Path (Join-Path $root 'node_modules')) -or -not (Test-Path $npmMarker) -or (Get-Content -Raw $npmMarker).Trim() -ne $lockHash) {
   Write-Host 'Installing web dependencies with npm ci...'
   Push-Location $root
@@ -149,7 +188,7 @@ if (-not (Test-Path $venvPython)) {
   Pop-Location
   if ($venvCode -ne 0) { Stop-WithMessage 'Could not create api/.venv.' }
 }
-$requirementsHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'api/requirements.txt')).Hash
+$requirementsHash = Get-FileSha256 (Join-Path $root 'api/requirements.txt')
 $requirementsMarker = Join-Path $root 'api/.venv/.brandlens-requirements-hash'
 if (-not (Test-Path $requirementsMarker) -or (Get-Content -Raw $requirementsMarker).Trim() -ne $requirementsHash) {
   Write-Host 'Installing API dependencies...'
@@ -158,13 +197,13 @@ if (-not (Test-Path $requirementsMarker) -or (Get-Content -Raw $requirementsMark
   Set-Content -LiteralPath $requirementsMarker -Value $requirementsHash -NoNewline
 }
 
-Write-Host 'Starting PostgreSQL, Redis, MinIO and local mail capture...'
+Write-Host 'Starting PostgreSQL, Redis and local mail capture...'
 $script:StartedDataServices = $true
-Push-Location $root
-& docker.exe compose up -d db redis minio minio-init mailpit *> $null
-$composeCode = $LASTEXITCODE
-Pop-Location
-if ($composeCode -ne 0) { Stop-WithMessage 'Docker Compose could not start the data services. Check that Docker Desktop is running, then run docker compose logs db redis minio minio-init mailpit for details.' }
+$composeLog = Join-Path $logs 'data-services-startup.log'
+$composeErrorLog = Join-Path $logs 'data-services-startup-errors.log'
+$composeProcess = Start-Process -FilePath $dockerCommand.Source -ArgumentList @('compose', '--progress', 'plain', 'up', '-d', 'db', 'redis', 'mailpit') -WorkingDirectory $root -NoNewWindow -PassThru -Wait -RedirectStandardOutput $composeLog -RedirectStandardError $composeErrorLog
+Get-Content -LiteralPath $composeLog, $composeErrorLog -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+if ($composeProcess.ExitCode -ne 0) { Stop-WithMessage "Docker Compose could not start the data services. See $composeLog and $composeErrorLog for the full pull/start error, then run docker compose logs db redis mailpit for service logs." }
 
 $healthDeadline = [DateTime]::UtcNow.AddMinutes(2)
 while ([DateTime]::UtcNow -lt $healthDeadline) {
@@ -181,25 +220,15 @@ while ([DateTime]::UtcNow -lt $healthDeadline) {
     $state = $state.Trim()
     if ($state -ne 'healthy') { $healthy = $false }
   }
-  Push-Location $root
-  $initOutput = & docker.exe compose ps -a -q minio-init | Select-Object -First 1
-  Pop-Location
-  $initId = ([string]$initOutput).Trim()
-  if (-not $initId) { $healthy = $false }
-  else {
-    $initStatus = [string](& docker.exe inspect --format '{{.State.Status}}' $initId 2>$null | Select-Object -First 1)
-    $initExitCode = [string](& docker.exe inspect --format '{{.State.ExitCode}}' $initId 2>$null | Select-Object -First 1)
-    if ($initStatus.Trim() -ne 'exited' -or $initExitCode.Trim() -ne '0') { $healthy = $false }
-  }
   if ($healthy) { break }
   Start-Sleep -Seconds 2
 }
 if (-not $healthy) {
   Push-Location $root
   & docker.exe compose ps
-  & docker.exe compose logs --tail 80 db redis minio minio-init
+  & docker.exe compose logs --tail 80 db redis mailpit
   Pop-Location
-  Stop-WithMessage 'PostgreSQL, Redis or object storage did not become healthy within two minutes.'
+  Stop-WithMessage 'PostgreSQL or Redis did not become healthy within two minutes.'
 }
 
 Write-Host 'Applying database migrations...'

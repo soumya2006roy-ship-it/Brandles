@@ -50,7 +50,26 @@ if [[ -f "$LOG_DIR/api.pid" && -f "$LOG_DIR/web.pid" && -f "$LOG_DIR/worker.pid"
   ./stop.sh
 fi
 
-for port in 3000 8000 5432 6379 9000 9001 8025 1025; do
+postgres_port=5432
+redis_port=6379
+mailpit_ui_port=8025
+mailpit_smtp_port=1025
+if [[ -f .env ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^[[:space:]]*(POSTGRES_PORT|REDIS_PORT|MAILPIT_UI_PORT|MAILPIT_SMTP_PORT)=([0-9]+)[[:space:]]*$ ]]; then
+      case "${BASH_REMATCH[1]}" in
+        POSTGRES_PORT) postgres_port="${BASH_REMATCH[2]}" ;;
+        REDIS_PORT) redis_port="${BASH_REMATCH[2]}" ;;
+        MAILPIT_UI_PORT) mailpit_ui_port="${BASH_REMATCH[2]}" ;;
+        MAILPIT_SMTP_PORT) mailpit_smtp_port="${BASH_REMATCH[2]}" ;;
+      esac
+    fi
+  done < .env
+fi
+for port in "$postgres_port" "$redis_port" "$mailpit_ui_port" "$mailpit_smtp_port"; do
+  [[ "$port" =~ ^[0-9]{1,5}$ ]] && (( port >= 1 && port <= 65535 )) || fail 'Configured local service ports in .env must be TCP ports from 1 to 65535.'
+done
+for port in 3000 8000 "$postgres_port" "$redis_port" "$mailpit_ui_port" "$mailpit_smtp_port"; do
   if command -v ss >/dev/null && ss -ltn "sport = :$port" | tail -n +2 | grep -q .; then
     owner=$(ss -lptn "sport = :$port" | tail -n +2 | head -n 1)
     fail "Port $port is already in use: $owner"
@@ -92,15 +111,11 @@ if [[ ! -f api/.venv/.brandlens-requirements-hash || "$(cat api/.venv/.brandlens
 fi
 
 DATA_STARTED=1
-docker compose up -d db redis minio minio-init mailpit || fail 'Docker Compose could not start local data services; inspect docker compose logs.'
+docker compose up -d db redis mailpit || fail 'Docker Compose could not start local data services; inspect docker compose logs.'
 deadline=$((SECONDS + 120))
 until docker compose exec -T db pg_isready -U brandlens -d brandlens >/dev/null 2>&1 \
-  && docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG \
-  && init_id="$(docker compose ps -a -q minio-init)" \
-  && [[ -n "$init_id" ]] \
-  && [[ "$(docker inspect -f '{{.State.Status}}' "$init_id" 2>/dev/null)" == exited ]] \
-  && [[ "$(docker inspect -f '{{.State.ExitCode}}' "$init_id" 2>/dev/null)" == 0 ]]; do
-  (( SECONDS < deadline )) || { docker compose ps -a; docker compose logs --tail 80 db redis minio minio-init; fail 'PostgreSQL, Redis or object storage failed its health check within two minutes.'; }
+  && docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do
+  (( SECONDS < deadline )) || { docker compose ps -a; docker compose logs --tail 80 db redis mailpit; fail 'PostgreSQL or Redis failed its health check within two minutes.'; }
   sleep 2
 done
 (cd api && "$venv_python" -m alembic upgrade head) || fail 'Alembic migration failed; see the output above.'

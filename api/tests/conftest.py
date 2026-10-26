@@ -5,12 +5,31 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from redis.exceptions import RedisError
 
+from app.core import rate_limit
 from app.core.db import Base, get_db
 from app.core.mail import OutboundEmail, get_email_sender
 from app.core.rate_limit import _login_blocks, _login_failures, _memory
 from app.db import models  # noqa: F401
 from app.main import app
+
+
+class UnavailableTestRedis:
+    @classmethod
+    def from_url(cls, *args, **kwargs):
+        return cls()
+
+    def __getattr__(self, name):
+        def unavailable(*args, **kwargs):
+            raise RedisError("API unit tests use isolated in-memory rate limits")
+
+        return unavailable
+
+
+@pytest.fixture(autouse=True)
+def isolate_rate_limit_backend(monkeypatch):
+    monkeypatch.setattr(rate_limit, "Redis", UnavailableTestRedis)
 
 
 class FakeEmailSender:

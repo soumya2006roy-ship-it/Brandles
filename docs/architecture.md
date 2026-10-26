@@ -4,7 +4,7 @@
 
 The App Router web application serves the public marketing pages and authenticated organisation UI. Its product routes forward requests to the FastAPI service. The API owns authentication, tenant membership, source evidence, rules, campaigns, assets, findings, reviews, audit records, export/deletion and notifications. PostgreSQL is the source of truth; migrations live in `api/alembic`. Redis provides shared rate-limit counters and the background scan queue. The separate Python worker runs scans and retention work. User files are private object storage objects addressed through random keys and short-lived signed URLs.
 
-Production builds are `Dockerfile.web` and `api/Dockerfile`; the API image also runs the worker with a different command. `compose.production.yaml` runs a one-shot Alembic migration service before API and worker services and checks API readiness plus web liveness. It expects managed PostgreSQL with pgvector, Redis, S3-compatible storage and a TLS reverse proxy. The development stack remains `docker-compose.yml` and includes local PostgreSQL, Redis, MinIO and Mailpit.
+Production builds are `Dockerfile.web` and `api/Dockerfile`; the API image also runs the worker with a different command. `compose.production.yaml` runs a one-shot Alembic migration service before API and worker services and checks API readiness plus web liveness. It expects managed PostgreSQL with pgvector, Redis, S3-compatible storage and a TLS reverse proxy. The native development launcher uses local PostgreSQL, Redis and Mailpit containers with private files under `api/private-uploads`; the full development Compose stack stores uploads in a private Docker volume.
 
 ## Evidence and scanning
 

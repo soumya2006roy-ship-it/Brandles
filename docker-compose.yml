@@ -34,15 +34,11 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SMTP_STARTTLS: "false"
-      FILE_STORAGE_DRIVER: s3
+      FILE_STORAGE_DRIVER: local
+      LOCAL_STORAGE_PATH: /code/private-uploads
       MALWARE_SCANNER_HOST: ${MALWARE_SCANNER_HOST:-}
       MALWARE_SCANNER_PORT: ${MALWARE_SCANNER_PORT:-3310}
       MALWARE_SCAN_TIMEOUT_SECONDS: ${MALWARE_SCAN_TIMEOUT_SECONDS:-10}
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_BUCKET: brandlens-private
-      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-brandlens-local}
-      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-brandlens-local-secret}
-      S3_REGION: us-east-1
       LLM_PROVIDER: none
       LLM_MODEL: none
       EMBEDDING_PROVIDER: none
@@ -61,8 +57,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
       mailpit:
         condition: service_started
     restart: unless-stopped
@@ -86,7 +80,7 @@ services:
       POSTGRES_USER: brandlens
       POSTGRES_PASSWORD: brandlens
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -98,7 +92,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -107,41 +101,16 @@ services:
       timeout: 3s
       retries: 20
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-brandlens-local}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-brandlens-local-secret}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - object_data:/data
-
-  minio-init:
-    image: minio/mc:latest
-    depends_on:
-      minio:
-        condition: service_started
-    entrypoint: ["/bin/sh", "-c"]
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-brandlens-local}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-brandlens-local-secret}
-    command: 'until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" && mc ready local; do sleep 1; done; mc mb --ignore-existing local/brandlens-private'
-    restart: "no"
-
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
-  object_data:
   private_uploads:
   web_node_modules:
   web_next:

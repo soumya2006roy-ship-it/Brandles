@@ -12,15 +12,20 @@ foreach ($service in @('web', 'worker', 'api')) {
   if ([int]::TryParse((Get-Content -Raw $pidPath).Trim(), [ref]$processId)) {
     $process = Get-CimInstance Win32_Process -Filter "ProcessId = $processId" -ErrorAction SilentlyContinue
     if ($process -and $process.CommandLine -like '*run-service.ps1*') {
-      & taskkill.exe /PID $processId /T | Out-Null
-      Start-Sleep -Seconds 3
-      if (Get-Process -Id $processId -ErrorAction SilentlyContinue) { & taskkill.exe /PID $processId /T /F | Out-Null }
+      & taskkill.exe /PID $processId /T /F | Out-Null
     }
   }
   Remove-Item -LiteralPath $pidPath -Force -ErrorAction SilentlyContinue
 }
 if ($Containers) {
   $docker = Get-Command docker.exe -ErrorAction SilentlyContinue
+  if (-not $docker -and $env:LOCALAPPDATA) {
+    $perUserDocker = Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin'
+    if (Test-Path (Join-Path $perUserDocker 'docker.exe')) {
+      $env:PATH = "$perUserDocker;$env:PATH"
+      $docker = Get-Command docker.exe -ErrorAction SilentlyContinue
+    }
+  }
   if (-not $docker) {
     Write-Host 'Docker data services were not stopped because docker.exe is unavailable.'
   }
@@ -31,7 +36,7 @@ if ($Containers) {
     }
     else {
       Push-Location $root
-      & docker.exe compose stop db redis minio minio-init mailpit *> $null
+      & docker.exe compose stop db redis mailpit *> $null
       $stopCode = $LASTEXITCODE
       Pop-Location
       if ($stopCode -eq 0) { Write-Host 'Docker data services have been stopped.' }

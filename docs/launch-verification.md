@@ -1,39 +1,44 @@
 # Launch verification
 
-Date: 2026-10-26. This report records checks that ran in the available Windows environment. Docker Desktop is not installed, so the complete launcher flow could not run.
+Date: 2026-10-26. This run used Docker Desktop 4.97.0 / Engine 29.9.2 on Windows, Node 24.12.0, npm 11.6.2, Python 3.13.14, and the repository checkout under OneDrive.
 
-## Launcher result
+## Full-stack development launch
 
-Ran `cmd.exe /c start.bat` and `npm run dev:all`. Node v24.12.0, npm 11.6.2 and Python 3.13.14 passed prerequisite checks. Both entry points stopped with the Docker Desktop and Compose install instructions before creating environments, installing packages, starting data services or launching application processes. No product service ports remained open. This verifies fail-closed behavior and the Windows Node dispatcher only.
+Docker Desktop was installed in the current user's profile and its CLI was not on the shell PATH. The Windows launcher now checks Docker Desktop's standard per-user `resources/bin` location. The local database, Redis and Mailpit ports (5432, 6379, 8025 and 1025) were already occupied by Docker Desktop/WSL relay listeners, so this machine's ignored `.env` and `api/.env` use host ports 55432, 16379, 18025 and 11025. The project defaults remain the conventional ports; other users do not need these overrides unless their ports are occupied.
 
-The clean-state run, second-start idempotency run, stop/reset checks, missing-port conflict, container startup, migrations through the launcher, and production mode remain unverified. I did not remove the existing dependency environments or any `.env` files when Docker was unavailable. The macOS/Linux shell launcher was not executable in this Windows environment because WSL/Git Bash is unavailable.
+The first Docker pull exposed that the configured MinIO Docker Hub image is no longer available. Local development now uses the existing private local-file storage implementation instead of depending on MinIO. Production S3-compatible storage configuration remains available. No Docker volumes were deleted during this verification.
 
-## Route and browser checks
+`start.bat`'s PowerShell target completed successfully after configuration: the PostgreSQL/pgvector, Redis and Mailpit containers became healthy; Alembic applied migrations through `0009_remove_public_workspace_marker`; the local platform admin bootstrap ran; and the API, worker and web processes started. A second launch detected the healthy existing app and returned without duplicating processes.
+
+The following HTTP checks returned 200 while the app was running:
+
+```text
+GET /health                 200
+GET /ready                  200  {"status":"ready","checks":{"database":true,"redis":true}}
+GET /                       200
+GET /docs                   200
+GET Mailpit inbox           200
+```
+
+`stop.bat` stopped the application processes. `stop.bat containers` stopped the database, Redis and Mailpit containers; all project volumes remained present. The app and configured host service ports had no listeners after stopping. The destructive `reset-dev.bat` flow was intentionally not run; it requires deleting local database/upload volumes.
+
+## Production mode
+
+`npm run build` and therefore the production launcher could not complete in this OneDrive-synced checkout. Next.js returned `EPERM: operation not permitted, unlink` for a generated path under `.next-brandlens-build`. This remains unverified here. README now advises using a normal non-synced local checkout for production builds if Files On-Demand holds generated output open.
+
+## Checks
 
 | Check | Result |
 | --- | --- |
+| `docker compose config --quiet` | Passed. |
+| Windows PowerShell 5.1 parser for launch, stop and reset scripts | Passed. |
 | `npm run lint` | Passed. |
 | `npm run typecheck` | Passed. |
-| `npm run build` | Passed; route output includes `/signup`, `/org/create`, `/join`; no retired route is in the build. Contrast checks passed in light and dark themes. |
 | `npm test` | Passed: 5 tests. |
-| `npm run test:e2e` | Passed: 6 Chromium tests, covering public pages, account forms and aliases, signed-out product redirects, the retired route response, theme behavior, contact throttling and public-page axe checks. These are not a signup-to-reviewer-approval journey. |
-| `npm run check:links` | Passed against the running Next development server: 32 internal routes and required metadata assets returned below HTTP 400; the retired path returned 404 and was absent from the sitemap. |
+| `npm run test:e2e` | Passed: 6 Chromium tests, including contact rate limiting and axe checks on key public pages. |
+| `npm run check:links` | Passed: 32 routes plus required metadata assets. |
+| `api\.venv\Scripts\python.exe -m pytest -q` with `TEST_DATABASE_URL=postgresql+psycopg://brandlens:brandlens@localhost:55432/brandlens` | Passed: 48 tests, including the real-PostgreSQL migration/audit integration check; one existing Starlette/httpx deprecation warning. Unit tests isolate Redis rate-limit keys from the local app. |
+| `api\.venv\Scripts\python.exe api/scripts/run_evals.py` | Passed: precision 1.0, recall 1.0, citation validity 1.0, false-breach rate 0.0 on 3 fixtures. Evaluation judgement uses a fixed insufficient-evidence fixture; it does not call a live model. |
 | `git diff --check` | Passed. |
 
-## API checks
-
-`api\.venv\Scripts\python.exe -m pytest -q` completed with **47 passed, 1 skipped, 1 warning** in 341 seconds. The skipped case needs PostgreSQL; the warning is the existing Starlette/httpx test-client deprecation.
-
-For an HTTP smoke without Docker, Uvicorn was run with a temporary in-memory SQLite URL and local-only secret. Real requests returned:
-
-```text
-GET /health            200  {"status":"ok"}
-GET /docs              200
-GET /api/openapi.json  200  title: BrandLens API
-```
-
-This temporary setup does not verify Postgres, Redis readiness, email delivery, signup verification, organization verification, uploads, scans, reviews, or audit behavior over a live service stack.
-
-## Removal scan
-
-The repository scan finds the retired path only in its explicit 404/sitemap assertions in `e2e/public-pages.spec.ts` and `scripts/check-site-links.mjs`. These are intentional checks required to prove the route is gone. No public navigation, page copy, sitemap, runtime API route, or provider points to it.
+The tests do not demonstrate the complete signup-to-approved-campaign acceptance journey, a live LLM, external email delivery, malware/OCR configuration, production S3 deployment, or Lighthouse results.

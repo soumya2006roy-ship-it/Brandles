@@ -4,6 +4,15 @@ $resolvedRoot = [IO.Path]::GetFullPath($root).TrimEnd([IO.Path]::DirectorySepara
 Write-Host 'This permanently removes BrandLens local Docker volumes, uploaded development files and build/log output.' -ForegroundColor Yellow
 $confirmation = Read-Host 'Type RESET BRANDLENS DEV DATA to continue'
 if ($confirmation -cne 'RESET BRANDLENS DEV DATA') { Write-Host 'Reset cancelled.'; exit 1 }
+$docker = Get-Command docker.exe -ErrorAction SilentlyContinue
+if (-not $docker -and $env:LOCALAPPDATA) {
+  $perUserDocker = Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin'
+  if (Test-Path (Join-Path $perUserDocker 'docker.exe')) {
+    $env:PATH = "$perUserDocker;$env:PATH"
+    $docker = Get-Command docker.exe -ErrorAction SilentlyContinue
+  }
+}
+if (-not $docker) { throw 'Docker Desktop with Docker Compose is required to reset local development data.' }
 & (Join-Path $PSScriptRoot 'stop-brandlens.ps1')
 Push-Location $root
 & docker.exe compose down --volumes

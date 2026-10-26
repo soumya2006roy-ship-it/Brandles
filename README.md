@@ -4,7 +4,9 @@ BrandLens is an editorial website and an organisation workspace for the source-b
 
 ## Local setup
 
-Requirements: Node.js 20.9 or newer, Python 3.12 or newer, and Docker Desktop with Compose. From the repository root:
+Requirements: Git, Node.js 20.9 or newer (npm 10+), Python 3.12 or newer, and Docker Desktop with Docker Compose. Docker Desktop must be started and its engine ready. You need internet access the first time to install packages and download container images. The local development stack stores uploads in a private Docker volume; it does not require an S3 account or an AI provider key. Default ports that must be free are 3000 (web), 8000 (API), 5432 (PostgreSQL), 6379 (Redis), 8025 (Mailpit inbox), and 1025 (local SMTP).
+
+On Windows, make sure Docker Desktop is running and `docker info` succeeds in PowerShell before launching. If `docker` is installed only in Docker Desktop's per-user folder, `start.bat` checks that location automatically. From the repository root:
 
 ```text
 Windows:  start.bat
@@ -12,13 +14,17 @@ macOS/Linux: bash start.sh
 Any OS:  npm run dev:all
 ```
 
-First run creates `.env` from `.env.example`, generates local signing and platform administrator secrets, copies it to `api/.env` when needed, installs npm/Python dependencies when absent or changed, starts PostgreSQL with pgvector, Redis, MinIO and Mailpit, waits for the data services, applies Alembic migrations and creates the first local platform administrator only if none exists. The password is not printed; find it in `.env` and change it after signing in. Existing `.env` files are preserved. Local verification email is captured at `http://localhost:8025`.
+First run creates `.env` from `.env.example`, generates local signing and platform administrator secrets, copies it to `api/.env` when needed, installs npm/Python dependencies when absent or changed, starts PostgreSQL with pgvector, Redis and Mailpit, waits for database and Redis health, applies Alembic migrations and creates the first local platform administrator only if none exists. In the Windows/native launcher, uploads are stored privately under `api/private-uploads`; Docker Compose runs that directory in a private volume. Production can use an S3-compatible storage service. The admin password is not printed; find it in `.env` and change it after signing in. Existing `.env` files are preserved. Local account verification email is captured at `http://localhost:8025` by default (or the port in `MAILPIT_UI_PORT`). The public contact form stays unavailable until a real Resend API key and sender settings are configured.
 
 The launcher starts API, background worker and web app as separate processes; Windows opens a named log window for each. Logs are written to `logs/`. It checks the API `/health` endpoint and web home page before opening `http://localhost:3000/`. Docker, Node/npm, or Python prerequisite failures print install guidance and stop. Use `start.bat prod` for a fresh Next production build and Uvicorn without reload. The older `start-brandlens.bat` delegates to `start.bat`.
 
-If Windows reports that it cannot connect to `//./pipe/docker_engine`, Docker Desktop's engine is not running or ready. Open Docker Desktop, wait for its status to show that the engine is running, then confirm `docker info` succeeds in a terminal and retry `start.bat`. The launcher reports this as a prerequisite failure; it does not start a web-only fallback. If Docker becomes unavailable while starting, the launcher reports the failure without claiming the data containers were stopped. `stop.bat containers` also reports when it cannot reach the engine.
+If Windows reports that it cannot connect to `//./pipe/docker_engine`, Docker Desktop's engine is not running or ready. Open Docker Desktop, wait for its status to show that the engine is running, then confirm `docker info` succeeds in a terminal and retry `start.bat`. If Docker Desktop is open but the command is missing, close and reopen the terminal or add Docker Desktop's `resources\bin` folder to PATH; the Windows start, stop and reset scripts also check its standard per-user install location. The launcher reports Docker failures clearly and does not start a web-only fallback. `stop.bat containers` stops the local database, Redis and Mailpit containers.
 
-Stop application processes with `stop.bat` (Windows) or `bash stop.sh` (macOS/Linux). Add `containers` on Windows or `--containers` on macOS/Linux to also stop the local database, Redis, MinIO and Mailpit containers. To erase local development volumes, uploads and build/log output, run `reset-dev.bat` and type `RESET BRANDLENS DEV DATA`; it preserves `.env` and installed dependencies. The Node `npm run dev:all` command routes to the same full launcher on every platform.
+If the launcher reports a port conflict, stop the program using that port or choose other free host ports in `.env`: set `POSTGRES_PORT` and match the port in `DATABASE_URL`; set `REDIS_PORT` and match `REDIS_URL`; set `MAILPIT_UI_PORT` for the inbox page; and set `MAILPIT_SMTP_PORT` and match `SMTP_PORT`. The launcher checks all configured ports. Ports between services inside Compose stay unchanged.
+
+Keep the repository in a normal local folder for production builds. OneDrive Files On-Demand can lock generated Next.js build files and cause Windows `EPERM` errors; if that happens, stop the BrandLens services and use a checkout outside the synced OneDrive tree.
+
+Stop application processes with `stop.bat` (Windows) or `bash stop.sh` (macOS/Linux). Add `containers` on Windows or `--containers` on macOS/Linux to also stop the local database, Redis and Mailpit containers. To erase local development volumes, uploaded files and build/log output, run `reset-dev.bat` and type `RESET BRANDLENS DEV DATA`; it preserves `.env` and installed dependencies. The Node `npm run dev:all` command routes to the same full launcher on every platform.
 
 For a marketing-only frontend, `npm run dev` is available intentionally; account and organisation features require the API and data services. To run the API manually on Windows, create and activate a venv, install requirements, copy `.env.example` to `api/.env`, then run Alembic and Uvicorn:
 
@@ -57,7 +63,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | `DATABASE_URL`, `REDIS_URL`, `TRUSTED_PROXY_CIDRS` | PostgreSQL/pgvector, shared API/contact rate limits and job queue, and explicitly trusted API reverse-proxy peers (comma-separated CIDRs; configure only when the ingress sanitizes forwarded IP headers) |
 | `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Verification, reset, invite, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |
-| `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*`, `MINIO_*` | Private file storage configuration for approved sources and campaign assets |
+| `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*` | Private file storage configuration for approved sources and campaign assets; local Compose uses the private upload volume |
 | `MALWARE_SCANNER_HOST`, `MALWARE_SCANNER_PORT`, `MALWARE_SCAN_TIMEOUT_SECONDS` | Optional ClamAV-compatible INSTREAM scanner. Unset means uploads are marked unscanned; a configured but unavailable scanner rejects the upload. |
 | `ALLOW_WORKSPACE_LLM`, `LLM_*`, `EMBEDDING_*` | External model provider settings; no live LLM or semantic embedding adapter is enabled, while source text extraction and local lexical vectors run without external providers |
 | `SCAN_MAX_ASSETS`, `SCAN_MAX_CLAIMS`, `SCAN_TIMEOUT_SECONDS` | Per-scan asset, judgement-candidate and elapsed-time limits; one active scan per organisation |

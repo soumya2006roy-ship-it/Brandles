@@ -12,7 +12,6 @@ def main() -> None:
     values = {
         "APP_SECRET_KEY": secrets.token_urlsafe(48),
         "BOOTSTRAP_ADMIN_PASSWORD": secrets.token_urlsafe(36),
-        "MINIO_ROOT_PASSWORD": secrets.token_urlsafe(32),
         "S3_SECRET_ACCESS_KEY": secrets.token_urlsafe(32),
     }
     for key, value in values.items():

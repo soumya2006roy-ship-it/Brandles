@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool, text
+from sqlalchemy import engine_from_config, inspect, pool, text
 
 from app.core.config import get_settings
 from app.core.db import Base
@@ -24,6 +24,9 @@ def run_migrations_online() -> None:
     connectable = engine_from_config(config.get_section(config.config_ini_section, {}), prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
         if connection.dialect.name == "postgresql":
+            if inspect(connection).has_table("alembic_version"):
+                connection.execute(text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(128)"))
+                connection.commit()
             connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             connection.commit()
         context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)

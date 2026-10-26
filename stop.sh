@@ -17,5 +17,5 @@ for service in web worker api; do
   fi
   rm -f -- "$pid_file"
 done
-if [[ "${1:-}" == --containers ]]; then (cd "$ROOT" && docker compose stop db redis minio minio-init mailpit); fi
+if [[ "${1:-}" == --containers ]]; then (cd "$ROOT" && docker compose stop db redis mailpit); fi
 echo 'BrandLens web, API and worker processes stopped.'
