@@ -19,6 +19,28 @@ export class ApiError extends Error {
   }
 }
 
+function getErrorMessage(value: unknown): string | undefined {
+  if (typeof value === "string") return value.trim() || undefined;
+  if (Array.isArray(value)) {
+    const messages = value.map((item) => {
+      if (!item || typeof item !== "object") return getErrorMessage(item);
+      const entry = item as { loc?: unknown; msg?: unknown; message?: unknown };
+      const message = getErrorMessage(entry.msg) ?? getErrorMessage(entry.message);
+      if (!message) return getErrorMessage(item);
+      const location = Array.isArray(entry.loc)
+        ? entry.loc.filter((part) => !["body", "query", "path"].includes(String(part))).map(String).join(".")
+        : "";
+      return location ? `${location}: ${message}` : message;
+    }).filter((message): message is string => Boolean(message));
+    return messages.length ? messages.join("; ") : undefined;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return getErrorMessage(record.detail) ?? getErrorMessage(record.message) ?? getErrorMessage(record.msg) ?? getErrorMessage(record.error);
+  }
+  return undefined;
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
   const response = await fetch(`/api/product/${path.replace(/^\//, "")}`, {
@@ -30,8 +52,11 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (!response.ok) {
     let message = "Something went wrong. Please try again.";
     try {
-      const body = await response.json() as { detail?: string };
-      if (body.detail) message = body.detail;
+      const body: unknown = await response.json();
+      const detail = body && typeof body === "object" && "detail" in body
+        ? (body as { detail?: unknown }).detail
+        : body;
+      message = getErrorMessage(detail) ?? message;
     } catch { /* Keep the accessible generic error if the response is not JSON. */ }
     throw new ApiError(message, response.status);
   }
