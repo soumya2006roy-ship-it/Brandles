@@ -4,7 +4,7 @@ import { TrackedLink } from "@/app/ui";
 
 export default function HomePage() {
   return (
-    <>
+    <main id="main-content">
       <section className="hero wrap">
         <div className="hero-copy">
           <h1>Catch campaign conflicts before approval.</h1>
@@ -29,6 +29,6 @@ export default function HomePage() {
       <section className="section wrap"><div className="section-heading"><div><p className="eyebrow">Evidence before opinion</p><h2>Inspect the source.<br />Make the decision.</h2></div><p>Findings link to approved passages and campaign facts. A reviewer makes the decision, and the selected asset version is recorded.</p></div><div className="actions"><Link className="button button-primary" href="/signup">Create your organisation</Link><Link className="text-link" href="/join">Join with an invite code</Link></div></section>
 
       <section className="closing-cta wrap"><p className="eyebrow">Questions about access?</p><h2>Start with your organisation.</h2><p>Create an organisation, log in to an existing account, or contact the BrandLens team.</p><div className="actions"><TrackedLink className="button button-primary" href="/signup" label="Create your organisation">Create your organisation</TrackedLink><Link className="text-link" href="/contact">Contact us</Link></div></section>
-    </>
+    </main>
   );
 }
