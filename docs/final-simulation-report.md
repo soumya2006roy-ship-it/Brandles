@@ -1,16 +1,19 @@
 # Final top-to-bottom simulation report
 
-Date: 2026-10-26. This report supersedes earlier partial launch/build statements in `docs/final-report.md` and `docs/launch-verification.md`. The running pass log is [simulation-log.md](simulation-log.md); endpoint inventory is [endpoint-matrix.md](endpoint-matrix.md); the public-site requirements inventory is [requirements-matrix.md](requirements-matrix.md).
+Date: 2026-10-27. This report supersedes earlier partial launch/build statements in `docs/final-report.md` and `docs/launch-verification.md`. The running pass log is [simulation-log.md](simulation-log.md); endpoint inventory is [endpoint-matrix.md](endpoint-matrix.md); the public-site requirements inventory is [requirements-matrix.md](requirements-matrix.md).
 
 ## Scope and results
 
-Three passes were recorded. No P0 issue was found. The P1s found in the code/config checks were fixed; important end-user acceptance paths remain unverified, so this is not a declaration that the requested product is complete.
+Four passes were recorded. No P0 issue was found. The P1s found in the code/config checks were fixed; important end-user acceptance paths remain unverified, so this is not a declaration that the requested product is complete.
 
 | Pass | P0 | P1 | P2 | Main findings |
 |---|---:|---:|---:|---|
 | 1 — static sweep | 0 | 1 | 0 | Repeat build failed with Windows `EPERM` in OneDrive; fixed with guarded generated-output cleanup. |
 | 2 — cold start | 0 | 0 | 2 | PowerShell misformatted normal service logs; fixed. One old-container port rebind failed once, then the next launch succeeded. |
 | 3 — security/contract regression | 0 | 2 | 1 | Development Compose exposed ports on all interfaces and had a weak signing-key fallback; fixed. OpenAPI omitted cookie auth; fixed. Two external links lacked explicit `noopener`; fixed. |
+| 4 — current checkout regression | 0 | 0 | 0 | Build, lint, typecheck, frontend/API tests and mock evaluations passed. Docker was unavailable; pip-audit could not resolve a dependency from the configured package index. Removed one stale demo-mode comment. |
+
+Pass 4 results (2026-10-27): `npm run lint`, `npm run typecheck`, `npm run build`, `npm test` (5 passed), `npm run test:e2e` (6 passed), API pytest (48 passed, 1 PostgreSQL integration skipped), and the 3-case deterministic evaluation passed. `npm audit --audit-level=high` found 0 vulnerabilities. `pip-audit` was inconclusive because the configured package index did not provide `sentry-sdk<3,>=2.0`; do not treat this as a clean dependency audit. The tracked-file credential-pattern fallback found no matches. Docker was unavailable, and full journeys, migration integration and chaos checks remain unverified. Full output and limitations are recorded in `docs/simulation-log.md`.
 
 ### Fix commits
 

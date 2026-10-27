@@ -1,5 +1,30 @@
 # BrandLens simulation log
 
+## Pass 4 — current checkout regression check (2026-10-27)
+
+### Ran
+
+- `git status --short --branch` — started clean at `425767b` (`origin/main`). Docker daemon was unavailable (`dockerDesktopLinuxEngine` named pipe missing).
+- `npm run lint` — passed before and after the config-comment cleanup.
+- `npm run typecheck` — passed before and after the config-comment cleanup.
+- `npm run build` — passed; generated standalone runtime and all configured light/dark contrast pairs passed.
+- `npm test` — 5 tests passed.
+- `npm run test:e2e` — 6 Chromium tests passed, including public-page axe, account entry points, retired route, theme toggle and contact validation/rate limiting.
+- `api\\.venv\\Scripts\\python.exe -m pytest --collect-only -q` — 49 tests collected.
+- `api\\.venv\\Scripts\\python.exe -m pytest -q` — 48 passed, 1 skipped (PostgreSQL integration requires a running database), one Starlette/httpx deprecation warning.
+- `api\\scripts\\run_evals.py` — 3 fixed fixtures; precision 1.0, recall 1.0, citation validity 1.0, false-breach rate 0.0. This evaluates the deterministic fixtures, not a live model.
+- `npm audit --audit-level=high` — 0 vulnerabilities.
+- `api\\.venv\\Scripts\\python.exe -m pip_audit -r api\\requirements.txt` — unable to resolve `sentry-sdk<3,>=2.0` from the configured package index; audit is inconclusive.
+- Tracked-file credential-pattern fallback — no private-key, common `sk-` token, or Google API-key matches. Gitleaks, formatter and mypy/pyright are not configured/installed; no formatter or backend static type-check command is defined in the repo.
+- Docker cold start, migrations against PostgreSQL, full persona journeys, and PostgreSQL integration test could not be run in this pass because Docker is unavailable. Earlier isolated clean-start evidence remains documented above.
+
+### Findings and fixes
+
+- P3: Next config comment still referred to a “local demo mode” after the demo route was removed. Updated the comment to describe the workspace interface accurately.
+- Retest: build, typecheck and lint passed after the comment-only edit.
+- No P0/P1 issue was found in the checks completed in this pass. This does not close the previously listed unverified full journeys or adversarial/chaos checks.
+- Commit: pending.
+
 Date: 2026-10-26. Scope follows the final simulation brief. Existing local `.env` files and Docker volumes are user data; cold-start work uses protected backups and an isolated Compose project.
 
 ## Pass 1 — static sweep and cold-start preparation
