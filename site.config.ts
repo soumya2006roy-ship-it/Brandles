@@ -55,7 +55,7 @@ export const siteConfig = {
       related: ["problem", "features", "roles"],
     },
     features: {
-      title: "Capabilities for source-based campaign review",
+      title: "Capabilities for source‑based campaign review",
       description:
         "Explore the source, campaign, evidence and review capabilities available in BrandLens.",
       eyebrow: "Product capabilities",

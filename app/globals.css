@@ -926,6 +926,36 @@ button:active:not(:disabled), a:active { transform: translateY(1px); }
   .decision-connector span::after { top: auto; right: -4px; bottom: 0; transform: rotate(135deg); }
   .decision-preview-footer { flex-direction: column; gap: 5px; }
 }
+
+/* Keep capability-page type readable while using the full content width. */
+.page-hero-features { max-width: none; }
+.page-hero-features h1 {
+  max-width: 1040px;
+  font-size: clamp(40px, 4.7vw, 64px);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+.innovation-card { grid-template-columns: 64px minmax(280px, .9fr) minmax(300px, 1fr); gap: 22px; padding-block: 22px; }
+.innovation-card-top > span:first-child { font-size: 13px; }
+.feature-status { grid-column: 2; grid-row: 3; justify-self: start; }
+.innovation-card h2 { font-size: clamp(21px, 1.65vw, 25px); line-height: 1.2; }
+.innovation-card > p { font-size: 16px; line-height: 1.55; }
+.innovation-example { gap: 7px; padding-top: 12px; font-size: 14px; line-height: 1.5; }
+.innovation-example span { font-size: 10px; }
+.feature-status { font-size: 12px; line-height: 1.4; }
+.prototype-callout { font-size: 14px; line-height: 1.6; }
+
+@media (max-width: 900px) {
+  .innovation-card { grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+}
+@media (max-width: 760px) {
+  .page-hero-features h1 { max-width: 100%; font-size: clamp(38px, 9vw, 54px); }
+  .innovation-card { grid-template-columns: 38px minmax(0, 1fr); gap: 10px 13px; padding-block: 20px; }
+  .innovation-card h2 { font-size: 22px; }
+  .innovation-card > p { font-size: 15px; }
+  .innovation-example { grid-row: 3; font-size: 14px; }
+  .feature-status { grid-column: 2; grid-row: 4; font-size: 11px; }
+}
 @media (max-width: 600px) {
   .steps-grid { grid-template-columns: 1fr; gap: 10px; }
   .step-card { min-height: 0; padding: 18px; }
