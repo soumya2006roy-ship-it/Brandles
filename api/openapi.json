@@ -5236,7 +5236,8 @@
         "properties": {
           "email": {
             "type": "string",
-            "format": "email",
+            "maxLength": 320,
+            "minLength": 3,
             "title": "Email"
           },
           "password": {
@@ -6404,7 +6405,6 @@
           },
           "email": {
             "type": "string",
-            "format": "email",
             "title": "Email"
           },
           "display_name": {

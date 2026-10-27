@@ -19,7 +19,8 @@ class RegisterRequest(StrictInput):
 
 
 class LoginRequest(StrictInput):
-    email: EmailStr
+    # Login must accept development-only addresses such as the bootstrap admin's .local email.
+    email: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=320)]
     password: Annotated[str, Field(min_length=1, max_length=128)]
 
 
@@ -35,7 +36,7 @@ class PasswordResetConfirm(StrictInput):
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
-    email: EmailStr
+    email: str
     display_name: str
     email_verified_at: datetime | None
 

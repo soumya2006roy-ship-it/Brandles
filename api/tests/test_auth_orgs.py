@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from app.core.db import get_db
-from app.core.security import digest_secret
+from app.core.security import digest_secret, hash_password
 from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
 from app.main import app
 from app.sources.documents import chunk_block, extract_document, identify_format, local_hash_embedding
@@ -48,6 +48,19 @@ def test_registration_needs_no_email_verification_and_password_reset_is_single_u
     assert client.get("/api/v1/auth/me").status_code == 401
     assert client.post("/api/v1/auth/password-reset/confirm", json={"token": reset_token, "password": "Other-password-789"}).status_code == 400
     assert client.post("/api/v1/auth/login", json={"email": "creator@example.com", "password": "New-password-456"}).status_code == 200
+
+
+def test_local_bootstrap_admin_email_can_sign_in(client):
+    password = "Local-admin-password-456"
+    with next(app.dependency_overrides[get_db]()) as db:
+        user = User(email="admin@brandlens.local", email_normalized="admin@brandlens.local", display_name="Local Admin", password_hash=hash_password(password))
+        db.add(user)
+        db.commit()
+
+    login = client.post("/api/v1/auth/login", json={"email": "admin@brandlens.local", "password": password})
+    assert login.status_code == 200, login.text
+    assert login.json()["user"]["email"] == "admin@brandlens.local"
+    assert client.get("/api/v1/auth/me").json()["email"] == "admin@brandlens.local"
 
 
 def test_pending_organisation_cannot_issue_invites_until_platform_approval(client, mailer):

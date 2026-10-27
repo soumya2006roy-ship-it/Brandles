@@ -1489,10 +1489,7 @@ export interface components {
         };
         /** LoginRequest */
         LoginRequest: {
-            /**
-             * Email
-             * Format: email
-             */
+            /** Email */
             email: string;
             /** Password */
             password: string;
@@ -1891,10 +1888,7 @@ export interface components {
         UserResponse: {
             /** Id */
             id: string;
-            /**
-             * Email
-             * Format: email
-             */
+            /** Email */
             email: string;
             /** Display Name */
             display_name: string;
