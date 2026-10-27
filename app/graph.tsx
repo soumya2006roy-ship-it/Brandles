@@ -2,26 +2,37 @@
 
 export function CampaignGraph() {
   return (
-    <div className="graph-card">
-      <div className="graph-top">
-        <span className="graph-kicker">CAMPAIGN CONSISTENCY GRAPH</span>
-        <span className="graph-live">Evidence linked</span>
+    <figure className="graph-card" aria-labelledby="campaign-graph-title" aria-describedby="campaign-graph-description">
+      <figcaption className="graph-top">
+        <span id="campaign-graph-title" className="graph-kicker">CAMPAIGN CONSISTENCY GRAPH</span>
+        <span className="graph-example-label">Illustrative scenario</span>
+      </figcaption>
+      <p id="campaign-graph-description" className="graph-description">An approved skincare offer is compared with an Instagram post, an email and a poster. The review highlights an unsupported claim, a discount mismatch and an old logo.</p>
+      <div className="graph-example">
+        <article className="graph-source-card">
+          <span className="graph-card-index">APPROVED SOURCE</span>
+          <h3>Product sheet</h3>
+          <p>“Helps to keep the skin hydrated.”</p>
+          <div className="graph-offer"><span>Approved offer</span><strong>20% off</strong><small>Until 30 November</small></div>
+        </article>
+        <div className="graph-connections" aria-hidden="true"><span/><span/><span/></div>
+        <article className="graph-asset-card graph-asset-claim">
+          <div><span className="graph-card-index">INSTAGRAM</span><span className="graph-asset-status">Claim to review</span></div>
+          <p>“Cures acne in 24 hours.”</p>
+          <small>Unsupported claim</small>
+        </article>
+        <article className="graph-asset-card graph-asset-offer">
+          <div><span className="graph-card-index">EMAIL</span><span className="graph-asset-status">Offer mismatch</span></div>
+          <p><strong>30% off</strong> in the email vs 20% in the approved source</p>
+          <small>Conflicting discount</small>
+        </article>
+        <article className="graph-asset-card graph-asset-logo">
+          <div><span className="graph-card-index">POSTER</span><span className="graph-asset-status">Asset to replace</span></div>
+          <p>Artwork contains an older logo.</p>
+          <small>Wrong logo version</small>
+        </article>
       </div>
-      <svg className="graph-svg" viewBox="0 0 560 330" role="img" aria-labelledby="graph-title graph-description">
-        <title id="graph-title">Campaign Consistency Graph</title>
-        <desc id="graph-description">Approved source material connects to campaign assets through their related evidence.</desc>
-        <path className="graph-line graph-line-approved" d="M96 76 C180 76 182 165 260 165" />
-        <path className="graph-line graph-line-conflict" d="M464 76 C380 76 378 165 300 165" />
-        <path className="graph-line graph-line-approved" d="M96 252 C180 252 182 165 260 165" />
-        <path className="graph-line" d="M300 165 C370 165 376 252 464 252" />
-        <g className="graph-node node-source"><rect x="18" y="42" width="158" height="68" rx="2" /><text x="34" y="69">APPROVED SOURCE</text><text x="34" y="91" className="node-value">Brand guidance</text></g>
-        <g className="graph-node node-asset"><rect x="384" y="42" width="158" height="68" rx="2" /><text x="400" y="69">CAMPAIGN ASSET</text><text x="400" y="91" className="node-value">Asset facts</text></g>
-        <g className="graph-node node-asset"><rect x="18" y="218" width="158" height="68" rx="2" /><text x="34" y="245">CAMPAIGN ASSET</text><text x="34" y="267" className="node-value">Text and claims</text></g>
-        <g className="graph-node node-asset"><rect x="384" y="218" width="158" height="68" rx="2" /><text x="400" y="245">CAMPAIGN ASSET</text><text x="400" y="267" className="node-value">Offer and terms</text></g>
-        <g className="graph-center"><circle cx="280" cy="165" r="42" /><circle className="orbit" cx="280" cy="165" r="53" /><text x="280" y="161" textAnchor="middle">CAMPAIGN</text><text x="280" y="178" textAnchor="middle" className="center-sub">connected</text></g>
-        <circle className="conflict-pulse" cx="398" cy="102" r="6" />
-      </svg>
-      <div className="graph-legend"><span>Approved source</span><span>Evidence link</span><span>Campaign asset</span></div>
-    </div>
+      <div className="graph-outcome"><span className="graph-outcome-mark" aria-hidden="true">!</span><p><strong>One campaign, three channels.</strong> Each finding stays connected to the approved material a person can review.</p></div>
+    </figure>
   );
 }
