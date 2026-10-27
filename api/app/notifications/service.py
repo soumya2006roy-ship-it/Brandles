@@ -18,7 +18,7 @@ def record_notification(db: Session, *, user_id: str, organization_id: str, kind
 
 def send_user_email(db: Session, sender: EmailSender, *, user_id: str, subject: str, text: str, organization_id: str | None = None) -> None:
     user = db.get(User, user_id)
-    if not user or not user.email_verified_at:
+    if not user:
         return
     if organization_id:
         membership = db.scalar(select(Membership).where(Membership.organization_id == organization_id, Membership.user_id == user_id))

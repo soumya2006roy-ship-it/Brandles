@@ -31,8 +31,8 @@ def get_auth_context(request: Request, db: Session = Depends(get_db)) -> AuthCon
     if not session_record:
         raise HTTPException(status_code=401, detail="Your session has expired. Sign in again.")
     user = db.get(User, session_record.user_id)
-    if not user or not user.is_active or not user.email_verified_at:
-        raise HTTPException(status_code=401, detail="A verified account is required.")
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Your account is not available.")
     return AuthContext(user=user, session=session_record)
 
 

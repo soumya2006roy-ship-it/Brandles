@@ -65,8 +65,6 @@ def custom_openapi() -> dict:
         ("GET", "/ready"),
         ("GET", "/metrics"),
         ("POST", "/api/v1/auth/register"),
-        ("POST", "/api/v1/auth/verification-email"),
-        ("GET", "/api/v1/auth/verify-email"),
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/password-reset"),
         ("POST", "/api/v1/auth/password-reset/confirm"),

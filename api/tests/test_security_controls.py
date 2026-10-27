@@ -1,7 +1,6 @@
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
-from urllib.parse import parse_qs, urlparse
 from concurrent.futures import ThreadPoolExecutor
 
 from app.core.rate_limit import _memory, clear_login_failures, client_ip, enforce_login_delay, enforce_rate_limit, record_login_failure
@@ -124,32 +123,21 @@ def test_audit_events_are_append_only(client):
 def test_organization_audit_endpoint_is_tenant_scoped(client, mailer):
     password = "Secure-password-123"
     client.post("/api/v1/auth/register", json={"email": "audit-owner@example.com", "display_name": "Audit Owner", "password": password})
-    from app.db.models import AuthToken
-    from sqlalchemy import select
-    with next(app.dependency_overrides[get_db]()) as db:
-        db.scalar(select(AuthToken).where(AuthToken.purpose == "email_verification"))
-        raw_token = next(message.text.split("token=")[-1].split()[0] for message in mailer.sent if "Verify your BrandLens account" in message.subject)
-    client.get(f"/api/v1/auth/verify-email?token={raw_token}")
-    client.post("/api/v1/auth/login", json={"email": "audit-owner@example.com", "password": password})
+    assert client.post("/api/v1/auth/login", json={"email": "audit-owner@example.com", "password": password}).status_code == 200
     organization_response = client.post("/api/v1/orgs", json={"name": "Audit Tenant", "industry": "Retail", "official_email": "owner@audit.example.com", "website": "https://audit.example.com", "contact_person": "Audit Owner"})
     assert organization_response.status_code == 201, organization_response.text
     organization = organization_response.json()
     organization_id = organization["id"]
     client.post("/api/v1/auth/logout")
     client.post("/api/v1/auth/register", json={"email": "audit-outsider@example.com", "display_name": "Audit Outsider", "password": password})
-    outsider_token = next(message.text.split("token=")[-1].split()[0] for message in mailer.sent if "Verify your BrandLens account" in message.subject and "audit-outsider" in message.to)
-    client.get(f"/api/v1/auth/verify-email?token={outsider_token}")
-    client.post("/api/v1/auth/login", json={"email": "audit-outsider@example.com", "password": password})
+    assert client.post("/api/v1/auth/login", json={"email": "audit-outsider@example.com", "password": password}).status_code == 200
     assert client.get(f"/api/v1/orgs/{organization_id}/audit-events").status_code == 404
 
 
 def test_org_export_and_confirmed_deletion_retain_minimal_audit(client, mailer):
     password = "Secure-password-123"
     client.post("/api/v1/auth/register", json={"email": "deletion-owner@example.com", "display_name": "Deletion Owner", "password": password})
-    verification_url = mailer.sent[-1].text.splitlines()[2]
-    token = parse_qs(urlparse(verification_url).query)["token"][0]
-    assert client.get(f"/api/v1/auth/verify-email?token={token}").status_code == 200
-    client.post("/api/v1/auth/login", json={"email": "deletion-owner@example.com", "password": password})
+    assert client.post("/api/v1/auth/login", json={"email": "deletion-owner@example.com", "password": password}).status_code == 200
     organization_response = client.post("/api/v1/orgs", json={"name": "Deletion Workspace", "industry": "Retail", "official_email": "owner@delete.example.com", "website": "https://delete.example.com", "contact_person": "Deletion Owner"})
     assert organization_response.status_code == 201, organization_response.text
     organization = organization_response.json()

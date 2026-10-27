@@ -35,7 +35,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
     try {
       if (mode === "register") {
         await apiRequest("auth/register", { method: "POST", body: JSON.stringify({ email, display_name: form.get("display_name"), password: form.get("password") }) });
-        setMessage("Your account is ready for email verification. Check your inbox for the secure verification link.");
+        await apiRequest("auth/login", { method: "POST", body: JSON.stringify({ email, password: form.get("password") }) });
+        router.replace("/app");
+        router.refresh();
       } else if (mode === "login") {
         await apiRequest("auth/login", { method: "POST", body: JSON.stringify({ email, password: form.get("password") }) });
         router.replace("/app");
@@ -62,8 +64,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
     reset: "Choose a new password",
   };
   const descriptions: Record<Mode, string> = {
-    login: "Use your verified email address to continue.",
-    register: "Verify your email before creating an organisation workspace.",
+    login: "Use your email address to continue.",
+    register: "Create an account and continue straight to your workspace.",
     forgot: "If an account matches, we will send a single-use reset link.",
     reset: "Choose a password with at least 12 characters.",
   };
@@ -86,31 +88,4 @@ export function AuthForm({ mode }: { mode: Mode }) {
       <Link href="/">BrandLens public site</Link>
     </nav>
   </div></main>;
-}
-
-export function VerifyEmail() {
-  const [message, setMessage] = useState("Verifying your email address…");
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      const url = new URL(window.location.href);
-      const token = url.searchParams.get("token");
-      if (token) window.history.replaceState(null, "", "/verify-email");
-      if (!token) {
-          setError(true);
-        setMessage("This verification link is invalid or expired.");
-      } else {
-        apiRequest<{ message: string }>(`auth/verify-email?token=${encodeURIComponent(token)}`)
-          .then((result) => { if (!cancelled) setMessage(result.message); })
-          .catch((cause: unknown) => {
-            if (cancelled) return;
-            setError(true);
-            setMessage(cause instanceof Error ? cause.message : "This verification link is invalid or expired.");
-          });
-      }
-    }, 0);
-    return () => { cancelled = true; window.clearTimeout(timer); };
-  }, []);
-  return <main className="auth-page"><div className="auth-panel"><p className="eyebrow">Email verification</p><h1>Confirm your email</h1><p className={error ? "auth-message auth-error" : "auth-message"} role={error ? "alert" : "status"}>{message}</p><Link className="button button-primary" href="/login">Continue to sign in</Link></div></main>;
 }

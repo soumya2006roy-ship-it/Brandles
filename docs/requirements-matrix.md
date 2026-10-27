@@ -28,7 +28,7 @@ Audit date: 2026-10-26. `Pass` means directly verified; `Partial` means code exi
 
 ## Route inventory
 
-Public content routes: `/`, `/problem`, `/how-it-works`, `/campaign-consistency-graph`, `/features`, `/roles`, `/security`, `/roadmap`, `/contact`, `/privacy`, `/cookies`. Utility/auth routes: `/404`, `/login`, `/sign-up`, `/verify-email`, `/forgot-password`, `/reset-password`. Product routes: `/app`, `/app/account/sessions`, `/app/admin/verifications`, `/app/invite`, `/app/organisations/new`, organisation overview, campaigns, campaign detail, findings, reviews, sources, rules, audit and workspace security. APIs: `/api/contact`, `/api/product/[...path]`. Framework routes include sitemap, robots, manifest, favicon, icons, and Open Graph images.
+Public content routes: `/`, `/problem`, `/how-it-works`, `/campaign-consistency-graph`, `/features`, `/roles`, `/security`, `/roadmap`, `/contact`, `/privacy`, `/cookies`. Utility/auth routes: `/404`, `/login`, `/sign-up`, `/forgot-password`, `/reset-password`. Product routes: `/app`, `/app/account/sessions`, `/app/admin/verifications`, `/app/invite`, `/app/organisations/new`, organisation overview, campaigns, campaign detail, findings, reviews, sources, rules, audit and workspace security. APIs: `/api/contact`, `/api/product/[...path]`. Framework routes include sitemap, robots, manifest, favicon, icons, and Open Graph images. Email verification is disabled in the current hackathon build.
 
 ## Final simulation evidence update
 

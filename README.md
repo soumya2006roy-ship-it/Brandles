@@ -14,7 +14,7 @@ macOS/Linux: bash start.sh
 Any OS:  npm run dev:all
 ```
 
-First run creates `.env` from `.env.example`, generates local signing and platform administrator secrets, copies it to `api/.env` when needed, installs npm/Python dependencies when absent or changed, starts PostgreSQL with pgvector, Redis and Mailpit, waits for database and Redis health, applies Alembic migrations and creates the first local platform administrator only if none exists. In the Windows/native launcher, uploads are stored privately under `api/private-uploads`; Docker Compose runs that directory in a private volume. Production can use an S3-compatible storage service. The admin password is not printed; find it in `.env` and change it after signing in. Existing `.env` files are preserved. Local account verification email is captured at `http://localhost:8025` by default (or the port in `MAILPIT_UI_PORT`). The public contact form stays unavailable until a real Resend API key and sender settings are configured. Direct `docker compose` use requires a populated `.env` with a strong `APP_SECRET_KEY`; the launcher generates this setting on first run.
+First run creates `.env` from `.env.example`, generates local signing and platform administrator secrets, copies it to `api/.env` when needed, installs npm/Python dependencies when absent or changed, starts PostgreSQL with pgvector, Redis and Mailpit, waits for database and Redis health, applies Alembic migrations and creates the first local platform administrator only if none exists. In the Windows/native launcher, uploads are stored privately under `api/private-uploads`; Docker Compose runs that directory in a private volume. Production can use an S3-compatible storage service. The admin password is not printed; find it in `.env` and change it after signing in. Existing `.env` files are preserved. Account signup does not require email verification for this hackathon build. Mailpit at `http://localhost:8025` remains available for configured password-reset and product notifications. The public contact form stays unavailable until a real Resend API key and sender settings are configured. Direct `docker compose` use requires a populated `.env` with a strong `APP_SECRET_KEY`; the launcher generates this setting on first run.
 
 The launcher starts API, background worker and web app as separate processes; Windows opens a named log window for each. Logs are written to `logs/`. It checks the API `/health` endpoint and web home page before opening `http://localhost:3000/`. Docker, Node/npm, or Python prerequisite failures print install guidance and stop. Use `start.bat prod` for a fresh Next production build and Uvicorn without reload. The older `start-brandlens.bat` delegates to `start.bat`.
 
@@ -42,11 +42,11 @@ The API docs are available at `http://localhost:8000/docs`. Signup and invite ro
 
 ### Platform administrator
 
-For a clean local database, the launcher reads `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env`, creates a verified development administrator if no platform administrator exists, and records the action. Change its generated password after signing in. Platform administrator status in a deployed environment should be granted only by a trusted operator with local database access. To promote an already verified account, run:
+For a clean local database, the launcher reads `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env`, creates a development administrator if no platform administrator exists, and records the action. Change its generated password after signing in. Platform administrator status in a deployed environment should be granted only by a trusted operator with local database access. To promote an existing account, run:
 
 ```powershell
 Set-Location api
-python -m app.cli promote-platform-admin verified.person@example.com
+python -m app.cli promote-platform-admin person@example.com
 ```
 
 The same CLI supports `revoke-platform-admin`. The verification dashboard is at `/app/admin/verifications` after logging in as that account. The backend checks the database role on every request; an email address or client-side setting cannot grant administrator access.
@@ -61,7 +61,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 | `APP_ENV`, `APP_SECRET_KEY`, `SESSION_*` | Runtime mode, signing secret, and secure session cookie settings |
 | `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | Local first-run platform administrator; the launcher generates a random password only when it creates a new `.env` |
 | `DATABASE_URL`, `REDIS_URL`, `TRUSTED_PROXY_CIDRS` | PostgreSQL/pgvector, shared API/contact rate limits and job queue, and explicitly trusted API reverse-proxy peers (comma-separated CIDRs; configure only when the ingress sanitizes forwarded IP headers) |
-| `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Verification, reset, invite, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
+| `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Password-reset, invite, workspace notification, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |
 | `FILE_STORAGE_DRIVER`, `LOCAL_STORAGE_PATH`, `S3_*` | Private file storage configuration for approved sources and campaign assets; local Compose uses the private upload volume |
 | `MALWARE_SCANNER_HOST`, `MALWARE_SCANNER_PORT`, `MALWARE_SCAN_TIMEOUT_SECONDS` | Optional ClamAV-compatible INSTREAM scanner. Unset means uploads are marked unscanned; a configured but unavailable scanner rejects the upload. |
@@ -75,7 +75,7 @@ The workspace AI setting defaults off, and live provider adapters are absent. Do
 ## Implemented scope and assumptions
 
 - The supplied product task includes architecture and data-model direction, approved-source and rules workflows, campaign scans, campaign comparison, findings and reviewer decisions.
-- Users can register, verify email, sign in/out, reset passwords, and view/revoke their sessions. Organisations start in `pending_verification`; a platform administrator must approve them before workspace management and invites are available.
+- Users can register and sign in immediately without email verification, reset passwords, and view/revoke their sessions. Organisations start in `pending_verification`; a platform administrator must approve them before workspace management and invites are available. Email verification is intentionally disabled for this hackathon build.
 - Approved-source upload and review, version history, page/location passages, search, highlighting, and structured rules are available in Phase 2. Passages receive deterministic local hashed lexical vectors; they are not semantic model embeddings. Admins approve each source version, and rules cite passages from approved sources.
 - Phase 3 provides campaign setup and versioned text, PDF, DOCX, PNG, JPEG, and WebP assets. Upload type is sniffed from content, image metadata is stripped, PDF/DOCX text is extracted, optional Tesseract OCR and ClamAV scanning are configurable, and asset updates invalidate prior scans. Perceptual logo comparison is a difference-hash prototype against Admin-approved logo files.
 - Phase 4 provides queued, cancellable and resumable campaign scans with asset/rule snapshots, progress and per-organisation limits. Deterministic exact checks cover offer validity/discounts, banned and required phrases, logo version, channel limits, and language-scoped rules. The judgement interface uses top-five deterministic lexical-hash retrieval, strict validated JSON, evidence citation checks, confidence caps, and human-verification fallback. Model/prompt, retrieved passage IDs and latency are recorded without secrets. Campaign facts are normalized where possible and compared across assets; conflicts and unsupported facts remain review prompts. These checks are prototypes; no live LLM or semantic embedding provider is included.

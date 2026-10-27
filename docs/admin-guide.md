@@ -2,7 +2,7 @@
 
 ## Onboard an organisation
 
-1. A user signs up and verifies their email, then submits the organisation name, official email, website and contact details.
+1. A user signs up and can sign in immediately; email verification is disabled for this hackathon build. They then submit the organisation name, official email, website and contact details.
 2. A platform administrator reviews the organisation and records an approve, reject or more-information decision in the Platform Admin verification screen. The submitter cannot decide their own verification.
 3. After approval, the organisation administrator can invite admins, creators and reviewers. Invite codes are single-use or usage-limited, expire, and are stored as hashes.
 4. Upload brand-approved sources, review parsed passages/page references and effective dates, then approve the source. Build exact rules from a specific approved passage.

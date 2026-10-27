@@ -39,71 +39,19 @@ def _new_auth_token(db: Session, user: User, purpose: str, ttl_minutes: int) -> 
     return raw
 
 
-def _send_verification(sender: EmailSender, user: User, raw_token: str) -> None:
-    url = f"{get_settings().frontend_origin.rstrip('/')}/verify-email?token={raw_token}"
-    sender.send(OutboundEmail(user.email, "Verify your BrandLens account", f"Hello {user.display_name},\n\nVerify your email to continue: {url}\n\nIf you did not create this account, ignore this message."))
-
-
-@router.post("/register", status_code=status.HTTP_202_ACCEPTED)
-def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db), sender: EmailSender = Depends(get_email_sender)):
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     enforce_rate_limit(_client_key(request, "register"), limit=5, window_seconds=3600)
     normalized_email = str(payload.email).strip().lower()
     existing = db.scalar(select(User).where(User.email_normalized == normalized_email))
     if existing:
-        if existing.is_active and not existing.email_verified_at:
-            raw_token = _new_auth_token(db, existing, "email_verification", get_settings().verification_token_ttl_minutes)
-            db.commit()
-            try:
-                _send_verification(sender, existing, raw_token)
-            except Exception:
-                pass
-        return {"message": "If this address can be registered, verification instructions will arrive shortly."}
+        return {"message": "If this address can be registered, the account will be ready to sign in."}
     user = User(email=str(payload.email).strip(), email_normalized=normalized_email, display_name=payload.display_name, password_hash=hash_password(payload.password))
     db.add(user)
     db.flush()
-    _record_auth_event(db, user, "auth.registration_requested")
-    raw_token = _new_auth_token(db, user, "email_verification", get_settings().verification_token_ttl_minutes)
+    _record_auth_event(db, user, "auth.registered")
     db.commit()
-    try:
-        _send_verification(sender, user, raw_token)
-    except Exception:
-        raise HTTPException(status_code=503, detail="Your account is saved, but verification email could not be sent. Try requesting a new verification email.") from None
-    return {"message": "If this address can be registered, verification instructions will arrive shortly."}
-
-
-@router.post("/verification-email", status_code=status.HTTP_202_ACCEPTED)
-def resend_verification(payload: PasswordResetRequest, request: Request, db: Session = Depends(get_db), sender: EmailSender = Depends(get_email_sender)):
-    enforce_rate_limit(_client_key(request, "verification"), limit=5, window_seconds=3600)
-    email = str(payload.email).strip().lower()
-    user = db.scalar(select(User).where(User.email_normalized == email, User.is_active.is_(True)))
-    if user and not user.email_verified_at:
-        raw_token = _new_auth_token(db, user, "email_verification", get_settings().verification_token_ttl_minutes)
-        db.commit()
-        try:
-            _send_verification(sender, user, raw_token)
-        except Exception:
-            pass
-    return {"message": "If the account needs verification, an email will arrive shortly."}
-
-
-@router.get("/verify-email")
-def verify_email(token: str, db: Session = Depends(get_db)):
-    token_record = db.scalar(select(AuthToken).where(
-        AuthToken.token_hash == digest_secret(token),
-        AuthToken.purpose == "email_verification",
-        AuthToken.consumed_at.is_(None),
-        AuthToken.expires_at > _now(),
-    ))
-    if not token_record:
-        raise HTTPException(status_code=400, detail="This verification link is invalid or expired.")
-    user = db.get(User, token_record.user_id)
-    if not user or not user.is_active:
-        raise HTTPException(status_code=400, detail="This verification link is invalid or expired.")
-    user.email_verified_at = _now()
-    token_record.consumed_at = _now()
-    _record_auth_event(db, user, "auth.email_verified")
-    db.commit()
-    return {"message": "Email verified. You can now sign in."}
+    return {"message": "Your account is ready. Sign in to continue."}
 
 
 @router.post("/login")
@@ -115,7 +63,7 @@ def login(payload: LoginRequest, request: Request, response: Response, db: Sessi
     user = db.scalar(select(User).where(User.email_normalized == email, User.is_active.is_(True)))
     password_hash = user.password_hash if user else _dummy_password_hash
     valid_password = verify_password(password_hash, payload.password)
-    if not user or not valid_password or not user.email_verified_at:
+    if not user or not valid_password:
         record_login_failure(request_key)
         if user:
             _record_auth_event(db, user, "auth.login_failed")

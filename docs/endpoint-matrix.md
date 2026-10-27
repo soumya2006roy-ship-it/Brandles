@@ -1,8 +1,8 @@
 # API endpoint matrix
 
-Generated from `api/openapi.json` and cross-checked against FastAPI route handlers under `api/app/` on 2026-10-26. This is an implementation inventory, not proof that every route has end-to-end coverage.
+Generated from `api/openapi.json` and cross-checked against FastAPI route handlers under `api/app/` on 2026-10-27. This is an implementation inventory, not proof that every route has end-to-end coverage.
 
-Session authentication is cookie-based and resolved by custom request dependencies. `api/openapi.json` now declares the `BrandLensSession` cookie scheme on protected operations and leaves health, login, registration, verification, and password-reset operations public. The access column reflects handler dependencies and checks; test evidence is family-level rather than direct coverage of every row.
+Session authentication is cookie-based and resolved by custom request dependencies. `api/openapi.json` declares the `BrandLensSession` cookie scheme on protected operations and leaves health, login, registration, and password-reset operations public. Email verification endpoints have been removed for the hackathon build. The access column reflects handler dependencies and checks; test evidence is family-level rather than direct coverage of every row.
 
 | Method | Route | Access requirement | Tenant scoped | Rate limited | Test evidence |
 |---|---|---|---|---|---|
@@ -10,8 +10,6 @@ Session authentication is cookie-based and resolved by custom request dependenci
 | GET | /ready | Public / no session dependency | No | No | Partial — test_health.py; suite passed, not every route exercised directly |
 | GET | /metrics | Public / no session dependency | No | No | Partial — test_health.py; suite passed, not every route exercised directly |
 | POST | /api/v1/auth/register | Public / no session dependency | No | Yes | Partial — test_auth_orgs.py; suite passed, not every route exercised directly |
-| POST | /api/v1/auth/verification-email | Public / no session dependency | No | Yes | Partial — test_auth_orgs.py; suite passed, not every route exercised directly |
-| GET | /api/v1/auth/verify-email | Public / no session dependency | No | No | Partial — test_auth_orgs.py; suite passed, not every route exercised directly |
 | POST | /api/v1/auth/login | Public / no session dependency | No | Yes | Partial — test_auth_orgs.py; suite passed, not every route exercised directly |
 | POST | /api/v1/auth/logout | Signed-in session; tenant membership checked in handler where applicable | No | No | Partial — test_auth_orgs.py; suite passed, not every route exercised directly |
 | GET | /api/v1/auth/me | Signed-in session; tenant membership checked in handler where applicable | No | No | Partial — test_auth_orgs.py; suite passed, not every route exercised directly |

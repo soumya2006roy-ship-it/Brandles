@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.db import get_db
 from app.core.security import digest_secret
-from app.db.models import Asset, AuditEvent, AuthToken, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
+from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
 from app.main import app
 from app.sources.documents import chunk_block, extract_document, identify_format, local_hash_embedding
 from app.campaigns import router as campaigns_router, scans as campaign_scans
@@ -18,17 +18,18 @@ from app.campaigns.scans import execute_campaign_scan
 
 def register_user(client, mailer, *, email: str, display_name: str = "Test Person", password: str = "Secure-password-123"):
     response = client.post("/api/v1/auth/register", json={"email": email, "display_name": display_name, "password": password})
-    assert response.status_code == 202
-    verification_url = mailer.sent[-1].text.splitlines()[2]
-    token = parse_qs(urlparse(verification_url).query)["token"][0]
-    verification = client.get(f"/api/v1/auth/verify-email?token={token}")
-    assert verification.status_code == 200
-    assert client.get(f"/api/v1/auth/verify-email?token={token}").status_code == 400
+    assert response.status_code == 201
+    assert response.json()["message"] == "Your account is ready. Sign in to continue."
+    assert not any("Verify your BrandLens account" in message.subject for message in mailer.sent)
     return password
 
 
-def test_email_verification_sessions_and_password_reset_are_single_use(client, mailer):
+def test_registration_needs_no_email_verification_and_password_reset_is_single_use(client, mailer):
     password = register_user(client, mailer, email="creator@example.com")
+    with next(app.dependency_overrides[get_db]()) as db:
+        user = db.scalar(select(User).where(User.email_normalized == "creator@example.com"))
+        assert user.email_verified_at is None
+    assert client.get("/api/v1/auth/verify-email?token=unused").status_code == 404
     login = client.post("/api/v1/auth/login", json={"email": "creator@example.com", "password": password})
     assert login.status_code == 200
     cookie = login.cookies.get("brandlens_session")

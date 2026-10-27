@@ -1,6 +1,4 @@
 import argparse
-from datetime import UTC, datetime
-
 from sqlalchemy import select
 
 from app.core.db import SessionLocal
@@ -30,15 +28,14 @@ def main() -> None:
                 raise SystemExit("Set BOOTSTRAP_ADMIN_EMAIL and a 20-character BOOTSTRAP_ADMIN_PASSWORD in api/.env first.")
             user = db.scalar(select(User).where(User.email_normalized == email))
             if user:
-                if not user.email_verified_at or not verify_password(user.password_hash, password):
-                    raise SystemExit("The configured bootstrap email already belongs to an account; use its verified account or choose a new bootstrap email.")
+                if not verify_password(user.password_hash, password):
+                    raise SystemExit("The configured bootstrap email already belongs to an account with a different password; choose another bootstrap email.")
             else:
                 user = User(
                     email=email,
                     email_normalized=email,
                     display_name="BrandLens Platform Admin",
                     password_hash=hash_password(password),
-                    email_verified_at=datetime.now(UTC),
                 )
                 db.add(user)
                 db.flush()
@@ -48,9 +45,9 @@ def main() -> None:
             print("The development platform administrator was created. Credentials are in the local .env file; change the password after signing in.")
             return
         email = args.email.strip().lower()
-        user = db.scalar(select(User).where(User.email_normalized == email, User.email_verified_at.is_not(None)))
+        user = db.scalar(select(User).where(User.email_normalized == email))
         if not user:
-            raise SystemExit("A verified account with that email must exist first.")
+            raise SystemExit("An account with that email must exist first.")
         record = db.get(PlatformAdmin, user.id)
         if args.command == "promote-platform-admin":
             if not record:

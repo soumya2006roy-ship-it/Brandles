@@ -28,7 +28,7 @@ def test_bootstrap_platform_admin_is_local_and_idempotent(monkeypatch, capsys):
     with factory() as db:
         user = db.scalar(select(User).where(User.email_normalized == "admin@example.test"))
         assert user is not None
-        assert user.email_verified_at is not None
+        assert user.email_verified_at is None
         assert verify_password(user.password_hash, "a-long-development-password-123")
         assert db.get(PlatformAdmin, user.id) is not None
         assert db.scalar(select(AuditEvent).where(AuditEvent.action == "platform_admin.bootstrap_created")) is not None
