@@ -117,6 +117,10 @@ CI also runs npm and Python dependency audits and Gitleaks secret scanning. GitH
 
 ## Deployment
 
+### Netlify (web application)
+
+The repository includes `netlify.toml` so Netlify uses the same Next.js production build directory as `next.config.ts` (`.next-brandlens-build`). Import this GitHub repository into Netlify, use the repository root as the base directory, and keep the build command and publish directory from `netlify.toml`. Do not set the publish directory to `.next`; that directory is not created by this project. Configure `NEXT_PUBLIC_SITE_URL` and `BRANDLENS_BACKEND_URL` in Netlify's environment variables, then deploy again. The web frontend alone is not the full product: the API, worker, PostgreSQL/pgvector, Redis and private object storage must also be deployed and configured. See the production stack below.
+
 Production images are defined by `Dockerfile.web` and `api/Dockerfile`; `compose.production.yaml` runs a one-shot migration release service, API, worker and web. Provision managed PostgreSQL with pgvector, Redis and private S3-compatible storage; provide all required production variables from `.env.example` through the deployment secret manager. The production Compose file expects a TLS reverse proxy/edge and managed stateful services; it does not include a production database, Redis or object-store service. Run the migration service before deployment and retain the previous image plus a verified database backup for rollback. Set the trusted platform administrator with the CLI through a controlled operator process. Configure Resend sender verification, strong secrets, HTTPS and secure cookies. Keep the API and database private, and use shared rate limiting for the public contact route across instances.
 
 ## Requirements map
