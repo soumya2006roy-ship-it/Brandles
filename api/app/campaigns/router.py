@@ -11,11 +11,11 @@ from sqlalchemy.orm import Session
 
 from app.assets.media import MAX_ASSET_BYTES, difference_hash, get_ocr_provider, scan_for_malware, similarity, sniff_and_normalize
 from app.auth.dependencies import get_auth_context, require_org_role
-from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignResponse, CampaignScanSummary, ClarificationRequest, DashboardCampaign, ExpiringOffer, FactResponse, FindingDecision, FindingListItem, FindingResponse, FindingsOverview, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse, WorkspaceDashboard
+from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignHealthItem, CampaignHealthOverview, CampaignResponse, CampaignScanSummary, ClarificationRequest, DashboardCampaign, ExpiringOffer, FactResponse, FindingDecision, FindingListItem, FindingResponse, FindingsOverview, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse, WorkspaceDashboard
 from app.core.db import get_db
 from app.core.config import get_settings
 from app.core.mail import EmailSender, get_email_sender
-from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, GuidelineUpdateSuggestion, Membership, Notification, Organization, Review, Rule, Scan, SourcePassage
+from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, GuidelineUpdateSuggestion, Membership, Notification, Organization, PlatformAdmin, Review, Rule, Scan, SourcePassage
 from app.notifications.schemas import NotificationResponse
 from app.notifications.service import record_notification, send_user_email
 from app.sources.documents import clean_text, extract_document, identify_format
@@ -23,6 +23,7 @@ from app.storage.factory import get_storage
 from app.storage.local import safe_filename
 from app.jobs.queue import enqueue
 from app.campaigns.scans import active_rules_version
+from app.campaigns.health import evaluate_campaign_health
 from app.checks.judgement import retrieve_top_passages
 from app.core.rate_limit import client_ip, enforce_rate_limit
 
@@ -145,6 +146,70 @@ def _extract_asset_text(sniffed, contents: bytes) -> tuple[str | None, str]:
 def list_campaigns(org_id: str, context=Depends(get_auth_context), db: Session = Depends(get_db)):
     _campaign_member(org_id, context.user.id, db)
     return db.scalars(select(Campaign).where(Campaign.organization_id == org_id, Campaign.deleted_at.is_(None)).order_by(Campaign.created_at.desc())).all()
+
+
+def _campaign_health_item(db: Session, org_id: str, campaign: Campaign, today: date, locale: str = "en") -> CampaignHealthItem:
+    assets = db.scalars(select(Asset).where(Asset.organization_id == org_id, Asset.campaign_id == campaign.id, Asset.current.is_(True), Asset.deleted_at.is_(None))).all()
+    scan = db.scalar(select(Scan).where(Scan.organization_id == org_id, Scan.campaign_id == campaign.id).order_by(Scan.created_at.desc(), Scan.id.desc()).limit(1))
+    is_current = bool(scan and _scan_is_current(db, org_id, campaign.id, scan, assets))
+    severities = []
+    if scan and is_current:
+        severities = db.scalars(select(Finding.severity).where(Finding.organization_id == org_id, Finding.scan_id == scan.id, Finding.status.in_(["open", "clarification_requested"]))).all()
+    updated = campaign.updated_at.date() if campaign.updated_at else today
+    result = evaluate_campaign_health(
+        starts_at=campaign.starts_at,
+        ends_at=campaign.ends_at,
+        today=today,
+        channels=campaign.channels,
+        asset_channels=[asset.channel for asset in assets],
+        scan_status=scan.status if scan else None,
+        scan_is_current=is_current,
+        open_severities=severities,
+        days_since_update=max(0, (today - updated).days),
+        locale=locale,
+    )
+    return CampaignHealthItem(
+        campaign_id=campaign.id,
+        campaign_name=campaign.name,
+        score=result["score"],
+        status=result["status"],
+        checks=result["checks"],
+        recommendations=result["recommendations"],
+        latest_scan_status=scan.status if scan else None,
+        open_high_findings=sum(value in {"high", "critical"} for value in severities),
+        updated_at=campaign.updated_at,
+    )
+
+
+def _campaign_health_access(org_id: str, user_id: str, db: Session) -> None:
+    organization = db.scalar(select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None)))
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organisation not found.")
+    if db.get(PlatformAdmin, user_id):
+        return
+    _campaign_member(org_id, user_id, db)
+
+
+@router.get("/orgs/{org_id}/campaigns/health", response_model=CampaignHealthOverview)
+def campaign_health_overview(org_id: str, request: Request, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    _campaign_health_access(org_id, context.user.id, db)
+    today = datetime.now(UTC).date()
+    campaigns = db.scalars(select(Campaign).where(Campaign.organization_id == org_id, Campaign.deleted_at.is_(None)).order_by(Campaign.updated_at.desc())).all()
+    locale = request.headers.get("accept-language", "en")
+    items = [_campaign_health_item(db, org_id, campaign, today, locale) for campaign in campaigns]
+    return CampaignHealthOverview(
+        healthy_count=sum(item.status == "healthy" for item in items),
+        warning_count=sum(item.status == "warning" for item in items),
+        critical_count=sum(item.status == "critical" for item in items),
+        campaigns=items,
+    )
+
+
+@router.get("/orgs/{org_id}/campaigns/{campaign_id}/health", response_model=CampaignHealthItem)
+def campaign_health_detail(org_id: str, campaign_id: str, request: Request, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    _campaign_health_access(org_id, context.user.id, db)
+    campaign = _campaign(org_id, campaign_id, db)
+    return _campaign_health_item(db, org_id, campaign, datetime.now(UTC).date(), request.headers.get("accept-language", "en"))
 
 
 @router.get("/orgs/{org_id}/dashboard", response_model=WorkspaceDashboard)

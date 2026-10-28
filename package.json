@@ -16,7 +16,8 @@
     "check:links": "node scripts/check-site-links.mjs",
     "contrast-check": "node scripts/check-contrast.mjs",
     "api:openapi": "python api/scripts/export_openapi.py",
-    "api:types": "npm run api:openapi && openapi-typescript api/openapi.json -o app/lib/api-schema.d.ts"
+    "api:types": "npm run api:openapi && openapi-typescript api/openapi.json -o app/lib/api-schema.d.ts",
+    "simulate:health": "node scripts/simulate-health.mjs"
   },
   "dependencies": {
     "next": "16.4.3",

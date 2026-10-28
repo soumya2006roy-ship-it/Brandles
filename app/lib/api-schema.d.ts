@@ -606,6 +606,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/campaigns/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Campaign Health Overview */
+        get: operations["campaign_health_overview_api_v1_orgs__org_id__campaigns_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Campaign Health Detail */
+        get: operations["campaign_health_detail_api_v1_orgs__org_id__campaigns__campaign_id__health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org_id}/dashboard": {
         parameters: {
             query?: never;
@@ -1173,6 +1207,52 @@ export interface components {
             created_at: string;
             /** Assets */
             assets: components["schemas"]["AssetResponse"][];
+        };
+        /** CampaignHealthCheck */
+        CampaignHealthCheck: {
+            /** Key */
+            key: string;
+            /** Status */
+            status: string;
+            /** Detail */
+            detail: string;
+            /** Recommendation */
+            recommendation: string;
+        };
+        /** CampaignHealthItem */
+        CampaignHealthItem: {
+            /** Campaign Id */
+            campaign_id: string;
+            /** Campaign Name */
+            campaign_name: string;
+            /** Score */
+            score: number;
+            /** Status */
+            status: string;
+            /** Checks */
+            checks: components["schemas"]["CampaignHealthCheck"][];
+            /** Recommendations */
+            recommendations: string[];
+            /** Latest Scan Status */
+            latest_scan_status: string | null;
+            /** Open High Findings */
+            open_high_findings: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CampaignHealthOverview */
+        CampaignHealthOverview: {
+            /** Healthy Count */
+            healthy_count: number;
+            /** Warning Count */
+            warning_count: number;
+            /** Critical Count */
+            critical_count: number;
+            /** Campaigns */
+            campaigns: components["schemas"]["CampaignHealthItem"][];
         };
         /** CampaignResponse */
         CampaignResponse: {
@@ -3234,6 +3314,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    campaign_health_overview_api_v1_orgs__org_id__campaigns_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignHealthOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    campaign_health_detail_api_v1_orgs__org_id__campaigns__campaign_id__health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignHealthItem"];
                 };
             };
             /** @description Validation Error */

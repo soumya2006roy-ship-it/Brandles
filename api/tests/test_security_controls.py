@@ -9,6 +9,7 @@ from app.db.models import AuditEvent, User
 from app.main import app
 from app.checks.judgement import JUDGEMENT_PROMPT_VERSION, JUDGEMENT_TASK_INSTRUCTIONS
 from app.observability import increment, metric_snapshot
+from app import main as main_module
 
 
 def test_rate_limit_includes_retry_after_hint():
@@ -75,6 +76,20 @@ def test_browser_origin_rejects_cross_site_mutations(client):
 
 
 def test_request_id_health_readiness_and_metrics(client, monkeypatch):
+    class FailingEngine:
+        def connect(self):
+            raise OSError("Readiness unit test does not use external PostgreSQL.")
+
+    class FailingRedis:
+        @classmethod
+        def from_url(cls, *_args, **_kwargs):
+            return cls()
+
+        def ping(self):
+            raise OSError("Readiness unit test does not use external Redis.")
+
+    monkeypatch.setattr(main_module, "engine", FailingEngine())
+    monkeypatch.setattr(main_module, "Redis", FailingRedis)
     health = client.get("/health", headers={"x-request-id": "request-test-123"})
     assert health.status_code == 200
     assert health.headers["x-request-id"] == "request-test-123"

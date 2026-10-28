@@ -1,5 +1,12 @@
 # Product implementation decisions
 
+## Follow-up product additions (2026-10-29)
+
+- Admin login help points users to their local `.env` and README. Admin passwords are generated per installation and are never published as a shared demo secret; changing bootstrap environment values does not reset an already-created database account.
+- The current campaign schema has no budget or performance metrics. Campaign Health is therefore a transparent readiness score based on dates, current channel assets, latest scan freshness, unresolved finding severity, and campaign update age. Configurable thresholds are centralized in `api/app/campaigns/health_config.py`; endpoints use the existing organisation membership guard and return 404 on cross-tenant access.
+- Workspace localization uses small JSON dictionaries (English/Hindi/Marathi), a React context and a local-storage preference instead of adding a UI dependency. Product navigation, authentication, campaign list/create and Campaign Health are localized; broader workspace screens and generic API errors remain English until translated. Health API messages recognize `Accept-Language` with English fallback. This is a localization prototype, not full localization.
+- `npm run simulate:health` creates only in-memory fixtures (three simulated organisations, five campaigns each) and prints reproducible health outcomes. It does not write sample records to a user's database.
+
 ## Architecture choices for the remaining delivery phases
 
 - Preserve the completed Phases 1–8 and continue at Phase 9. Phase 9 uses the existing pytest/FastAPI suite, adds frontend Vitest unit tests and Playwright journeys, and uses GitHub Actions PostgreSQL/Redis service containers for integration and migration checks. Tests that need Docker remain an explicit local prerequisite; CI provides its own disposable services.

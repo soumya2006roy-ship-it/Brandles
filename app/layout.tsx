@@ -4,6 +4,7 @@ import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import { ToastProvider } from "@/app/ui";
 import { SiteStructuredData } from "@/app/structured-data";
 import { PrivacyConsentProvider } from "@/app/privacy-consent";
+import { LocaleProvider } from "@/app/i18n";
 import { siteConfig } from "@/site.config";
 import "./globals.css";
 
@@ -24,5 +25,5 @@ export const viewport: Viewport = { colorScheme: "light dark", themeColor: [{ me
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   await headers();
-  return <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}><body><SiteStructuredData/><PrivacyConsentProvider><ToastProvider>{children}</ToastProvider></PrivacyConsentProvider></body></html>;
+  return <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}><body><SiteStructuredData/><LocaleProvider><PrivacyConsentProvider><ToastProvider>{children}</ToastProvider></PrivacyConsentProvider></LocaleProvider></body></html>;
 }

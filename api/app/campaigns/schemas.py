@@ -232,6 +232,32 @@ class CampaignScanSummary(BaseModel):
     scan_is_current: bool
 
 
+class CampaignHealthCheck(BaseModel):
+    key: str
+    status: str
+    detail: str
+    recommendation: str
+
+
+class CampaignHealthItem(BaseModel):
+    campaign_id: str
+    campaign_name: str
+    score: int
+    status: str
+    checks: list[CampaignHealthCheck]
+    recommendations: list[str]
+    latest_scan_status: str | None
+    open_high_findings: int
+    updated_at: datetime
+
+
+class CampaignHealthOverview(BaseModel):
+    healthy_count: int
+    warning_count: int
+    critical_count: int
+    campaigns: list[CampaignHealthItem]
+
+
 class FindingsOverview(BaseModel):
     campaigns: list[CampaignScanSummary]
     approved_source_count: int

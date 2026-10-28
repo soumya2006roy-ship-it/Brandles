@@ -13,6 +13,13 @@ npx openapi-typescript api/openapi.json -o app/lib/api-schema.d.ts
 
 The live API schema is at `/api/openapi.json` outside production, and interactive docs are at `/docs` outside production. In production these endpoints are disabled.
 
+## Campaign Health
+
+- `GET /api/v1/orgs/{org_id}/campaigns/health` returns tenant-scoped campaign health summaries and Healthy/Warning/Critical counts.
+- `GET /api/v1/orgs/{org_id}/campaigns/{campaign_id}/health` returns one campaign's score, check breakdown, and recommendations.
+- Both endpoints require an active session. Organisation members can read only their own approved workspace; a Platform Admin can inspect any active organisation. Non-members receive 404 to avoid exposing whether an organisation exists.
+- `Accept-Language: hi` or `Accept-Language: mr` localizes health check messages; unknown languages fall back to English. Scores use only stored dates, channel assets, current scan/finding state, and update age. No budget/performance measurements are inferred.
+
 ## Tests
 
 ```powershell

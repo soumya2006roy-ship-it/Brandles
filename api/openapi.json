@@ -2077,6 +2077,109 @@
         ]
       }
     },
+    "/api/v1/orgs/{org_id}/campaigns/health": {
+      "get": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Campaign Health Overview",
+        "operationId": "campaign_health_overview_api_v1_orgs__org_id__campaigns_health_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignHealthOverview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/health": {
+      "get": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Campaign Health Detail",
+        "operationId": "campaign_health_detail_api_v1_orgs__org_id__campaigns__campaign_id__health_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignHealthItem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/orgs/{org_id}/dashboard": {
       "get": {
         "tags": [
@@ -4205,6 +4308,132 @@
           "assets"
         ],
         "title": "CampaignDetailResponse"
+      },
+      "CampaignHealthCheck": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "status",
+          "detail",
+          "recommendation"
+        ],
+        "title": "CampaignHealthCheck"
+      },
+      "CampaignHealthItem": {
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "title": "Campaign Id"
+          },
+          "campaign_name": {
+            "type": "string",
+            "title": "Campaign Name"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignHealthCheck"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "latest_scan_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Scan Status"
+          },
+          "open_high_findings": {
+            "type": "integer",
+            "title": "Open High Findings"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_id",
+          "campaign_name",
+          "score",
+          "status",
+          "checks",
+          "recommendations",
+          "latest_scan_status",
+          "open_high_findings",
+          "updated_at"
+        ],
+        "title": "CampaignHealthItem"
+      },
+      "CampaignHealthOverview": {
+        "properties": {
+          "healthy_count": {
+            "type": "integer",
+            "title": "Healthy Count"
+          },
+          "warning_count": {
+            "type": "integer",
+            "title": "Warning Count"
+          },
+          "critical_count": {
+            "type": "integer",
+            "title": "Critical Count"
+          },
+          "campaigns": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignHealthItem"
+            },
+            "type": "array",
+            "title": "Campaigns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "healthy_count",
+          "warning_count",
+          "critical_count",
+          "campaigns"
+        ],
+        "title": "CampaignHealthOverview"
       },
       "CampaignResponse": {
         "properties": {

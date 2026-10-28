@@ -43,11 +43,13 @@ function getErrorMessage(value: unknown): string | undefined {
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
+  const savedLocale = typeof window !== "undefined" ? window.localStorage.getItem("brandlens-locale") : null;
+  const language = savedLocale === "hi" || savedLocale === "mr" ? savedLocale : "en";
   const response = await fetch(`/api/product/${path.replace(/^\//, "")}`, {
     ...init,
     credentials: "same-origin",
     cache: "no-store",
-    headers: { ...(init.body && !isFormData ? { "content-type": "application/json" } : {}), ...init.headers },
+    headers: { "accept-language": language, ...(init.body && !isFormData ? { "content-type": "application/json" } : {}), ...init.headers },
   });
   if (!response.ok) {
     let message = "Something went wrong. Please try again.";

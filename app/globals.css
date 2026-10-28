@@ -975,5 +975,53 @@ button:active:not(:disabled), a:active { transform: translateY(1px); }
   .decision-preview { padding: 16px; }
 }
 
+.auth-locale-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.auth-locale-row .eyebrow { margin: 0; }
+.language-select select { min-width: 110px; min-height: 38px; padding: 7px 30px 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; }
+.product-header-actions .language-select select { min-width: 92px; }
+.auth-message.auth-note { border-left: 3px solid var(--accent); color: var(--muted); background: var(--surface); }
+.health-maturity { display: inline-flex; margin: 0 0 12px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 12px; }
+.health-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-block: 18px; }
+.health-summary-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+.health-summary-card > span { font-weight: 600; }
+.health-summary-card > strong { font-size: 30px; }
+.health-summary-card.status-healthy, .health-status.status-healthy, .health-score.status-healthy { --health-color: #39a57b; }
+.health-summary-card.status-warning, .health-status.status-warning, .health-score.status-warning { --health-color: #c18a2c; }
+.health-summary-card.status-critical, .health-status.status-critical, .health-score.status-critical { --health-color: #d86654; }
+.health-summary-card { border-top: 3px solid var(--health-color); }
+.health-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr); gap: 14px; max-width: 760px; margin-bottom: 18px; }
+.health-layout { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.5fr); gap: 20px; }
+.health-campaign-list, .health-check-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.health-campaign-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 74px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; }
+.health-campaign-card:hover, .health-campaign-card.is-selected { border-color: var(--accent); }
+.health-campaign-card span { display: grid; gap: 7px; }
+.health-campaign-card b { font-size: 24px; }
+.health-status { width: fit-content; color: var(--health-color); font-size: 12px; font-weight: 700; }
+.health-detail { padding: 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+.health-detail h2 { margin-block: 12px; font-size: 25px; }
+.health-score { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 12px; padding: 15px; border-left: 3px solid var(--health-color); background: var(--surface-raised, var(--surface)); }
+.health-score strong { grid-column: 2; grid-row: 1 / span 2; font-size: 34px; }
+.health-score small { color: var(--health-color); font-weight: 700; }
+.health-check-list { margin-block: 14px 20px; }
+.health-check-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.health-check-icon { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--health-color) 15%, transparent); color: var(--health-color); font-weight: 800; }
+.health-check-icon.check-pass { --health-color: #39a57b; }
+.health-check-icon.check-warning { --health-color: #c18a2c; }
+.health-check-icon.check-fail { --health-color: #d86654; }
+.health-check-list p, .health-check-list small { display: block; margin: 4px 0 0; color: var(--muted); line-height: 1.5; }
+.health-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+html:lang(hi), html:lang(mr) { font-family: var(--font-sans), "Noto Sans Devanagari", "Nirmala UI", sans-serif; }
+
+@media (max-width: 800px) {
+  .health-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .health-summary { grid-template-columns: 1fr; gap: 8px; }
+  .health-summary-card { padding: 13px 16px; }
+  .health-summary-card > strong { font-size: 25px; }
+  .health-filters { grid-template-columns: 1fr; }
+  .product-header-actions .language-select { display: none; }
+}
+
 
 

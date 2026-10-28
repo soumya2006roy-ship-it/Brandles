@@ -1,0 +1,59 @@
+{
+  "language": "Language",
+  "languages": { "en": "English", "hi": "Hindi", "mr": "Marathi" },
+  "auth": {
+    "workspace": "BrandLens workspace",
+    "loginTitle": "Sign in to your workspace",
+    "loginDescription": "Use your email address to continue.",
+    "email": "Work email",
+    "password": "Password",
+    "name": "Your name",
+    "registerTitle": "Create your BrandLens account",
+    "registerDescription": "Create an account and continue straight to your workspace.",
+    "forgotTitle": "Reset your password",
+    "forgotDescription": "If an account matches, we will send a single-use reset link.",
+    "resetTitle": "Choose a new password",
+    "resetDescription": "Choose a password with at least 12 characters.",
+    "newPassword": "New password",
+    "resetToken": "Reset token",
+    "signIn": "Sign in",
+    "submitRegister": "Create account",
+    "sendReset": "Send reset link",
+    "updatePassword": "Update password",
+    "wait": "Please wait…",
+    "createAccount": "Create an account",
+    "forgot": "Forgot password?",
+    "publicSite": "BrandLens public site",
+    "accountLinks": "Account links",
+    "existingAccount": "Already have an account? Sign in",
+    "returnSignIn": "Return to sign in",
+    "resetSuccess": "Password updated. Sign in with your new password.",
+    "genericError": "Something went wrong. Please try again.",
+    "adminHint": "Admin login? Check the credentials in the README file or the .env file."
+  },
+  "nav": {
+    "overview": "Overview", "campaigns": "Campaigns", "findings": "Findings", "reviews": "Reviews",
+    "sources": "Approved sources", "rules": "Rules", "team": "Team & invites", "settings": "Settings",
+    "audit": "Audit log", "health": "Campaign health", "organisations": "Organisations",
+    "verification": "Platform verification", "sessions": "Sessions", "security": "Security overview",
+    "join": "Join with an invite", "signOut": "Sign out", "currentWorkspace": "Current workspace",
+    "allOrganisations": "← All organisations", "skip": "Skip to workspace"
+  },
+  "health": {
+    "eyebrow": "Workspace health · live data", "title": "Campaign health", "intro": "A rule-based readiness view using campaign dates, current assets, scan state, findings and recent activity. Budget and performance metrics are not available in this workspace.",
+    "healthy": "Healthy", "warning": "Warning", "critical": "Critical", "score": "Health score",
+    "campaigns": "Campaigns", "search": "Search campaigns", "all": "All statuses", "empty": "No campaigns yet",
+    "emptyHint": "Create a campaign to see its health checks.", "loading": "Loading campaign health…", "error": "Could not load campaign health.",
+    "checks": "Checks and recommendations", "noRecommendations": "No recommendations. This campaign passes the available checks.", "openCampaign": "Open campaign",
+    "date_window": "Dates", "assets": "Channel assets", "scan": "Scan", "findings": "Findings", "freshness": "Recent activity",
+    "prototype": "Readiness prototype"
+  },
+  "campaigns": {
+    "title": "Campaigns", "intro": "Plan a campaign window and the channels whose assets will be reviewed together.",
+    "new": "New campaign", "scope": "Set campaign scope", "name": "Campaign name", "channels": "Channels",
+    "starts": "Starts on", "ends": "Ends on", "contentLanguage": "Asset language", "create": "Create campaign", "creating": "Creating…",
+    "created": "Campaign created. Add a text asset or upload a file for each campaign channel.", "createError": "Could not create this campaign.",
+    "register": "Campaign register", "current": "Current campaigns", "none": "No campaigns yet", "noneHint": "Create a campaign to start collecting channel assets.",
+    "loading": "Loading campaigns", "healthLink": "Campaign health →", "noStart": "No start", "noEnd": "No end"
+  }
+}

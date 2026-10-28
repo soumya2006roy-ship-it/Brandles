@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { apiRequest } from "@/app/lib/api-client";
+import { LanguageSelect, useLocale } from "@/app/i18n";
 
 type Mode = "login" | "register" | "forgot" | "reset";
 
 export function AuthForm({ mode }: { mode: Mode }) {
+  const { t } = useLocale();
   const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -48,44 +50,45 @@ export function AuthForm({ mode }: { mode: Mode }) {
       } else {
         const token = resetToken || String(form.get("token") ?? "");
         await apiRequest("auth/password-reset/confirm", { method: "POST", body: JSON.stringify({ token, password: form.get("password") }) });
-        setMessage("Password updated. Sign in with your new password.");
+        setMessage(t("auth.resetSuccess"));
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Something went wrong. Please try again.");
+      setError(cause instanceof Error ? cause.message : t("auth.genericError"));
     } finally {
       setPending(false);
     }
   }
 
   const titles: Record<Mode, string> = {
-    login: "Sign in to your workspace",
-    register: "Create your BrandLens account",
-    forgot: "Reset your password",
-    reset: "Choose a new password",
+    login: t("auth.loginTitle"),
+    register: t("auth.registerTitle"),
+    forgot: t("auth.forgotTitle"),
+    reset: t("auth.resetTitle"),
   };
   const descriptions: Record<Mode, string> = {
-    login: "Use your email address to continue.",
-    register: "Create an account and continue straight to your workspace.",
-    forgot: "If an account matches, we will send a single-use reset link.",
-    reset: "Choose a password with at least 12 characters.",
+    login: t("auth.loginDescription"),
+    register: t("auth.registerDescription"),
+    forgot: t("auth.forgotDescription"),
+    reset: t("auth.resetDescription"),
   };
 
-  return <main className="auth-page"><div className="auth-panel"><p className="eyebrow">BrandLens workspace</p><h1>{titles[mode]}</h1><p className="auth-description">{descriptions[mode]}</p>
+  return <main className="auth-page"><div className="auth-panel"><div className="auth-locale-row"><p className="eyebrow">{t("auth.workspace")}</p><LanguageSelect/></div><h1>{titles[mode]}</h1><p className="auth-description">{descriptions[mode]}</p>
     <form className="auth-form" onSubmit={submit}>
-      {mode === "register" && <label className="form-field">Your name<input name="display_name" autoComplete="name" required minLength={2} maxLength={120}/></label>}
-      {(mode === "login" || mode === "register" || mode === "forgot") && <label className="form-field">Work email<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>}
-      {mode === "reset" && !resetToken && <label className="form-field">Reset token<input name="token" autoComplete="off" required minLength={20}/></label>}
-      {(mode === "login" || mode === "register" || mode === "reset") && <label className="form-field">{mode === "reset" ? "New password" : "Password"}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={mode === "login" ? 1 : 12} maxLength={128}/></label>}
+      {mode === "register" && <label className="form-field">{t("auth.name")}<input name="display_name" autoComplete="name" required minLength={2} maxLength={120}/></label>}
+      {(mode === "login" || mode === "register" || mode === "forgot") && <label className="form-field">{t("auth.email")}<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>}
+      {mode === "reset" && !resetToken && <label className="form-field">{t("auth.resetToken")}<input name="token" autoComplete="off" required minLength={20}/></label>}
+      {(mode === "login" || mode === "register" || mode === "reset") && <label className="form-field">{mode === "reset" ? t("auth.newPassword") : t("auth.password")}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={mode === "login" ? 1 : 12} maxLength={128}/></label>}
+      {mode === "login" && <p className="auth-message auth-note" role="note">{t("auth.adminHint")}</p>}
       {error && <p className="auth-message auth-error" role="alert">{error}</p>}
       {message && <p className="auth-message auth-success" role="status">{message}</p>}
-      <button className="button button-primary" type="submit" disabled={pending}>{pending ? "Please wait…" : mode === "login" ? "Sign in" : mode === "register" ? "Create account" : mode === "forgot" ? "Send reset link" : "Update password"}</button>
+      <button className="button button-primary" type="submit" disabled={pending}>{pending ? t("auth.wait") : mode === "login" ? t("auth.signIn") : mode === "register" ? t("auth.submitRegister") : mode === "forgot" ? t("auth.sendReset") : t("auth.updatePassword")}</button>
     </form>
-    <nav className="auth-links" aria-label="Account links">
-      {mode === "login" && <><Link href="/sign-up">Create an account</Link><Link href="/forgot-password">Forgot password?</Link></>}
-      {mode === "register" && <Link href="/login">Already have an account? Sign in</Link>}
-      {mode === "forgot" && <Link href="/login">Return to sign in</Link>}
-      {mode === "reset" && <Link href="/login">Return to sign in</Link>}
-      <Link href="/">BrandLens public site</Link>
+    <nav className="auth-links" aria-label={t("auth.accountLinks")}>
+      {mode === "login" && <><Link href="/sign-up">{t("auth.createAccount")}</Link><Link href="/forgot-password">{t("auth.forgot")}</Link></>}
+      {mode === "register" && <Link href="/login">{t("auth.existingAccount")}</Link>}
+      {mode === "forgot" && <Link href="/login">{t("auth.returnSignIn")}</Link>}
+      {mode === "reset" && <Link href="/login">{t("auth.returnSignIn")}</Link>}
+      <Link href="/">{t("auth.publicSite")}</Link>
     </nav>
   </div></main>;
 }
