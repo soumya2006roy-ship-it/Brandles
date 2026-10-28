@@ -41,7 +41,7 @@ def _new_auth_token(db: Session, user: User, purpose: str, ttl_minutes: int) -> 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
-    enforce_rate_limit(_client_key(request, "register"), limit=5, window_seconds=3600)
+    enforce_rate_limit(_client_key(request, "register"), limit=50, window_seconds=3600)
     normalized_email = str(payload.email).strip().lower()
     existing = db.scalar(select(User).where(User.email_normalized == normalized_email))
     if existing:
