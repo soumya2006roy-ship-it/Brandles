@@ -1,3 +1,9 @@
 [build]
   command = "npm run build"
   publish = ".next-brandlens-build"
+
+[[redirects]]
+  from = "/api/product/*"
+  to = "https://brandles-1.onrender.com/api/v1/:splat"
+  status = 200
+  force = true
