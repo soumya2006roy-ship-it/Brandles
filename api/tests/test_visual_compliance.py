@@ -95,4 +95,3 @@ def test_visual_check_upload_validates_content_and_queues_existing_scan(client, 
     assert queued.status_code == 202, queued.text
     assert queued.json()["asset"]["asset_type"] == "image"
     assert queued.json()["scan"]["status"] == "queued"
-
