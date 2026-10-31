@@ -48,7 +48,7 @@ def test_health_scenarios_have_expected_status_and_score():
 
 def test_campaign_health_endpoints_are_organisation_scoped(client, mailer):
     password = "Secure-password-456"
-    client.post("/api/v1/auth/register", json={"email": "health-owner@example.com", "display_name": "Health Owner", "password": password})
+    client.post("/api/v1/auth/register", json={"email": "health-owner@example.com", "display_name": "Health Owner", "password": password, "recovery_question": "first_pet", "recovery_answer": "Milo"})
     assert client.post("/api/v1/auth/login", json={"email": "health-owner@example.com", "password": password}).status_code == 200
     response = client.post("/api/v1/orgs", json={"name": "Health Workspace", "industry": "Retail", "official_email": "health@example.com", "website": "https://example.test", "contact_person": "Health Owner"})
     assert response.status_code == 201, response.text

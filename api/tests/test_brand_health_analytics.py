@@ -52,7 +52,7 @@ def test_aggregate_metrics_include_violation_share_repeat_and_turnaround():
 
 def test_brand_health_endpoint_is_tenant_scoped_and_validates_filters(client):
     password = "Secure-password-456"
-    client.post("/api/v1/auth/register", json={"email": "analytics-owner@example.com", "display_name": "Analytics Owner", "password": password})
+    client.post("/api/v1/auth/register", json={"email": "analytics-owner@example.com", "display_name": "Analytics Owner", "password": password, "recovery_question": "first_pet", "recovery_answer": "Milo"})
     assert client.post("/api/v1/auth/login", json={"email": "analytics-owner@example.com", "password": password}).status_code == 200
     response = client.post("/api/v1/orgs", json={"name": "Analytics Workspace", "industry": "Retail", "official_email": "analytics@example.com", "website": "https://analytics.test", "contact_person": "Owner"})
     assert response.status_code == 201, response.text

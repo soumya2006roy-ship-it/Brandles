@@ -68,7 +68,7 @@ def test_generated_visual_fixture_set_covers_expected_cases():
 def test_visual_check_upload_validates_content_and_queues_existing_scan(client, mailer, monkeypatch):
     email = "visual-owner@example.com"
     password = "Secure-password-456"
-    assert client.post("/api/v1/auth/register", json={"email": email, "display_name": "Visual Owner", "password": password}).status_code == 201
+    assert client.post("/api/v1/auth/register", json={"email": email, "display_name": "Visual Owner", "password": password, "recovery_question": "first_pet", "recovery_answer": "Milo"}).status_code == 201
     assert client.post("/api/v1/auth/login", json={"email": email, "password": password}).status_code == 200
     organization = client.post("/api/v1/orgs", json={"name": "Visual Workspace", "industry": "Retail", "official_email": "visual-team@example.com", "website": "https://visual.test", "contact_person": "Visual Owner"}).json()
     org_id = organization["id"]

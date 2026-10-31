@@ -17,7 +17,7 @@ from app.campaigns.scans import execute_campaign_scan
 
 
 def register_user(client, mailer, *, email: str, display_name: str = "Test Person", password: str = "Secure-password-123"):
-    response = client.post("/api/v1/auth/register", json={"email": email, "display_name": display_name, "password": password})
+    response = client.post("/api/v1/auth/register", json={"email": email, "display_name": display_name, "password": password, "recovery_question": "first_pet", "recovery_answer": "Milo"})
     assert response.status_code == 201
     assert response.json()["message"] == "Your account is ready. Sign in to continue."
     assert not any("Verify your BrandLens account" in message.subject for message in mailer.sent)
@@ -48,6 +48,27 @@ def test_registration_needs_no_email_verification_and_password_reset_is_single_u
     assert client.get("/api/v1/auth/me").status_code == 401
     assert client.post("/api/v1/auth/password-reset/confirm", json={"token": reset_token, "password": "Other-password-789"}).status_code == 400
     assert client.post("/api/v1/auth/login", json={"email": "creator@example.com", "password": "New-password-456"}).status_code == 200
+
+
+def test_recovery_question_resets_password_and_revokes_sessions(client, mailer):
+    password = register_user(client, mailer, email="recovery@example.com")
+    login = client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": password})
+    assert login.status_code == 200
+    assert client.get("/api/v1/auth/me").status_code == 200
+
+    body = {"email": "recovery@example.com", "recovery_question": "first_pet", "recovery_answer": "  mIlO  ", "password": "Recovery-password-789"}
+    reset = client.post("/api/v1/auth/password-reset/recovery-question", json=body)
+    assert reset.status_code == 202
+    assert "If the recovery details match" in reset.json()["message"]
+    assert client.get("/api/v1/auth/me").status_code == 401
+    assert client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": "Recovery-password-789"}).status_code == 200
+
+    wrong = {**body, "recovery_answer": "not Milo", "password": "Should-not-work-123"}
+    assert client.post("/api/v1/auth/password-reset/recovery-question", json=wrong).status_code == 202
+    client.post("/api/v1/auth/logout")
+    assert client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": "Recovery-password-789"}).status_code == 200
+    missing = {**body, "email": "missing-recovery@example.com"}
+    assert client.post("/api/v1/auth/password-reset/recovery-question", json=missing).json() == reset.json()
 
 
 def test_local_bootstrap_admin_email_can_sign_in(client):

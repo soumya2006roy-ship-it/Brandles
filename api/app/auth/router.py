@@ -5,7 +5,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import AuthContext, get_auth_context, get_current_user
-from app.auth.schemas import LoginRequest, PasswordResetConfirm, PasswordResetRequest, RegisterRequest, SessionResponse, UserResponse
+from app.auth.schemas import LoginRequest, PasswordResetConfirm, PasswordResetRequest, RecoveryPasswordReset, RegisterRequest, SessionResponse, UserResponse
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.mail import EmailSender, OutboundEmail, get_email_sender
@@ -15,6 +15,7 @@ from app.db.models import AuditEvent, AuthToken, Membership, SessionRecord, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 _dummy_password_hash = hash_password("not-a-real-account-password")
+_dummy_recovery_hash = hash_password("not-a-real-recovery-answer")
 
 
 def _now() -> datetime:
@@ -39,6 +40,10 @@ def _new_auth_token(db: Session, user: User, purpose: str, ttl_minutes: int) -> 
     return raw
 
 
+def _normalize_recovery_answer(answer: str) -> str:
+    return " ".join(answer.casefold().split())
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     enforce_rate_limit(_client_key(request, "register"), limit=5, window_seconds=3600)
@@ -46,7 +51,7 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     existing = db.scalar(select(User).where(User.email_normalized == normalized_email))
     if existing:
         return {"message": "If this address can be registered, the account will be ready to sign in."}
-    user = User(email=str(payload.email).strip(), email_normalized=normalized_email, display_name=payload.display_name, password_hash=hash_password(payload.password))
+    user = User(email=str(payload.email).strip(), email_normalized=normalized_email, display_name=payload.display_name, password_hash=hash_password(payload.password), recovery_question=payload.recovery_question, recovery_answer_hash=hash_password(_normalize_recovery_answer(payload.recovery_answer)))
     db.add(user)
     db.flush()
     _record_auth_event(db, user, "auth.registered")
@@ -110,6 +115,23 @@ def request_password_reset(payload: PasswordResetRequest, request: Request, db: 
         except Exception:
             pass
     return {"message": "If an account exists for that address, a password reset link will arrive shortly."}
+
+
+@router.post("/password-reset/recovery-question", status_code=status.HTTP_202_ACCEPTED)
+def reset_password_with_recovery_question(payload: RecoveryPasswordReset, request: Request, db: Session = Depends(get_db)):
+    normalized_email = str(payload.email).strip().lower()
+    enforce_rate_limit(_client_key(request, "password-reset-question"), limit=10, window_seconds=900)
+    enforce_rate_limit(f"password-reset-question-account:{digest_secret(normalized_email)}", limit=5, window_seconds=3600)
+    user = db.scalar(select(User).where(User.email_normalized == normalized_email, User.is_active.is_(True)))
+    answer_hash = user.recovery_answer_hash if user and user.recovery_answer_hash else _dummy_recovery_hash
+    correct_answer = verify_password(answer_hash, _normalize_recovery_answer(payload.recovery_answer))
+    if user and user.recovery_question == payload.recovery_question and user.recovery_answer_hash and correct_answer:
+        user.password_hash = hash_password(payload.password)
+        db.execute(update(SessionRecord).where(SessionRecord.user_id == user.id, SessionRecord.revoked_at.is_(None)).values(revoked_at=_now()))
+        _record_auth_event(db, user, "auth.password_recovery_question_completed")
+        db.commit()
+    # Keep account existence and recovery success out of the response body.
+    return {"message": "If the recovery details match, the password has been updated. Otherwise, check your answer or use the email reset option."}
 
 
 @router.post("/password-reset/confirm")

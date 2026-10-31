@@ -13,6 +13,13 @@ npx openapi-typescript api/openapi.json -o app/lib/api-schema.d.ts
 
 The live API schema is at `/api/openapi.json` outside production, and interactive docs are at `/docs` outside production. In production these endpoints are disabled.
 
+## Account access and password recovery
+
+- `POST /api/v1/auth/register` requires `email`, `display_name`, `password`, `recovery_question` (`first_school`, `birth_city`, or `first_pet`), and `recovery_answer`. Email remains required, but email verification is disabled; signup does not send a verification email.
+- `POST /api/v1/auth/password-reset` requests the existing one-time email reset link. `POST /api/v1/auth/password-reset/recovery-question` accepts the account email, selected question, answer, and new password. Both successful and unsuccessful recovery attempts return the same generic response; callers should not use the response to determine whether an account or answer exists.
+- Recovery answers are trimmed, case-folded, whitespace-normalized, then Argon2-hashed. Requests are rate limited. A successful reset revokes active sessions. Existing accounts without a recovery answer can continue to use email reset.
+- `POST /api/v1/auth/password-reset/recovery-question` returns HTTP 202 even when the recovery details do not match; the new password is saved only after a match.
+
 ## Campaign Health
 
 - `GET /api/v1/orgs/{org_id}/campaigns/health` returns tenant-scoped campaign health summaries and Healthy/Warning/Critical counts.

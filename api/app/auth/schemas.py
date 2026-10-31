@@ -16,6 +16,8 @@ class RegisterRequest(StrictInput):
     email: EmailStr
     password: Password
     display_name: SafeName
+    recovery_question: Literal["first_school", "birth_city", "first_pet"]
+    recovery_answer: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
 
 
 class LoginRequest(StrictInput):
@@ -30,6 +32,13 @@ class PasswordResetRequest(StrictInput):
 
 class PasswordResetConfirm(StrictInput):
     token: Annotated[str, Field(min_length=20, max_length=200)]
+    password: Password
+
+
+class RecoveryPasswordReset(StrictInput):
+    email: EmailStr
+    recovery_question: Literal["first_school", "birth_city", "first_pet"]
+    recovery_answer: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
     password: Password
 
 

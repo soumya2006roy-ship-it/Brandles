@@ -106,7 +106,7 @@ def test_request_id_health_readiness_and_metrics(client, monkeypatch):
 
 
 def test_auth_request_rejects_mass_assignment(client):
-    response = client.post("/api/v1/auth/register", json={"email": "strict@example.com", "display_name": "Strict User", "password": "Secure-password-123", "is_platform_admin": True})
+    response = client.post("/api/v1/auth/register", json={"email": "strict@example.com", "display_name": "Strict User", "password": "Secure-password-123", "recovery_question": "first_pet", "recovery_answer": "Milo", "is_platform_admin": True})
     assert response.status_code == 422
 
 
@@ -137,21 +137,21 @@ def test_audit_events_are_append_only(client):
 
 def test_organization_audit_endpoint_is_tenant_scoped(client, mailer):
     password = "Secure-password-123"
-    client.post("/api/v1/auth/register", json={"email": "audit-owner@example.com", "display_name": "Audit Owner", "password": password})
+    client.post("/api/v1/auth/register", json={"email": "audit-owner@example.com", "display_name": "Audit Owner", "password": password, "recovery_question": "first_pet", "recovery_answer": "Milo"})
     assert client.post("/api/v1/auth/login", json={"email": "audit-owner@example.com", "password": password}).status_code == 200
     organization_response = client.post("/api/v1/orgs", json={"name": "Audit Tenant", "industry": "Retail", "official_email": "owner@audit.example.com", "website": "https://audit.example.com", "contact_person": "Audit Owner"})
     assert organization_response.status_code == 201, organization_response.text
     organization = organization_response.json()
     organization_id = organization["id"]
     client.post("/api/v1/auth/logout")
-    client.post("/api/v1/auth/register", json={"email": "audit-outsider@example.com", "display_name": "Audit Outsider", "password": password})
+    client.post("/api/v1/auth/register", json={"email": "audit-outsider@example.com", "display_name": "Audit Outsider", "password": password, "recovery_question": "first_pet", "recovery_answer": "Milo"})
     assert client.post("/api/v1/auth/login", json={"email": "audit-outsider@example.com", "password": password}).status_code == 200
     assert client.get(f"/api/v1/orgs/{organization_id}/audit-events").status_code == 404
 
 
 def test_org_export_and_confirmed_deletion_retain_minimal_audit(client, mailer):
     password = "Secure-password-123"
-    client.post("/api/v1/auth/register", json={"email": "deletion-owner@example.com", "display_name": "Deletion Owner", "password": password})
+    client.post("/api/v1/auth/register", json={"email": "deletion-owner@example.com", "display_name": "Deletion Owner", "password": password, "recovery_question": "first_pet", "recovery_answer": "Milo"})
     assert client.post("/api/v1/auth/login", json={"email": "deletion-owner@example.com", "password": password}).status_code == 200
     organization_response = client.post("/api/v1/orgs", json={"name": "Deletion Workspace", "industry": "Retail", "official_email": "owner@delete.example.com", "website": "https://delete.example.com", "contact_person": "Deletion Owner"})
     assert organization_response.status_code == 201, organization_response.text
