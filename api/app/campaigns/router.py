@@ -15,7 +15,7 @@ from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitat
 from app.core.db import get_db
 from app.core.config import get_settings
 from app.core.mail import EmailSender, get_email_sender
-from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, GuidelineUpdateSuggestion, Membership, Notification, Organization, PlatformAdmin, Review, Rule, Scan, SourcePassage
+from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, GuidelineUpdateSuggestion, Membership, Notification, Organization, PlatformAdmin, Review, Rule, Scan, SourcePassage, User
 from app.notifications.schemas import NotificationResponse
 from app.notifications.service import record_notification, send_user_email
 from app.sources.documents import clean_text, extract_document, identify_format
@@ -24,11 +24,98 @@ from app.storage.local import safe_filename
 from app.jobs.queue import enqueue
 from app.campaigns.scans import active_rules_version
 from app.campaigns.health import evaluate_campaign_health
+from app.campaigns.analytics import aggregate_analytics
 from app.checks.judgement import retrieve_top_passages
 from app.core.rate_limit import client_ip, enforce_rate_limit
 
 router = APIRouter(tags=["campaigns-and-assets"])
 MAX_PASTED_TEXT_CHARACTERS = 200_000
+
+
+@router.get("/orgs/{org_id}/analytics/brand-health")
+def get_brand_health_analytics(
+    org_id: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    campaign_id: str | None = None,
+    content_type: str | None = None,
+    severity: str | None = None,
+    membership: Membership = Depends(require_org_role("admin", "creator", "reviewer")),
+    db: Session = Depends(get_db),
+):
+    """Tenant-scoped, filterable aggregate data for the Brand Health dashboard."""
+    del membership  # The dependency enforces membership, role and org verification.
+    end = end_date or date.today()
+    start = start_date or end - timedelta(days=29)
+    if start > end or (end - start).days > 730:
+        raise HTTPException(status_code=422, detail="Choose a date range of at most 731 days with the start before the end.")
+    if content_type and content_type not in {"text", "image", "document"}:
+        raise HTTPException(status_code=422, detail="Content type must be text, image, or document.")
+    if severity and severity not in {"low", "medium", "high", "critical"}:
+        raise HTTPException(status_code=422, detail="Severity must be low, medium, high, or critical.")
+    if campaign_id:
+        _campaign(org_id, campaign_id, db)
+
+    start_at = datetime.combine(start, datetime.min.time(), tzinfo=UTC)
+    end_at = datetime.combine(end + timedelta(days=1), datetime.min.time(), tzinfo=UTC)
+    asset_query = select(Asset, Campaign.name).join(Campaign, (Campaign.organization_id == Asset.organization_id) & (Campaign.id == Asset.campaign_id)).where(
+        Asset.organization_id == org_id, Asset.current.is_(True), Asset.deleted_at.is_(None), Campaign.deleted_at.is_(None))
+    if campaign_id:
+        asset_query = asset_query.where(Asset.campaign_id == campaign_id)
+    if content_type:
+        asset_query = asset_query.where(Asset.asset_type == content_type)
+    assets = db.execute(asset_query).all()
+    asset_campaigns = {asset.campaign_id for asset, _ in assets}
+
+    scan_query = select(Scan).where(Scan.organization_id == org_id, Scan.created_at >= start_at, Scan.created_at < end_at)
+    if campaign_id:
+        scan_query = scan_query.where(Scan.campaign_id == campaign_id)
+    elif content_type:
+        if not asset_campaigns:
+            scan_query = scan_query.where(Scan.id == "__no_matching_assets__")
+        else:
+            scan_query = scan_query.where(Scan.campaign_id.in_(asset_campaigns))
+    scans = db.scalars(scan_query.order_by(Scan.created_at)).all()
+    scan_ids = {scan.id for scan in scans}
+
+    finding_query = select(Finding, Scan.campaign_id, Campaign.name).join(
+        Scan, (Scan.organization_id == Finding.organization_id) & (Scan.id == Finding.scan_id)
+    ).join(Campaign, (Campaign.organization_id == Scan.organization_id) & (Campaign.id == Scan.campaign_id)).where(
+        Finding.organization_id == org_id, Scan.created_at >= start_at, Scan.created_at < end_at, Scan.id.in_(scan_ids or {"__no_matching_scans__"}))
+    if content_type:
+        finding_query = finding_query.join(Asset, (Asset.organization_id == Finding.organization_id) & (Asset.id == Finding.asset_id)).where(Asset.asset_type == content_type)
+    if severity:
+        finding_query = finding_query.where(Finding.severity == severity)
+    finding_rows = db.execute(finding_query.order_by(Finding.created_at)).all()
+    findings = []
+    for finding, found_campaign_id, campaign_name in finding_rows:
+        finding.campaign_id = found_campaign_id
+        findings.append(finding)
+
+    finding_ids = [item.id for item in findings]
+    audit_events = db.scalars(select(AuditEvent).where(
+        AuditEvent.organization_id == org_id, AuditEvent.entity_type == "finding", AuditEvent.entity_id.in_(finding_ids or {"__no_findings__"}),
+        AuditEvent.action.in_(["finding.resolved", "finding.dismissed"]), AuditEvent.created_at < end_at)).all()
+    reviews = db.scalars(select(Review).where(Review.organization_id == org_id, Review.scan_id.in_(scan_ids or {"__no_matching_scans__"}), Review.created_at < end_at)).all()
+    analytics_assets = []
+    for asset, campaign_name in assets:
+        asset.campaign_name = campaign_name
+        analytics_assets.append(asset)
+    granularity = "daily" if (end - start).days <= 45 else "weekly"
+    result = aggregate_analytics(scans=scans, findings=findings, assets=analytics_assets, reviews=reviews,
+        audit_events=audit_events, start=start, end=end, granularity=granularity)
+    reviewer_ids = {review.reviewer_user_id for review in reviews if review.reviewer_user_id}
+    if reviewer_ids:
+        memberships = db.execute(select(User.id, User.display_name).join(Membership, Membership.user_id == User.id).where(
+            Membership.organization_id == org_id, User.id.in_(reviewer_ids))).all()
+        reviewer_names = {user_id: display_name for user_id, display_name in memberships}
+        for reviewer in result["review_times"]["by_reviewer"]:
+            reviewer["reviewer_name"] = reviewer_names.get(reviewer["reviewer_id"], "Workspace reviewer")
+    if severity:
+        result["filters"] = {"severity": severity, "note": "Severity filters findings; scan and campaign counts remain scoped by the other filters."}
+    else:
+        result["filters"] = {}
+    return result
 
 
 def _finding_response(finding: Finding, passage: SourcePassage | None, source: BrandGuidelineSource | None) -> FindingResponse:

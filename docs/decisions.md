@@ -7,6 +7,14 @@
 - Workspace localization uses small JSON dictionaries (English/Hindi/Marathi), a React context and a local-storage preference instead of adding a UI dependency. Product navigation, authentication, campaign list/create and Campaign Health are localized; broader workspace screens and generic API errors remain English until translated. Health API messages recognize `Accept-Language` with English fallback. This is a localization prototype, not full localization.
 - `npm run simulate:health` creates only in-memory fixtures (three simulated organisations, five campaigns each) and prints reproducible health outcomes. It does not write sample records to a user's database.
 
+## Brand Health analytics (2026-10-31)
+
+- Brand Health is a read-only aggregation over existing scans, findings, assets, review rows, and finding resolution audit events. No extra metric snapshots or migrations are needed; query filters and tenant membership are enforced by the API.
+- Compliance is a severity-weighted open-finding indicator (Critical 25, High 15, Medium 8, Low 3 against 40 points per asset). Campaign violation rate is the share of current campaign assets with at least one finding. These definitions are shown in the product and API docs and must not be presented as statutory compliance or audience performance.
+- Rule confusion signals use a 25% dismissal threshold or a 30% repeat-after-resolution threshold. The repeat measure finds later same-rule findings after an earlier resolution/dismissal; it does not infer author intent or prove a guideline defect.
+- Demo data is an explicitly marked, isolated workspace with 60 daily scan dates across four campaigns. The seed command requires an existing active owner, an explicit confirmation flag, and a non-production environment. The first completed run is idempotent by workspace key and does not re-create rows on repeat runs.
+- The analytics trend chart uses accessible inline SVG and the existing design tokens instead of introducing a charting dependency.
+
 ## Architecture choices for the remaining delivery phases
 
 - Preserve the completed Phases 1–8 and continue at Phase 9. Phase 9 uses the existing pytest/FastAPI suite, adds frontend Vitest unit tests and Playwright journeys, and uses GitHub Actions PostgreSQL/Redis service containers for integration and migration checks. Tests that need Docker remain an explicit local prerequisite; CI provides its own disposable services.
