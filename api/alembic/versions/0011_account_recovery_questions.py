@@ -14,10 +14,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("recovery_question", sa.String(length=32), nullable=True))
-    op.add_column("users", sa.Column("recovery_answer_hash", sa.String(length=255), nullable=True))
+    # 0001_initial creates tables from current ORM metadata, so a brand-new
+    # database may already include columns introduced by later revisions.
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")}
+    if "recovery_question" not in columns:
+        op.add_column("users", sa.Column("recovery_question", sa.String(length=32), nullable=True))
+    if "recovery_answer_hash" not in columns:
+        op.add_column("users", sa.Column("recovery_answer_hash", sa.String(length=255), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("users", "recovery_answer_hash")
-    op.drop_column("users", "recovery_question")
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")}
+    if "recovery_answer_hash" in columns:
+        op.drop_column("users", "recovery_answer_hash")
+    if "recovery_question" in columns:
+        op.drop_column("users", "recovery_question")
