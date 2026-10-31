@@ -1,6 +1,6 @@
- Image hackathon-api Building 
- Image hackathon-worker Building 
- Image hackathon-web Building 
+ Image hackathon-api Building
+ Image hackathon-worker Building
+ Image hackathon-web Building
 #1 [internal] load local bake definitions
 #1 reading from stdin 1.50kB done
 #1 DONE 0.0s
@@ -46,7 +46,7 @@
 #11 sha256:acca7542dfc736e9ce20cbefc58b2d09822276d15d4a0c531531a6f1b057928e 0B / 251B 0.2s
 #11 ...
 
-#12 [worker internal] load build context
+#12 [worker internal] load build contex
 #12 transferring context: 1.69MB 0.5s done
 #12 DONE 0.5s
 
@@ -64,7 +64,7 @@
 #11 sha256:f574edac59d9f092df596f54e5b52656c803fd3ae30825b8ee5a189ed05f63d3 4.19MB / 12.12MB 7.5s
 #11 ...
 
-#13 [web internal] load build context
+#13 [web internal] load build contex
 #13 transferring context: 189.09MB 10.0s
 #13 ...
 
@@ -75,7 +75,7 @@
 #9 sha256:522ca12b284b13dae3ba08b8844e02c8249c122f46e85fbedfce81c653309b16 2.10MB / 57.38MB 9.8s
 #9 ...
 
-#13 [web internal] load build context
+#13 [web internal] load build contex
 #13 transferring context: 262.02MB 15.0s
 #13 ...
 
@@ -97,7 +97,7 @@
 #11 sha256:6fc242d221a673263eabd14a9ad9584d3177c96e5cb504c891497338e2f912f5 9.44MB / 29.86MB 23.1s
 #11 ...
 
-#13 [web internal] load build context
+#13 [web internal] load build contex
 #13 transferring context: 341.49MB 26.9s
 #13 ...
 
@@ -113,7 +113,7 @@
 #11 sha256:6fc242d221a673263eabd14a9ad9584d3177c96e5cb504c891497338e2f912f5 12.58MB / 29.86MB 31.7s
 #11 ...
 
-#13 [web internal] load build context
+#13 [web internal] load build contex
 #13 transferring context: 436.71MB 35.9s done
 #13 DONE 36.0s
 
@@ -333,7 +333,7 @@
 #15 56.38 Preconfiguring packages ...
 #15 56.43 Fetched 33.1 MB in 40s (830 kB/s)
 #15 56.46 Selecting previously unselected package libexpat1:amd64.
-#15 56.46 (Reading database ... 
+#15 56.46 (Reading database ...
 (Reading database ... 5%
 (Reading database ... 10%
 (Reading database ... 15%
@@ -677,7 +677,7 @@
 #19 [api 4/7] COPY requirements.txt ./
 #19 DONE 0.1s
 
-#20 [api 5/7] RUN pip install --no-cache-dir -r requirements.txt
+#20 [api 5/7] RUN pip install --no-cache-dir -r requirements.tx
 #20 2.887 Collecting fastapi<1,>=0.115 (from -r requirements.txt (line 1))
 #20 5.107   Downloading fastapi-0.162.0-py3-none-any.whl.metadata (26 kB)
 #20 6.410 Collecting uvicorn<1,>=0.34 (from uvicorn[standard]<1,>=0.34->-r requirements.txt (line 2))
@@ -698,7 +698,7 @@
 #18 29.11 npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 #18 ...
 
-#20 [api 5/7] RUN pip install --no-cache-dir -r requirements.txt
+#20 [api 5/7] RUN pip install --no-cache-dir -r requirements.tx
 #20 21.56 Collecting email-validator<3,>=2 (from -r requirements.txt (line 8))
 #20 21.84   Downloading email_validator-2.3.0-py3-none-any.whl.metadata (26 kB)
 #20 22.43 Collecting argon2-cffi<26,>=23 (from -r requirements.txt (line 9))
@@ -875,7 +875,7 @@
 #20 156.6 Installing collected packages: websockets, uvloop, urllib3, typing-extensions, six, redis, pyyaml, python-multipart, python-dotenv, PyMuPDF, pygments, pycparser, psycopg-binary, pluggy, Pillow, pgvector, packaging, MarkupSafe, lxml, jmespath, iniconfig, idna, httptools, h11, greenlet, dnspython, click, certifi, annotated-types, annotated-doc, uvicorn, typing-inspection, sqlalchemy, sentry-sdk, python-docx, python-dateutil, pytest, pytesseract, pydantic-core, psycopg, opentelemetry-api, Mako, httpcore, email-validator, cffi, anyio, watchfiles, starlette, pydantic, httpx, botocore, argon2-cffi-bindings, alembic, s3transfer, pydantic-settings, fastapi, argon2-cffi, boto3
 #20 162.8 Successfully installed Mako-1.4.3 MarkupSafe-3.0.4 Pillow-13.0.0 PyMuPDF-1.28.2 alembic-1.20.1 annotated-doc-0.0.5 annotated-types-0.8.0 anyio-4.15.1 argon2-cffi-25.1.0 argon2-cffi-bindings-26.1.0 boto3-1.43.123 botocore-1.43.123 certifi-2026.10.23 cffi-2.1.1 click-8.5.0 dnspython-2.9.1 email-validator-2.3.0 fastapi-0.162.0 greenlet-3.5.6 h11-0.16.0 httpcore-1.0.9 httptools-0.9.0 httpx-0.28.1 idna-3.20 iniconfig-2.3.1 jmespath-1.1.0 lxml-6.1.3 opentelemetry-api-1.45.2 packaging-26.3 pgvector-0.5.1 pluggy-1.7.0 psycopg-3.3.6 psycopg-binary-3.3.6 pycparser-3.12 pydantic-2.14.2 pydantic-core-2.50.2 pydantic-settings-2.16.2 pygments-2.21.0 pytesseract-0.3.13 pytest-9.2.0 python-dateutil-2.9.0.post0 python-docx-1.2.0 python-dotenv-1.2.4 python-multipart-0.0.33 pyyaml-6.0.3 redis-6.4.0 s3transfer-0.19.3 sentry-sdk-2.73.0 six-1.17.0 sqlalchemy-2.0.55 starlette-1.10.0 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0 uvicorn-0.54.0 uvloop-0.23.0 watchfiles-1.3.0 websockets-17.4
 #20 162.8 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
-#20 164.0 
+#20 164.0
 #20 164.0 [notice] A new release of pip is available: 25.0.1 -> 26.2.2
 #20 164.0 [notice] To update, run: pip install --upgrade pip
 #20 DONE 164.5s
@@ -883,7 +883,7 @@
 #18 [web 4/5] RUN npm ci
 #18 ...
 
-#20 [api 5/7] RUN pip install --no-cache-dir -r requirements.txt
+#20 [api 5/7] RUN pip install --no-cache-dir -r requirements.tx
 #20 DONE 164.5s
 
 #21 [worker 6/7] COPY . .
@@ -910,7 +910,7 @@
 #23 exporting manifest list sha256:361920eae59e81a1700c683c385bb476c528b7fac0bef3de08b231ece48d6c81
 #23 exporting manifest list sha256:361920eae59e81a1700c683c385bb476c528b7fac0bef3de08b231ece48d6c81 0.0s done
 #23 naming to docker.io/library/hackathon-api:latest 0.0s done
-#23 unpacking to docker.io/library/hackathon-api:latest
+#23 unpacking to docker.io/library/hackathon-api:lates
 #23 ...
 
 #24 [worker] exporting to image
@@ -920,7 +920,7 @@
 #24 exporting attestation manifest sha256:04ee08b4d9faf500e7bfb8cfb694654ff93fdee45d0fc3ea158589f4ba3c4c6d 0.0s done
 #24 exporting manifest list sha256:343bd30297abf084f57eaea3444f58aeda5f2e777288fe9d48e48de7bfae0383 0.0s done
 #24 naming to docker.io/library/hackathon-worker:latest done
-#24 unpacking to docker.io/library/hackathon-worker:latest
+#24 unpacking to docker.io/library/hackathon-worker:lates
 #24 unpacking to docker.io/library/hackathon-worker:latest 3.4s done
 #24 DONE 10.5s
 
@@ -938,17 +938,17 @@
 #26 DONE 0.0s
 
 #18 [web 4/5] RUN npm ci
-#18 226.8 
+#18 226.8
 #18 226.8 added 493 packages, and audited 494 packages in 4m
-#18 226.8 
+#18 226.8
 #18 226.8 167 packages are looking for funding
 #18 226.8   run `npm fund` for details
-#18 226.9 
+#18 226.9
 #18 226.9 18 moderate severity vulnerabilities
-#18 226.9 
+#18 226.9
 #18 226.9 To address all issues (including breaking changes), run:
 #18 226.9   npm audit fix --force
-#18 226.9 
+#18 226.9
 #18 226.9 Run `npm audit` for details.
 #18 226.9 npm warn install-scripts 2 packages have install scripts not yet covered by allowScripts:
 #18 226.9 npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
@@ -973,49 +973,49 @@
 #28 exporting attestation manifest sha256:c366eb0f2c0956ed5855ae8d6ae35774e3167f40b93a9605c8190e4d448b7f16 0.0s done
 #28 exporting manifest list sha256:1683f6c082d056ec3104a28b9ba502de9778cbb3a14d0765a1dd264ef2414ab2 0.0s done
 #28 naming to docker.io/library/hackathon-web:latest done
-#28 unpacking to docker.io/library/hackathon-web:latest
+#28 unpacking to docker.io/library/hackathon-web:lates
 #28 unpacking to docker.io/library/hackathon-web:latest 8.4s done
 #28 DONE 30.3s
 
 #29 [web] resolving provenance for metadata file
 #29 DONE 0.0s
- Image hackathon-api Built 
- Image hackathon-web Built 
- Image hackathon-worker Built 
- Container hackathon-mailpit-1 Running 
- Volume hackathon_private_uploads Creating 
- Volume hackathon_web_node_modules Creating 
- Volume hackathon_web_next Creating 
- Volume hackathon_private_uploads Creating 
- Volume hackathon_web_next Creating 
- Volume hackathon_web_node_modules Creating 
- Volume hackathon_web_next Created 
- Volume hackathon_web_next Created 
- Volume hackathon_web_node_modules Created 
- Volume hackathon_web_node_modules Created 
- Volume hackathon_private_uploads Created 
- Volume hackathon_private_uploads Created 
- Container hackathon-worker-1 Creating 
- Container hackathon-api-1 Creating 
- Container hackathon-api-1 Created 
- Container hackathon-web-1 Creating 
- Container hackathon-worker-1 Created 
- Container hackathon-web-1 Created 
- Container hackathon-db-1 Starting 
- Container hackathon-redis-1 Starting 
- Container hackathon-db-1 Started 
- Container hackathon-redis-1 Started 
- Container hackathon-redis-1 Waiting 
- Container hackathon-db-1 Waiting 
- Container hackathon-redis-1 Waiting 
- Container hackathon-db-1 Healthy 
- Container hackathon-redis-1 Healthy 
- Container hackathon-api-1 Starting 
- Container hackathon-redis-1 Healthy 
- Container hackathon-worker-1 Starting 
- Container hackathon-api-1 Started 
- Container hackathon-redis-1 Waiting 
- Container hackathon-worker-1 Started 
- Container hackathon-redis-1 Healthy 
- Container hackathon-web-1 Starting 
- Container hackathon-web-1 Started 
+ Image hackathon-api Buil
+ Image hackathon-web Buil
+ Image hackathon-worker Buil
+ Container hackathon-mailpit-1 Running
+ Volume hackathon_private_uploads Creating
+ Volume hackathon_web_node_modules Creating
+ Volume hackathon_web_next Creating
+ Volume hackathon_private_uploads Creating
+ Volume hackathon_web_next Creating
+ Volume hackathon_web_node_modules Creating
+ Volume hackathon_web_next Created
+ Volume hackathon_web_next Created
+ Volume hackathon_web_node_modules Created
+ Volume hackathon_web_node_modules Created
+ Volume hackathon_private_uploads Created
+ Volume hackathon_private_uploads Created
+ Container hackathon-worker-1 Creating
+ Container hackathon-api-1 Creating
+ Container hackathon-api-1 Created
+ Container hackathon-web-1 Creating
+ Container hackathon-worker-1 Created
+ Container hackathon-web-1 Created
+ Container hackathon-db-1 Starting
+ Container hackathon-redis-1 Starting
+ Container hackathon-db-1 Started
+ Container hackathon-redis-1 Started
+ Container hackathon-redis-1 Waiting
+ Container hackathon-db-1 Waiting
+ Container hackathon-redis-1 Waiting
+ Container hackathon-db-1 Healthy
+ Container hackathon-redis-1 Healthy
+ Container hackathon-api-1 Starting
+ Container hackathon-redis-1 Healthy
+ Container hackathon-worker-1 Starting
+ Container hackathon-api-1 Started
+ Container hackathon-redis-1 Waiting
+ Container hackathon-worker-1 Started
+ Container hackathon-redis-1 Healthy
+ Container hackathon-web-1 Starting
+ Container hackathon-web-1 Started\n

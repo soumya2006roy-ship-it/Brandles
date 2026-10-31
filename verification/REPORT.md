@@ -1,6 +1,7 @@
-# BrandLens feature verification report
+# BrandLens feature verification repor
 
-Generated: 2026-10-31 23:02 IST  
+Generated: 2026-10-31 22:51 IST
+
 Environment: local Docker Compose on Windows; Next.js development server; FastAPI; PostgreSQL 17 with pgvector; Redis; background worker; Mailpit. `LLM_PROVIDER=none` and `OCR_PROVIDER=none`. No production deployment was involved.
 
 ## Summary
@@ -25,9 +26,9 @@ Startup output is preserved in [`startup.log`](startup.log) and [`startup-servic
 Commands run from the repository root:
 
 ```powershell
-npm run lint
+npm run lin
 npm run typecheck
-npm test
+npm tes
 $env:PLAYWRIGHT_SKIP_WEBSERVER='1'; npm run test:e2e
 npm run build
 npm run simulate:health
@@ -120,5 +121,4 @@ No unexpected JavaScript errors, failed requests, or non-test HTTP errors were r
 - `api/app/campaigns/router.py`, `scans.py`, `schemas.py`, `api/app/core/config.py`, `api/app/db/models.py`, `api/app/sources/schemas.py`
 - `api/scripts/seed_brand_health.py`
 - `app/app/organisations/brand-health/brand-health-dashboard.tsx`, `app/app/organisations/rules/rules-editor.tsx`, `app/app/product-shell.tsx`, `app/globals.css`, `app/lib/api-client.ts`, `app/lib/api-schema.d.ts`
-- `next.config.ts`, `.env.example`, `.gitignore`, `README.md`, `api/openapi.json`, `docs/api.md`, and `docs/decisions.md`
-
+- `next.config.ts`, `.env.example`, `.gitignore`, `README.md`, `api/openapi.json`, `docs/api.md`, and `docs/decisions.md`\n
