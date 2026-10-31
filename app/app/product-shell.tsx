@@ -37,6 +37,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
     { label: t("nav.overview"), href: `/app/organisations/${organizationId}`, match: `/app/organisations/${organizationId}` },
     { label: t("nav.campaigns"), href: `/app/organisations/${organizationId}/campaigns`, match: `/app/organisations/${organizationId}/campaigns` },
     { label: t("nav.health"), href: `/app/organisations/${organizationId}/campaign-health`, match: `/app/organisations/${organizationId}/campaign-health` },
+    { label: "Brand health", href: `/app/organisations/${organizationId}/brand-health`, match: `/app/organisations/${organizationId}/brand-health` },
     { label: t("nav.findings"), href: `/app/organisations/${organizationId}/findings`, match: `/app/organisations/${organizationId}/findings` },
     { label: t("nav.reviews"), href: `/app/organisations/${organizationId}/reviews`, match: `/app/organisations/${organizationId}/reviews` },
     { label: t("nav.sources"), href: `/app/organisations/${organizationId}/sources`, match: `/app/organisations/${organizationId}/sources` },
