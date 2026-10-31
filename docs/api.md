@@ -35,6 +35,15 @@ api\.venv\Scripts\python.exe api\scripts\seed_brand_health.py --email your-accou
 
 - The Brand Health page is `/app/organisations/{org_id}/brand-health`. It supports date, campaign, content type and severity filters, responsive trend/violation/campaign summaries, and CSV export. The trend chart is a labelled inline SVG; no charting dependency was added.
 
+## Visual compliance
+
+- `POST /api/v1/orgs/{org_id}/campaigns/{campaign_id}/visual-check` accepts multipart `file`, `channel`, and optional `language`. It accepts only validated PNG/JPEG/WebP content within the normal 25 MB asset limit, creates a versioned campaign asset, invalidates earlier scans using the standard asset flow, and queues a campaign scan.
+- Define visual guidance in the workspace Rules page using `brand_colors` (`colors` as `#RRGGBB`, optional `tolerance_delta_e`, default 12), `approved_logo` (`version`, and optional `deprecated: true`), and `required_disclaimer` (`value`). Each rule must cite an approved source passage. Typography guidance is stored, but local font identification remains `not_verifiable`.
+- Palette checks use dominant-color quantization and CIEDE2000 Delta E. Logo similarity uses the existing difference-hash prototype. Findings include the linked rule and approved source passage when available, a normalized image-level bounding box, confidence, and human-review state. The bounding box is the full image for these heuristic checks; it does not locate the actual logo/text region.
+- OCR is optional (`OCR_PROVIDER=tesseract` plus the Tesseract executable). Without OCR, disclaimers remain `not_verifiable`; OCR absence is not treated as a missing disclaimer. `VISUAL_CONFIDENCE_THRESHOLD` (default `0.65`) marks low-confidence results for human review.
+- Visual Compliance is available at `/app/organisations/{org_id}/visual-compliance`. The page displays scan findings, evidence and rule-check summaries. Actions use the ordinary finding decision endpoint and therefore appear in analytics. This feature is an early local prototype; validate it against real campaign artwork before relying on it.
+- Original fixture posters are generated with `api/.venv/Scripts/python.exe api/scripts/generate_visual_fixtures.py` into `api/tests/fixtures/visual/`.
+
 ## Tests
 
 ```powershell

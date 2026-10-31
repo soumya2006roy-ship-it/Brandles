@@ -8,6 +8,7 @@ import secrets
 import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -115,7 +116,9 @@ def seed(email: str) -> tuple[bool, str]:
                 if day_number % 3 == 0:
                     reviewer_id = reviewer_ids[(day_number + campaign_index) % len(reviewer_ids)]
                     decision = ("approved", "rejected", "changes_requested")[(day_number // 3 + campaign_index) % 3]
-                    submission_id = f"demo-{campaign.id}-{scan.id}"
+                    # Review.submission_id is a UUID-sized field; use a stable
+                    # UUID per seeded scan instead of concatenating two UUIDs.
+                    submission_id = str(uuid4())
                     db.add(Review(organization_id=org.id, asset_id=assets[0].id, asset_version=1, submission_id=submission_id, submitted_by_user_id=owner.id, reviewer_user_id=reviewer_id, scan_id=scan.id, decision=decision, comment="Demo review history.", created_at=created_at + timedelta(hours=2 + day_number % 12)))
         db.add(AuditEvent(organization_id=org.id, actor_user_id=owner.id, action="demo.brand_health_seeded", entity_type="demo_seed", entity_id=org.id, details={"demo_seed": True, "campaigns": len(campaigns), "days": 60, "scans": 240, "findings": created_count}))
         db.commit()

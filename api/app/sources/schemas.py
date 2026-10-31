@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
@@ -14,6 +15,8 @@ RuleType = Literal[
     "required_disclaimer",
     "approved_logo",
     "channel_length_limit",
+    "brand_colors",
+    "typography",
 ]
 
 
@@ -98,6 +101,15 @@ class RuleWrite(StrictInput):
             max_characters = value.get("max_characters")
             if not (isinstance(channel, str) and channel.strip() and isinstance(max_characters, int) and 1 <= max_characters <= 100000):
                 raise ValueError("Channel limits require a channel and a positive max_characters value.")
+        if self.rule_type == "brand_colors":
+            colors = value.get("colors")
+            if not isinstance(colors, list) or not 1 <= len(colors) <= 12 or any(not isinstance(color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", color) for color in colors):
+                raise ValueError("Brand colours require one to twelve hex colours such as #123456.")
+            tolerance = value.get("tolerance_delta_e", 12)
+            if not isinstance(tolerance, (int, float)) or not 1 <= tolerance <= 100:
+                raise ValueError("Colour tolerance must be between 1 and 100 Delta E.")
+        if self.rule_type == "typography" and not (isinstance(value.get("value"), str) and value["value"].strip()):
+            raise ValueError("Typography rules require a non-empty descriptive value.")
         return self
 
 

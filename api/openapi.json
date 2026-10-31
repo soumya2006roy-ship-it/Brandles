@@ -2675,6 +2675,73 @@
         ]
       }
     },
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/visual-check": {
+      "post": {
+        "tags": [
+          "campaigns-and-assets"
+        ],
+        "summary": "Upload Visual Check",
+        "description": "Store a validated poster as a versioned campaign asset and queue the visual scan.",
+        "operationId": "upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisualCheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BrandLensSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets/{asset_id}/download": {
       "get": {
         "tags": [
@@ -4179,6 +4246,39 @@
           "document"
         ],
         "title": "Body_upload_source_api_v1_orgs__org_id__sources_post"
+      },
+      "Body_upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 2,
+            "title": "Channel"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel",
+          "file"
+        ],
+        "title": "Body_upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post"
       },
       "BrandTwinAnswer": {
         "properties": {
@@ -6250,7 +6350,9 @@
               "banned_phrase",
               "required_disclaimer",
               "approved_logo",
-              "channel_length_limit"
+              "channel_length_limit",
+              "brand_colors",
+              "typography"
             ],
             "title": "Rule Type"
           },
@@ -6901,6 +7003,28 @@
           "created_at"
         ],
         "title": "VerificationHistoryItem"
+      },
+      "VisualCheckResponse": {
+        "properties": {
+          "asset": {
+            "$ref": "#/components/schemas/AssetResponse"
+          },
+          "scan": {
+            "$ref": "#/components/schemas/ScanResponse"
+          },
+          "maturity": {
+            "type": "string",
+            "title": "Maturity",
+            "default": "Local visual prototype; validate on real brand assets."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "asset",
+          "scan"
+        ],
+        "title": "VisualCheckResponse"
       },
       "WorkspaceDashboard": {
         "properties": {

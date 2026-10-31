@@ -85,6 +85,12 @@ class ScanResponse(BaseModel):
     cancel_requested: bool = False
 
 
+class VisualCheckResponse(StrictInput):
+    asset: AssetResponse
+    scan: ScanResponse
+    maturity: str = "Local visual prototype; validate on real brand assets."
+
+
 class FindingResponse(BaseModel):
     id: str
     scan_id: str

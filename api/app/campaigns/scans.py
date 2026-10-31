@@ -17,6 +17,8 @@ from app.checks.judgement import JUDGEMENT_PROMPT_VERSION, JUDGEMENT_TASK_INSTRU
 from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, Organization, Rule, Scan, SourcePassage
 from app.core.config import get_settings
 from app.observability import increment
+from app.assets.visual import visual_findings
+from app.storage.factory import get_storage
 
 PERCENT_RE = re.compile(r"(?<!\w)(\d{1,3}(?:\.\d+)?)\s*%")
 CLAIM_CUES = re.compile(r"\b(?:claim|cure[sd]?|treat[sd]?|prevent[sd]?|clinically proven|proven|guarantee[sd]?|eliminate[sd]?|reduce[sd]?|improve[sd]?|safe|effective|dermatologist[- ]tested)\b|दावा|ठीक|इलाज|गारंटी|प्रमाणित|सुरक्षित|प्रभावी", re.IGNORECASE)
@@ -133,7 +135,7 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
             if not scan.completed_asset_ids:
                 for old in db.scalars(select(Finding).where(Finding.organization_id == organization_id, Finding.scan_id == scan.id)).all():
                     db.delete(old)
-                for old_fact in db.scalars(select(ExtractedFact).where(ExtractedFact.organization_id == organization_id, ExtractedFact.campaign_id == campaign.id, ExtractedFact.fact_type.in_(["percentage", "currency", "date", "claim"]))).all():
+                for old_fact in db.scalars(select(ExtractedFact).where(ExtractedFact.organization_id == organization_id, ExtractedFact.campaign_id == campaign.id, ExtractedFact.fact_type.in_(["percentage", "currency", "date", "claim", "visual_palette_status", "visual_disclaimer_status", "visual_typography_status", "visual_logo_status"]))).all():
                     db.delete(old_fact)
             scan.asset_versions = {asset.id: asset.version for asset in assets}
             scan.rules_version = expected_rules_version
@@ -171,6 +173,29 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                     return
                 content = asset.extracted_text or asset.text_content or ""
                 folded = content.casefold()
+                if asset.asset_type == "image" and asset.file_ref:
+                    stream, _content_type = get_storage().stream(organization_id, asset.file_ref)
+                    image_bytes = b"".join(stream)
+                    visual_rows = [(rule, passage) for rule, passage, _source in rows]
+                    color_rules = [(rule, passage) for rule, passage in visual_rows if rule.rule_type == "brand_colors"]
+                    disclaimer_rules = [(rule, passage) for rule, passage in visual_rows if rule.rule_type == "required_disclaimer"]
+                    visual = visual_findings(image_bytes=image_bytes, color_rules=color_rules, logo_matches=asset.logo_matches, disclaimer_rules=disclaimer_rules,
+                        ocr_text=asset.extracted_text if asset.extraction_status == "complete" else None, threshold=get_settings().visual_confidence_threshold)
+                    palette = visual["palette"]
+                    extracted_facts.append(ExtractedFact(organization_id=organization_id, campaign_id=campaign.id, asset_id=asset.id, fact_type="visual_palette_status", value=palette["status"], asset_location={"palette": palette, "maturity": visual["maturity"]}))
+                    extracted_facts.append(ExtractedFact(organization_id=organization_id, campaign_id=campaign.id, asset_id=asset.id, fact_type="visual_disclaimer_status", value=visual["disclaimer"]["status"], asset_location=visual["disclaimer"]))
+                    extracted_facts.append(ExtractedFact(organization_id=organization_id, campaign_id=campaign.id, asset_id=asset.id, fact_type="visual_typography_status", value=visual["typography"]["status"], asset_location=visual["typography"]))
+                    extracted_facts.append(ExtractedFact(organization_id=organization_id, campaign_id=campaign.id, asset_id=asset.id, fact_type="visual_logo_status", value=visual["logo"]["status"], asset_location=visual["logo"]))
+                    for visual_finding in visual["findings"]:
+                        linked_rule = next((rule for rule, _passage, _source in rows if rule.id == visual_finding.get("rule_id")), None)
+                        linked_passage = next((passage for rule, passage, _source in rows if passage.id == visual_finding.get("source_passage_id")), None)
+                        needs_review = visual_finding["needs_human_review"]
+                        finding = _finding(scan=scan, asset=asset, rule=linked_rule, passage=linked_passage, finding_type=visual_finding["finding_type"],
+                            severity="info" if needs_review else visual_finding["severity"], text=None, start=None, end=None,
+                            quoted_excerpt=visual_finding.get("quoted_excerpt"), confidence=visual_finding["confidence"], suggested_fix=visual_finding["suggested_fix"],
+                            flagged_region={"bounding_box": visual_finding.get("bounding_box"), "explanation": visual_finding["explanation"], "needs_human_review": needs_review,
+                                "verdict": "Needs human verification" if needs_review else "potential_violation"})
+                        findings.append(finding)
                 scheduled = publish_date
                 for offer_rule, offer_passage, offer_source in offer_rows:
                     if offer_rule.channel and offer_rule.channel.casefold() != asset.channel.casefold():
@@ -226,8 +251,14 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                             findings.append(_finding(scan=scan, asset=asset, rule=rule, passage=passage, finding_type=rule_type, severity="high", text=content, start=match.start(), end=match.end(), quoted_excerpt=passage.text, confidence=1.0, suggested_fix="Remove or replace the flagged phrase, then rescan."))
                     elif rule_type == "required_disclaimer":
                         value = str(params.get("value", "")).strip()
-                        if value and value.casefold() not in folded:
+                        if asset.asset_type != "image" and value and value.casefold() not in folded:
                             findings.append(_finding(scan=scan, asset=asset, rule=rule, passage=passage, finding_type=rule_type, severity="high", text=None, start=None, end=None, quoted_excerpt=passage.text, confidence=1.0, suggested_fix="Add the required disclaimer from the cited approved passage."))
+                    elif rule_type == "approved_logo" and asset.asset_type == "image" and not asset.file_ref:
+                        # Compatibility path for legacy/in-memory logo records without stored image bytes.
+                        version = str(params.get("version", ""))
+                        matched = any(item.get("source_id") == passage.source_id and item.get("matched") and item.get("logo_version") == version for item in (asset.logo_matches or []))
+                        if not matched:
+                            findings.append(_finding(scan=scan, asset=asset, rule=rule, passage=passage, finding_type=rule_type, severity="high", text=None, start=None, end=None, quoted_excerpt=passage.text, confidence=1.0, suggested_fix=f"Replace or verify this artwork against approved logo version {version}."))
                     elif rule_type == "discount_percent":
                         expected = float(params.get("percent", -1))
                         percent_matches = list(PERCENT_RE.finditer(content))
@@ -251,11 +282,6 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                         outside_window = bool(expected) and scheduled is not None and ((rule_type == "valid_from" and scheduled < date.fromisoformat(expected)) or (rule_type == "valid_until" and scheduled > date.fromisoformat(expected)))
                         if outside_window:
                             findings.append(_finding(scan=scan, asset=asset, rule=rule, passage=passage, finding_type=rule_type, severity="high", text=None, start=None, end=None, quoted_excerpt=passage.text, confidence=1.0, suggested_fix=f"Review the campaign date against the approved {expected} date."))
-                    elif rule_type == "approved_logo" and asset.asset_type == "image":
-                        matching = [item for item in asset.logo_matches if item.get("source_id") == passage.source_id]
-                        if matching and not any(item.get("matched") for item in matching):
-                            findings.append(_finding(scan=scan, asset=asset, rule=rule, passage=passage, finding_type=rule_type, severity="medium", text=None, start=None, end=None, quoted_excerpt=passage.text, confidence=0.5, suggested_fix="Compare this image with the approved logo manually; perceptual matching is a prototype."))
-
                 # Judgement checks are opt-in per workspace and can only cite retrieved approved evidence.
                 claim_sentences = list(re.finditer(r"[^.!?\n]+(?:[.!?]|$)", content))
                 for sentence in claim_sentences:

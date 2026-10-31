@@ -357,7 +357,7 @@ class Finding(Base):
     asset_id: Mapped[str | None] = mapped_column(String(36))
     finding_type: Mapped[str] = mapped_column(String(60), nullable=False)
     severity: Mapped[str] = mapped_column(String(16), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="open")
     flagged_region: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     rule_id: Mapped[str | None] = mapped_column(ForeignKey("rules.id", ondelete="SET NULL"))
     source_passage_id: Mapped[str | None] = mapped_column(String(36))

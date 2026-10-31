@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.assets.media import MAX_ASSET_BYTES, difference_hash, get_ocr_provider, scan_for_malware, similarity, sniff_and_normalize
 from app.auth.dependencies import get_auth_context, require_org_role
-from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignHealthItem, CampaignHealthOverview, CampaignResponse, CampaignScanSummary, ClarificationRequest, DashboardCampaign, ExpiringOffer, FactResponse, FindingDecision, FindingListItem, FindingResponse, FindingsOverview, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse, WorkspaceDashboard
+from app.campaigns.schemas import AssetResponse, BrandTwinAnswer, BrandTwinCitation, BrandTwinQuestion, CampaignCreate, CampaignDetailResponse, CampaignHealthItem, CampaignHealthOverview, CampaignResponse, CampaignScanSummary, ClarificationRequest, DashboardCampaign, ExpiringOffer, FactResponse, FindingDecision, FindingListItem, FindingResponse, FindingsOverview, GuidelineSuggestionDecision, GuidelineSuggestionResponse, ReviewDecision, ReviewResponse, ReviewSubmit, ScanResponse, VisualCheckResponse, WorkspaceDashboard
 from app.core.db import get_db
 from app.core.config import get_settings
 from app.core.mail import EmailSender, get_email_sender
@@ -201,7 +201,8 @@ def _asset_logo_matches(org_id: str, asset_bytes: bytes, db: Session) -> list[di
             score = similarity(uploaded_hash, difference_hash(logo_bytes))
         except (OSError, ValueError):
             continue
-        matches.append({"source_id": source.id, "source_title": source.title, "source_version": source.version, "logo_version": rule.parameters.get("version", str(source.version)), "similarity": round(score, 4), "matched": score >= 0.9, "method": "difference-hash-prototype"})
+        passage = db.scalar(select(SourcePassage).where(SourcePassage.organization_id == org_id, SourcePassage.source_id == source.id, SourcePassage.id == rule.source_passage_id))
+        matches.append({"source_id": source.id, "source_title": source.title, "source_version": source.version, "logo_version": rule.parameters.get("version", str(source.version)), "similarity": round(score, 4), "matched": score >= 0.9, "deprecated": bool(rule.parameters.get("deprecated")), "rule_id": rule.id, "passage_id": passage.id if passage else None, "quoted_excerpt": passage.text if passage else None, "method": "difference-hash-prototype"})
     return sorted(matches, key=lambda item: item["similarity"], reverse=True)[:5]
 
 
@@ -546,6 +547,33 @@ async def create_asset_version(
     return asset
 
 
+@router.post("/orgs/{org_id}/campaigns/{campaign_id}/visual-check", response_model=VisualCheckResponse, status_code=202)
+async def upload_visual_check(
+    org_id: str,
+    campaign_id: str,
+    request: Request,
+    channel: str = Form(min_length=2, max_length=50),
+    language: str | None = Form(default=None, max_length=32),
+    file: UploadFile = File(...),
+    membership: Membership = Depends(require_org_role("admin", "creator")),
+    db: Session = Depends(get_db),
+):
+    """Store a validated poster as a versioned campaign asset and queue the visual scan."""
+    active_scan = db.scalar(select(Scan.id).where(Scan.organization_id == org_id, Scan.status.in_(["queued", "running"])))
+    if active_scan:
+        raise HTTPException(status_code=409, detail="Wait for the organisation's current scan to finish before uploading another visual check.")
+    image_bytes = await file.read(MAX_ASSET_BYTES + 1)
+    if len(image_bytes) > MAX_ASSET_BYTES:
+        raise HTTPException(status_code=413, detail="Campaign assets must be 25 MB or smaller.")
+    image = sniff_and_normalize(image_bytes)
+    if image.asset_type != "image":
+        raise HTTPException(status_code=415, detail="Visual compliance accepts PNG, JPEG, or WebP images only.")
+    await file.seek(0)
+    asset = await create_asset_version(org_id, campaign_id, request, channel, language, None, None, file, membership, db)
+    scan = create_campaign_scan(org_id, campaign_id, request, membership, db)
+    return VisualCheckResponse(asset=AssetResponse.model_validate(asset), scan=scan, maturity="Deterministic palette and perceptual-logo prototype; OCR is optional and font recognition is not verifiable.")
+
+
 @router.get("/orgs/{org_id}/campaigns/{campaign_id}/assets/{asset_id}/download")
 def get_asset_download(org_id: str, campaign_id: str, asset_id: str, context=Depends(get_auth_context), db: Session = Depends(get_db)):
     _campaign_member(org_id, context.user.id, db)
@@ -675,7 +703,7 @@ def list_campaign_facts(org_id: str, campaign_id: str, scan_id: str, context=Dep
     scan = db.scalar(select(Scan).where(Scan.organization_id == org_id, Scan.campaign_id == campaign_id, Scan.id == scan_id))
     if not scan:
         raise HTTPException(status_code=404, detail="Campaign scan not found.")
-    rows = db.execute(select(ExtractedFact, Asset.channel).join(Asset, (Asset.organization_id == ExtractedFact.organization_id) & (Asset.id == ExtractedFact.asset_id)).where(ExtractedFact.organization_id == org_id, ExtractedFact.campaign_id == campaign_id, ExtractedFact.fact_type.in_(["percentage", "currency", "date", "claim"])).order_by(Asset.channel, ExtractedFact.fact_type, ExtractedFact.value)).all()
+    rows = db.execute(select(ExtractedFact, Asset.channel).join(Asset, (Asset.organization_id == ExtractedFact.organization_id) & (Asset.id == ExtractedFact.asset_id)).where(ExtractedFact.organization_id == org_id, ExtractedFact.campaign_id == campaign_id, ExtractedFact.fact_type.in_(["percentage", "currency", "date", "claim", "visual_palette_status", "visual_disclaimer_status", "visual_typography_status", "visual_logo_status"])).order_by(Asset.channel, ExtractedFact.fact_type, ExtractedFact.value)).all()
     return [FactResponse(id=fact.id, asset_id=fact.asset_id, channel=channel, fact_type=fact.fact_type, value=fact.value, asset_location=fact.asset_location, source_passage_id=fact.source_passage_id) for fact, channel in rows]
 
 

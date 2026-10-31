@@ -65,3 +65,25 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
+
+export function apiUpload<T>(path: string, body: FormData, onProgress: (percent: number) => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", `/api/product/${path.replace(/^\//, "")}`);
+    request.withCredentials = true;
+    request.setRequestHeader("accept-language", window.localStorage.getItem("brandlens-locale") ?? "en");
+    request.upload.onprogress = (event) => { if (event.lengthComputable) onProgress(Math.round(event.loaded / event.total * 100)); };
+    request.onerror = () => reject(new ApiError("Network error while uploading the image.", 0));
+    request.onload = () => {
+      let payload: unknown;
+      try { payload = JSON.parse(request.responseText); } catch { payload = undefined; }
+      if (request.status < 200 || request.status >= 300) {
+        const detail = payload && typeof payload === "object" && "detail" in payload ? (payload as { detail?: unknown }).detail : payload;
+        reject(new ApiError(getErrorMessage(detail) ?? "Could not upload this visual asset.", request.status));
+        return;
+      }
+      resolve(payload as T);
+    };
+    request.send(body);
+  });
+}

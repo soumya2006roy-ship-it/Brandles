@@ -38,6 +38,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
     { label: t("nav.campaigns"), href: `/app/organisations/${organizationId}/campaigns`, match: `/app/organisations/${organizationId}/campaigns` },
     { label: t("nav.health"), href: `/app/organisations/${organizationId}/campaign-health`, match: `/app/organisations/${organizationId}/campaign-health` },
     { label: "Brand health", href: `/app/organisations/${organizationId}/brand-health`, match: `/app/organisations/${organizationId}/brand-health` },
+    { label: "Visual compliance", href: `/app/organisations/${organizationId}/visual-compliance`, match: `/app/organisations/${organizationId}/visual-compliance` },
     { label: t("nav.findings"), href: `/app/organisations/${organizationId}/findings`, match: `/app/organisations/${organizationId}/findings` },
     { label: t("nav.reviews"), href: `/app/organisations/${organizationId}/reviews`, match: `/app/organisations/${organizationId}/reviews` },
     { label: t("nav.sources"), href: `/app/organisations/${organizationId}/sources`, match: `/app/organisations/${organizationId}/sources` },
@@ -61,7 +62,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
   return <div className="product-frame">
     <a className="skip-link" href="#workspace-main">{t("nav.skip")}</a>
     <header className="product-header">
-      <Link className="product-brand" href="/app" aria-label="BrandLens workspace home">
+      <Link className="product-brand" href="/app">
         <Image className="product-brand-mark" src="/icon-192.png" width={48} height={48} alt="" priority/>
         <span className="product-brand-copy">BrandLens<small>Workspace</small></span>
       </Link>

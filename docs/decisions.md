@@ -10,6 +10,14 @@
 ## Brand Health analytics (2026-10-31)
 
 - Brand Health is a read-only aggregation over existing scans, findings, assets, review rows, and finding resolution audit events. No extra metric snapshots or migrations are needed; query filters and tenant membership are enforced by the API.
+
+## Advanced visual compliance (2026-10-31)
+
+- Visual uploads enter the existing versioned campaign asset and scan queue so stale-scan invalidation, audit events, finding actions, and analytics remain shared with text campaigns.
+- Dominant palettes are compared to approved hex colours using CIEDE2000; logo comparison reuses the existing difference-hash prototype. Results are heuristic, and image-level bounding boxes cover the whole image because local checks do not reliably localize the specific logo or text.
+- OCR remains an optional Tesseract adapter. A disclaimer is only reported missing when configured OCR ran; otherwise its status is `not_verifiable`. Font family/style detection is explicitly `not_verifiable` in this local implementation.
+- Low-confidence signals are stored as informational findings with a human-review marker, controlled by `VISUAL_CONFIDENCE_THRESHOLD`. No external vision provider or API key is required or configured.
+- Fixture images are generated locally with Pillow and contain synthetic artwork; they are for regression tests, not proof of real-world detection quality.
 - Compliance is a severity-weighted open-finding indicator (Critical 25, High 15, Medium 8, Low 3 against 40 points per asset). Campaign violation rate is the share of current campaign assets with at least one finding. These definitions are shown in the product and API docs and must not be presented as statutory compliance or audience performance.
 - Rule confusion signals use a 25% dismissal threshold or a 30% repeat-after-resolution threshold. The repeat measure finds later same-rule findings after an earlier resolution/dismissal; it does not infer author intent or prove a guideline defect.
 - Demo data is an explicitly marked, isolated workspace with 60 daily scan dates across four campaigns. The seed command requires an existing active owner, an explicit confirmation flag, and a non-production environment. The first completed run is idempotent by workspace key and does not re-create rows on repeat runs.

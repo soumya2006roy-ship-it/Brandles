@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     ocr_provider: str = "none"
     tesseract_command: str | None = None
     tesseract_timeout_seconds: int = 20
+    visual_confidence_threshold: float = Field(default=0.65, ge=0, le=1)
     allow_workspace_llm: bool = False
     password_reset_ttl_minutes: int = 30
     bootstrap_admin_email: str | None = None

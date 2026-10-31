@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   distDir: process.env.NODE_ENV === "development" ? ".next-brandlens-dev" : ".next-brandlens-build",
   output: "standalone",
   poweredByHeader: false,
+  // The browser-based verification suite and Docker port mapping use loopback IP.
+  allowedDevOrigins: ["127.0.0.1"],
+  // Multipart image uploads are limited to 25 MiB by the API; reserve 30 MiB
+  // here for the multipart boundary and form fields so the proxy cannot truncate them.
+  experimental: { proxyClientMaxBodySize: "30mb" },
   // Keep Next's route inspector button out of the workspace interface.
   devIndicators: false,
   images: { formats: ["image/avif", "image/webp"] },

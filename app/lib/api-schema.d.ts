@@ -745,6 +745,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/visual-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Visual Check
+         * @description Store a validated poster as a versioned campaign asset and queue the visual scan.
+         */
+        post: operations["upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org_id}/campaigns/{campaign_id}/assets/{asset_id}/download": {
         parameters: {
             query?: never;
@@ -1147,6 +1167,15 @@ export interface components {
             source_family_id?: string | null;
             /** Document */
             document: string;
+        };
+        /** Body_upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post */
+        Body_upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post: {
+            /** Channel */
+            channel: string;
+            /** Language */
+            language?: string | null;
+            /** File */
+            file: string;
         };
         /** BrandTwinAnswer */
         BrandTwinAnswer: {
@@ -1822,7 +1851,7 @@ export interface components {
              * Rule Type
              * @enum {string}
              */
-            rule_type: "offer_name" | "discount_percent" | "valid_from" | "valid_until" | "banned_phrase" | "required_disclaimer" | "approved_logo" | "channel_length_limit";
+            rule_type: "offer_name" | "discount_percent" | "valid_from" | "valid_until" | "banned_phrase" | "required_disclaimer" | "approved_logo" | "channel_length_limit" | "brand_colors" | "typography";
             /** Parameters */
             parameters?: {
                 [key: string]: unknown;
@@ -2033,6 +2062,16 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** VisualCheckResponse */
+        VisualCheckResponse: {
+            asset: components["schemas"]["AssetResponse"];
+            scan: components["schemas"]["ScanResponse"];
+            /**
+             * Maturity
+             * @default Local visual prototype; validate on real brand assets.
+             */
+            maturity: string;
         };
         /** WorkspaceDashboard */
         WorkspaceDashboard: {
@@ -3603,6 +3642,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_visual_check_api_v1_orgs__org_id__campaigns__campaign_id__visual_check_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualCheckResponse"];
                 };
             };
             /** @description Validation Error */

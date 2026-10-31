@@ -9,9 +9,9 @@ type Source = { id: string; family_id: string; title: string; version: number; s
 type Passage = { id: string; text: string; page_number: number | null; location_label: string | null; source_id: string; source_title: string; source_version: number; source_status: string };
 type Rule = { id: string; rule_type: string; parameters: Record<string, unknown>; channel: string | null; valid_from: string | null; valid_to: string | null; source_passage_id: string | null; status: string; created_by: string; created_at: string };
 type OrganizationSummary = { id: string; role: string };
-type RuleType = "offer_name" | "discount_percent" | "valid_from" | "valid_until" | "banned_phrase" | "required_disclaimer" | "approved_logo" | "channel_length_limit";
+type RuleType = "offer_name" | "discount_percent" | "valid_from" | "valid_until" | "banned_phrase" | "required_disclaimer" | "approved_logo" | "channel_length_limit" | "brand_colors" | "typography";
 
-const labels: Record<RuleType, string> = { offer_name: "Offer name", discount_percent: "Discount percentage", valid_from: "Offer starts on", valid_until: "Offer ends on", banned_phrase: "Banned phrase", required_disclaimer: "Required disclaimer", approved_logo: "Approved logo version", channel_length_limit: "Channel character limit" };
+const labels: Record<RuleType, string> = { offer_name: "Offer name", discount_percent: "Discount percentage", valid_from: "Offer starts on", valid_until: "Offer ends on", banned_phrase: "Banned phrase", required_disclaimer: "Required disclaimer", approved_logo: "Approved logo version", channel_length_limit: "Channel character limit", brand_colors: "Brand colour palette", typography: "Typography guidance" };
 
 export function RulesEditor({ organizationId }: { organizationId: string }) {
   const params = useSearchParams();
@@ -71,7 +71,10 @@ export function RulesEditor({ organizationId }: { organizationId: string }) {
     if (ruleType === "discount_percent") parameters.percent = Number(form.get("percent"));
     if (ruleType === "valid_from" || ruleType === "valid_until") parameters.date = form.get("date");
     if (ruleType === "approved_logo") parameters.version = form.get("version");
+    if (ruleType === "approved_logo") parameters.deprecated = form.get("deprecated") === "on";
     if (ruleType === "channel_length_limit") { parameters.channel = form.get("limit_channel"); parameters.max_characters = Number(form.get("max_characters")); }
+    if (ruleType === "brand_colors") { parameters.colors = String(form.get("colors") ?? "").split(",").map((color) => color.trim()).filter(Boolean); parameters.tolerance_delta_e = Number(form.get("tolerance_delta_e") || 12); }
+    if (ruleType === "typography") parameters.value = form.get("value");
     setError(""); setNotice(""); setBusy(true);
     try {
       await apiRequest<Rule>(`orgs/${organizationId}/rules`, { method: "POST", body: JSON.stringify({ rule_type: ruleType, parameters, channel: form.get("channel") || null, valid_from: form.get("valid_from") || null, valid_to: form.get("valid_to") || null, source_passage_id: passageId }) });
@@ -105,7 +108,9 @@ export function RulesEditor({ organizationId }: { organizationId: string }) {
         {["offer_name", "banned_phrase", "required_disclaimer"].includes(ruleType) && <label className="form-field">{labels[ruleType]}<input name="value" required maxLength={500}/></label>}
         {ruleType === "discount_percent" && <label className="form-field">Percent<input name="percent" type="number" min={0} max={100} step="0.01" required/></label>}
         {(ruleType === "valid_from" || ruleType === "valid_until") && <label className="form-field">Date<input name="date" type="date" required/></label>}
-        {ruleType === "approved_logo" && <label className="form-field">Approved logo version<input name="version" required maxLength={80} placeholder="Primary lockup v2"/></label>}
+        {ruleType === "approved_logo" && <><label className="form-field">Logo version<input name="version" required maxLength={80} placeholder="Primary lockup v2"/></label><label className="form-field"><span><input name="deprecated" type="checkbox"/> Deprecated logo version (flag if detected)</span></label></>}
+        {ruleType === "brand_colors" && <><label className="form-field">Approved colours, comma-separated hex<input name="colors" required placeholder="#143D32, #F2B36D" pattern="\s*#[0-9a-fA-F]{6}(\s*,\s*#[0-9a-fA-F]{6})*\s*"/></label><label className="form-field">Delta E tolerance (CIEDE2000)<input name="tolerance_delta_e" type="number" min={1} max={100} defaultValue={12} required/></label></>}
+        {ruleType === "typography" && <label className="form-field">Typography guidance<input name="value" required maxLength={500} placeholder="Use the approved sans-serif family for headings"/></label>}
         {ruleType === "channel_length_limit" && <><label className="form-field">Channel to limit<input name="limit_channel" required maxLength={50} placeholder="Instagram caption"/></label><label className="form-field">Maximum characters<input name="max_characters" type="number" min={1} max={100000} required/></label></>}
         <div className="rule-date-fields"><label className="form-field">Rule effective from<input name="valid_from" type="date"/></label><label className="form-field">Rule effective until<input name="valid_to" type="date"/></label></div>
         <label className="form-field">Applies to channel (optional)<input name="channel" maxLength={50}/></label>
