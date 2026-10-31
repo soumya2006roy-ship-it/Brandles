@@ -1,0 +1,28 @@
+api-1  | INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+api-1  | INFO  [alembic.runtime.migration] Will assume transactional DDL.
+api-1  | INFO:     Will watch for changes in these directories: ['/code']
+web-1  | 
+api-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+web-1  | > brandlens-app@0.1.0 dev
+web-1  | > next dev --hostname 0.0.0.0
+api-1  | INFO:     Started reloader process [8] using WatchFiles
+web-1  | 
+web-1  | ▲ Next.js 16.4.3 (Turbopack)
+web-1  | - Local:         http://localhost:3000
+api-1  | INFO:     Started server process [10]
+api-1  | INFO:     Waiting for application startup.
+api-1  | INFO:     Application startup complete.
+web-1  | - Network:       http://0.0.0.0:3000
+api-1  | INFO:     172.18.0.1:36852 - "GET /ready HTTP/1.1" 200 OK
+web-1  | - Environments: .env
+web-1  | ✓ Ready in 536ms
+web-1  | ✓ Running next.config.ts took 111ms
+web-1  | Attention: Next.js now collects completely anonymous telemetry regarding usage.
+web-1  | This information is used to shape Next.js' roadmap and prioritize features.
+web-1  | You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+web-1  | https://nextjs.org/telemetry
+web-1  | 
+web-1  | 
+web-1  | ○ Compiling / ...
+web-1  |  GET / 200 in 3.0s (next.js: 2.5s, proxy.ts: 78ms, application-code: 463ms)
+worker-1  | INFO:brandlens.worker:BrandLens worker is waiting for jobs

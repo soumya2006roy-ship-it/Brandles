@@ -1,0 +1,35 @@
+BrandLens verification commands (Windows PowerShell, repository root)
+Date: 2026-10-31
+
+$ npm run lint
+Exit code: 0; ESLint reported no errors or warnings on the final run.
+
+$ npm run typecheck
+Exit code: 0; tsc --noEmit completed successfully.
+
+$ npm test
+Exit code: 0
+Test Files  3 passed (3)
+Tests       8 passed (8)
+
+$env:PLAYWRIGHT_SKIP_WEBSERVER='1'; npm run test:e2e
+Exit code: 0
+6 passed (25.0s)
+
+$ npm run build
+Exit code: 0; optimized Next.js build, type generation, 34 static pages, and standalone runtime preparation completed. Project contrast checks passed.
+
+$ npm run simulate:health
+Exit code: 0; 15 synthetic campaigns across 3 simulated organisations; persisted: false.
+
+$ api\.venv\Scripts\python.exe -m pytest -q
+Exit code: 0
+61 passed, 1 skipped, 1 warning in 27.99s
+Warning: StarletteDeprecationWarning notes httpx2 is preferred over httpx with Starlette TestClient.
+
+$ node verification/run-simulation.mjs
+Exit code: 0; 30 browser scenarios recorded in simulation-results.json: 26 PASS, 4 OBSERVED, 0 FAIL. The OBSERVED results are unsupported OCR/logo fixture assertions and the unconfigured logo comparison in the browser regression workspace. Axe reported zero violations on both new pages. The single forced 503, two expected 415s, and expected oversized-upload 413 are test inputs.
+
+Docker Compose status during verification: web, API, worker, PostgreSQL, Redis and Mailpit running; Postgres, Redis and Mailpit healthy. API /ready returned 200. Alembic current revision: 0010_expand_finding_status (head).
+
+Note: an earlier simulation attempt received the expected local registration rate-limit response (429) after repeated fresh-account runs. The local verification-only Redis registration bucket was cleared before the successful run; no rate-limit bypass was added to the product or simulation script.
