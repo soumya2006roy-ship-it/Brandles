@@ -7,6 +7,8 @@
     "loginDescription": "Use your email address to continue.",
     "email": "Work email",
     "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "name": "Your name",
     "registerTitle": "Create your BrandLens account",
     "registerDescription": "Create an account and continue straight to your workspace.",
@@ -40,7 +42,7 @@
     "returnSignIn": "Return to sign in",
     "resetSuccess": "Password updated. Sign in with your new password.",
     "genericError": "Something went wrong. Please try again.",
-    "adminHint": "Admin login? Check the credentials in the README file or the .env file."
+    "adminHint": "Platform Admin access is granted by a trusted operator. There are no shared hosted credentials."
   },
   "nav": {
     "overview": "Overview", "campaigns": "Campaigns", "findings": "Findings", "reviews": "Reviews",

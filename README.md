@@ -42,7 +42,7 @@ The API docs are available at `http://localhost:8000/docs`. Signup and invite ro
 
 ### Platform administrator
 
-For a clean local database, the launcher reads `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env`, creates a development administrator if no platform administrator exists, and records the action. Change its generated password after signing in. Platform administrator status in a deployed environment should be granted only by a trusted operator with local database access. To promote an existing account, run:
+For a clean local database, the launcher reads `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env`, creates a development administrator if no platform administrator exists, and records the action. Change its generated password after signing in. Platform administrator status in a deployed environment should be granted only by a trusted operator with production database access. Create the account through the deployed signup page, then promote it from a trusted operator environment connected to the production database. Never put admin passwords or database URLs in this README, source control, or screenshots. To promote an existing account, run:
 
 ```powershell
 Set-Location api
@@ -53,7 +53,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 
 ## Admin Login
 
-For a new local database, the admin email is read from `BOOTSTRAP_ADMIN_EMAIL` in `.env` (the starter value is `admin@example.com`). The full-stack launcher generates a private random value for `BOOTSTRAP_ADMIN_PASSWORD` and writes it only to the local `.env`; use that value to sign in, then change the password through the account password-reset flow. `.env.example` intentionally contains a placeholder rather than a shared demo password, and `.env` is ignored by Git. Existing Platform Admin accounts are not overwritten if these variables later change. Change these credentials before deploying to production and configure the production Platform Admin through the trusted operator process described above.
+For a new local database, the admin email is read from `BOOTSTRAP_ADMIN_EMAIL` in `.env` (the starter value is `admin@example.com`). The full-stack launcher generates a private random value for `BOOTSTRAP_ADMIN_PASSWORD` and writes it only to the local `.env`; use that value to sign in, then change the password through the account password-reset flow. `.env.example` intentionally contains a placeholder rather than a shared demo password, and `.env` is ignored by Git. There are no shared hosted admin credentials: create your own account through signup and have a trusted operator grant Platform Admin access to that account against the production database. Existing Platform Admin accounts are not overwritten if local bootstrap variables later change.
 
 For local setup, copy `.env.example` to `.env` and run `start.bat` on Windows or `bash start.sh` on macOS/Linux. The launcher generates local secrets and the first admin password on first run; retrieve the password from `.env`. Never commit or send that file.
 

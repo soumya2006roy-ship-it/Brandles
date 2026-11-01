@@ -21,6 +21,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [resetToken, setResetToken] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (mode === "reset") {
@@ -93,11 +94,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
         <label className="form-field">{t("auth.email")}<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>
         <label className="form-field">{t("auth.recoveryQuestion")}<select name="recovery_question" required defaultValue=""><option value="" disabled>{t("auth.chooseRecoveryQuestion")}</option>{recoveryQuestions.map(([value, label]) => <option value={value} key={value}>{t(label)}</option>)}</select></label>
         <label className="form-field">{t("auth.recoveryAnswer")}<input name="recovery_answer" autoComplete="off" required minLength={2} maxLength={200}/></label>
-        <label className="form-field">{t("auth.newPassword")}<input name="password" type="password" autoComplete="new-password" required minLength={12} maxLength={128}/></label>
+        <PasswordField label={t("auth.newPassword")} showPassword={showPassword} setShowPassword={setShowPassword} t={t}/>
         <p className="field-help">{t("auth.recoveryHint")}</p>
       </>}
       {mode === "reset" && !resetToken && <label className="form-field">{t("auth.resetToken")}<input name="token" autoComplete="off" required minLength={20}/></label>}
-      {(mode === "login" || mode === "register" || mode === "reset") && <label className="form-field">{mode === "reset" ? t("auth.newPassword") : t("auth.password")}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={mode === "login" ? 1 : 12} maxLength={128}/></label>}
+      {(mode === "login" || mode === "register" || mode === "reset") && <PasswordField label={mode === "reset" ? t("auth.newPassword") : t("auth.password")} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "login" ? 1 : 12} showPassword={showPassword} setShowPassword={setShowPassword} t={t}/>}
       {mode === "login" && <p className="auth-message auth-note" role="note">{t("auth.adminHint")}</p>}
       {error && <p className="auth-message auth-error" role="alert">{error}</p>}
       {message && <p className="auth-message auth-success" role="status">{message}</p>}
@@ -114,4 +115,15 @@ export function AuthForm({ mode }: { mode: Mode }) {
       <Link href="/">{t("auth.publicSite")}</Link>
     </nav>
   </div></main>;
+}
+
+function PasswordField({ label, autoComplete = "new-password", minLength = 12, showPassword, setShowPassword, t }: {
+  label: string;
+  autoComplete?: string;
+  minLength?: number;
+  showPassword: boolean;
+  setShowPassword: (show: boolean) => void;
+  t: (key: string) => string;
+}) {
+  return <div className="form-field"><label htmlFor="auth-password">{label}</label><div className="password-field-control"><input id="auth-password" name="password" type={showPassword ? "text" : "password"} autoComplete={autoComplete} required minLength={minLength} maxLength={128}/><button className="password-visibility-toggle" type="button" aria-controls="auth-password" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{t(showPassword ? "auth.hidePassword" : "auth.showPassword")}</button></div></div>;
 }
