@@ -93,7 +93,7 @@ export function BrandHealthDashboard({ organizationId }: { organizationId: strin
   }, [loadData]);
 
   function exportCsv() {
-    if (!data) return;
+    if (!data || data.summary.scans === 0) return;
     const rows: unknown[][] = [["section", "name", "value", "detail"],
       ["summary", "compliance_score", data.summary.compliance_score ?? "No completed scans", "percent"],
       ["summary", "open_findings", data.summary.open_findings, `${data.summary.open_findings_percentage}% of findings`],
@@ -126,7 +126,7 @@ export function BrandHealthDashboard({ organizationId }: { organizationId: strin
       <label className="form-field">Campaign<select value={draft.campaign} onChange={(event) => setDraft({ ...draft, campaign: event.target.value })}><option value="">All campaigns</option>{campaignOptions.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}</select></label>
       <label className="form-field">Content type<select value={draft.content} onChange={(event) => setDraft({ ...draft, content: event.target.value })}><option value="">All content</option><option value="text">Text</option><option value="image">Image</option><option value="document">Document</option></select></label>
       <label className="form-field">Severity<select value={draft.severity} onChange={(event) => setDraft({ ...draft, severity: event.target.value })}><option value="">All severities</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
-      <div className="analytics-filter-actions"><button type="submit" className="button button-primary">Apply filters</button><button type="button" className="button secondary-button" onClick={exportCsv} disabled={!data}>Export CSV</button></div>
+      <div className="analytics-filter-actions"><button type="submit" className="button button-primary">Apply filters</button><button type="button" className="button secondary-button" onClick={exportCsv} disabled={!data || data.summary.scans === 0}>Export CSV</button></div>
     </form>
     {loading ? <section className="workspace-section" aria-live="polite"><p>Loading brand health data…</p><div className="workspace-skeleton"><div/><div/><div/></div></section> : error ? <section className="workspace-section"><p className="auth-message auth-error" role="alert">{error}</p><button type="button" className="button secondary-button" onClick={() => { setLoading(true); void loadData(); }}>Try again</button></section> : !data || data.summary.scans === 0 ? <section className="workspace-empty" role="status"><h2>No scan data in this range</h2><p>Try a wider date range or run a scan on one of your campaigns.</p><Link className="button secondary-button" href={`/app/organisations/${organizationId}/campaigns`}>View campaigns</Link></section> : <>
       <section className="analytics-kpis" aria-label="Brand health summary">
