@@ -2,7 +2,7 @@ const origin = (process.env.BRANDLENS_SITE_URL ?? "http://127.0.0.1:3000").repla
 const routes = [
   "/", "/problem", "/how-it-works", "/campaign-consistency-graph", "/features", "/roles",
   "/security", "/roadmap", "/contact", "/privacy", "/cookies", "/login", "/sign-up", "/signup", "/org/create", "/join",
-  "/verify-email", "/forgot-password", "/reset-password", "/app", "/app/invite",
+  "/forgot-password", "/reset-password", "/app", "/app/invite",
   "/app/organisations/new", "/app/admin/verifications", "/app/account/sessions",
 ];
 const failures = [];

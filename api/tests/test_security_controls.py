@@ -107,7 +107,7 @@ def test_request_id_health_readiness_and_metrics(client, monkeypatch):
 
 def test_auth_request_rejects_mass_assignment(client):
     response = client.post("/api/v1/auth/register", json={"email": "strict@example.com", "display_name": "Strict User", "password": "Secure-password-123", "recovery_question": "first_pet", "recovery_answer": "Milo", "is_platform_admin": True})
-    assert response.status_code == 422
+    assert response.status_code == 400
 
 
 def test_judgement_prompt_marks_assets_and_sources_as_untrusted():

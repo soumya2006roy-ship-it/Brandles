@@ -3,6 +3,7 @@ import re
 import uuid
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, PlainTextResponse
 from redis import Redis
@@ -41,6 +42,13 @@ app = FastAPI(
     redoc_url=None,
     openapi_url="/api/openapi.json",
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error(_request: Request, exc: RequestValidationError):
+    # Keep validation responses concise; errors may otherwise include submitted input values.
+    errors = [{"loc": error.get("loc", []), "msg": error.get("msg", "Invalid value"), "type": error.get("type", "value_error")} for error in exc.errors()]
+    return JSONResponse(status_code=400, content={"detail": errors})
 
 
 def custom_openapi() -> dict:
@@ -106,7 +114,7 @@ async def check_browser_origin(request: Request, call_next):
         response = await call_next(request)
     except Exception:
         increment("http_errors_total")
-        log_json(logger, "request_failed", request_id=request_id, method=request.method, path=request.url.path, status_code=500)
+        logger.exception("Unhandled API request failure", extra={"request_id": request_id, "method": request.method, "path": request.url.path, "status_code": 500})
         raise
     duration = request_started() - started
     increment("http_requests_total")
@@ -145,11 +153,11 @@ def readiness():
             connection.execute(text("SELECT 1"))
         checks["database"] = True
     except Exception:
-        pass
+        logger.exception("Database readiness check failed")
     try:
         checks["redis"] = bool(Redis.from_url(settings.redis_url, socket_connect_timeout=0.5, socket_timeout=0.5).ping())
     except Exception:
-        pass
+        logger.exception("Redis readiness check failed")
     if not all(checks.values()):
         return JSONResponse(status_code=503, content={"status": "not_ready", "checks": checks})
     return {"status": "ready", "checks": checks}

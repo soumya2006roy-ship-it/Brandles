@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from hashlib import blake2b
 from io import BytesIO
+import logging
 import re
 import unicodedata
 import zipfile
@@ -14,6 +15,7 @@ MAX_SOURCE_BYTES = 20 * 1024 * 1024
 CHUNK_CHARACTERS = 1400
 CHUNK_OVERLAP = 180
 EMBEDDING_DIMENSIONS = 1536
+logger = logging.getLogger("brandlens.documents")
 
 
 @dataclass(frozen=True)
@@ -87,6 +89,7 @@ def extract_document(file_type: str, contents: bytes) -> list[ExtractedBlock]:
     except HTTPException:
         raise
     except Exception as exc:
+        logger.exception("Source document parsing failed")
         raise HTTPException(status_code=422, detail="The file could not be parsed. Check that it is a valid, readable document.") from exc
     normalized = [ExtractedBlock(clean_text(block.text).strip(), block.page_number, block.location_label) for block in blocks]
     normalized = [block for block in normalized if block.text]

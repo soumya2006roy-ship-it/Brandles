@@ -27,6 +27,32 @@ test("account entry points expose real sign-in and organisation flows", async ({
   await expect(page).toHaveURL(/\/login$/);
 });
 
+test("signup submits the expected fields and password visibility toggles", async ({ page }) => {
+  const submitted: string[] = [];
+  await page.route("**/api/product/auth/register", async (route) => {
+    submitted.push("register");
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ message: "Your account is ready. Sign in to continue." }) });
+  });
+  await page.route("**/api/product/auth/login", async (route) => {
+    submitted.push("login");
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: { id: "qa-user", email: "qa@example.com" } }) });
+  });
+  await page.goto("/sign-up");
+  await page.getByLabel(/your name/i).fill("Zoë QA");
+  await page.getByLabel(/work email/i).fill("qa@example.com");
+  await page.getByLabel(/recovery question/i).selectOption("first_pet");
+  await page.getByLabel(/recovery answer/i).fill("Milo");
+  const password = page.getByLabel(/^password$/i);
+  await password.fill("Strong-password-123");
+  await page.getByRole("button", { name: /show password/i }).click();
+  await expect(password).toHaveAttribute("type", "text");
+  await expect(page.getByRole("button", { name: /hide password/i })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: /hide password/i }).click();
+  await expect(password).toHaveAttribute("type", "password");
+  await page.getByRole("button", { name: /create account/i }).click();
+  await expect.poll(() => submitted).toEqual(["register", "login"]);
+});
+
 test("retired workspace address is not served or indexed", async ({ page, request }) => {
   const response = await request.get("/demo");
   expect(response.status()).toBe(404);

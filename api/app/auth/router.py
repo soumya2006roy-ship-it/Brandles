@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select, update
@@ -14,6 +15,7 @@ from app.core.security import as_utc, digest_secret, expires_in, hash_password, 
 from app.db.models import AuditEvent, AuthToken, Membership, SessionRecord, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger("brandlens.auth")
 _dummy_password_hash = hash_password("not-a-real-account-password")
 _dummy_recovery_hash = hash_password("not-a-real-recovery-answer")
 
@@ -50,7 +52,7 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     normalized_email = str(payload.email).strip().lower()
     existing = db.scalar(select(User).where(User.email_normalized == normalized_email))
     if existing:
-        return {"message": "If this address can be registered, the account will be ready to sign in."}
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists.")
     user = User(email=str(payload.email).strip(), email_normalized=normalized_email, display_name=payload.display_name, password_hash=hash_password(payload.password), recovery_question=payload.recovery_question, recovery_answer_hash=hash_password(_normalize_recovery_answer(payload.recovery_answer)))
     db.add(user)
     db.flush()
@@ -113,6 +115,7 @@ def request_password_reset(payload: PasswordResetRequest, request: Request, db: 
         try:
             sender.send(OutboundEmail(user.email, "Reset your BrandLens password", f"Use this single-use link to reset your password: {reset_url}\n\nIf you did not request a reset, ignore this message."))
         except Exception:
+            logger.exception("Password reset email delivery failed")
             pass
     return {"message": "If an account exists for that address, a password reset link will arrive shortly."}
 

@@ -43,7 +43,8 @@ export async function POST(request: Request) {
       offset += chunk.byteLength;
     }
     raw = JSON.parse(new TextDecoder().decode(body));
-  } catch {
+  } catch (error) {
+    console.error("Unable to read contact form submission", error);
     return NextResponse.json({ message: "We couldn’t read that submission. Please try again." }, { status: 400 });
   }
 
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ message: "Thanks : your message is on its way. We’ve sent a confirmation to your email." });
   } catch (error) {
-    console.error("Contact email delivery failed", error instanceof Error ? error.name : "unknown error");
+    console.error("Contact email delivery failed", error);
     return NextResponse.json({ message: "We couldn’t deliver your message just now. Please try again later." }, { status: 502 });
   }
 }

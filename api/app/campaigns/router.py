@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
 from io import BytesIO
+import logging
 from pathlib import Path
 import re
 from uuid import uuid4
@@ -29,6 +30,7 @@ from app.checks.judgement import retrieve_top_passages
 from app.core.rate_limit import client_ip, enforce_rate_limit
 
 router = APIRouter(tags=["campaigns-and-assets"])
+logger = logging.getLogger("brandlens.campaigns")
 MAX_PASTED_TEXT_CHARACTERS = 200_000
 
 
@@ -214,6 +216,7 @@ def _extract_asset_text(sniffed, contents: bytes) -> tuple[str | None, str]:
         try:
             return ocr.extract(sniffed.normalized_bytes), "complete"
         except Exception:
+            logger.exception("Optional OCR extraction failed")
             return None, "failed"
     if sniffed.text is not None:
         return sniffed.text, "complete"
@@ -611,6 +614,7 @@ def create_campaign_scan(org_id: str, campaign_id: str, request: Request, member
     try:
         enqueue("campaign_scan", {"organization_id": org_id, "scan_id": scan.id})
     except Exception as exc:
+        logger.exception("Campaign scan enqueue failed")
         scan.status = "failed"
         scan.completed_at = datetime.now(UTC)
         db.add(AuditEvent(organization_id=org_id, actor_user_id=membership.user_id, action="campaign.scan_queue_failed", entity_type="scan", entity_id=scan.id, details={"reason": "Background queue unavailable."}))
@@ -660,6 +664,7 @@ def resume_campaign_scan(org_id: str, campaign_id: str, scan_id: str, membership
     try:
         enqueue("campaign_scan", {"organization_id": org_id, "scan_id": scan.id})
     except Exception as exc:
+        logger.exception("Campaign scan resume enqueue failed")
         scan.status = "failed"
         scan.completed_at = datetime.now(UTC)
         db.commit()

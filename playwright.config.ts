@@ -11,6 +11,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER ? undefined : {
     command: "npm run dev -- --hostname 127.0.0.1",
     url: "http://127.0.0.1:3000",
+    env: { REDIS_URL: "" },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

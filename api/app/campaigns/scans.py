@@ -2,6 +2,7 @@
 
 import re
 import json
+import logging
 import time
 from decimal import Decimal, InvalidOperation
 from hashlib import sha256
@@ -19,6 +20,8 @@ from app.core.config import get_settings
 from app.observability import increment
 from app.assets.visual import visual_findings
 from app.storage.factory import get_storage
+
+logger = logging.getLogger("brandlens.scans")
 
 PERCENT_RE = re.compile(r"(?<!\w)(\d{1,3}(?:\.\d+)?)\s*%")
 CLAIM_CUES = re.compile(r"\b(?:claim|cure[sd]?|treat[sd]?|prevent[sd]?|clinically proven|proven|guarantee[sd]?|eliminate[sd]?|reduce[sd]?|improve[sd]?|safe|effective|dermatologist[- ]tested)\b|दावा|ठीक|इलाज|गारंटी|प्रमाणित|सुरक्षित|प्रभावी", re.IGNORECASE)
@@ -151,6 +154,7 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                     scan.model_version = llm_client.model
                 except Exception:
                     # Any unavailable provider is handled as human verification below.
+                    logger.exception("Optional LLM provider initialization failed; scan will use human verification")
                     llm_client = None
             scan.prompt_version = JUDGEMENT_PROMPT_VERSION
             # Persist immutable scan inputs before refreshing cancellation state in the loop.
@@ -309,6 +313,7 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
                             raw = llm_client.judge(JUDGEMENT_TASK_INSTRUCTIONS, retrieved, claim)
                             result = parse_judgement(raw, asset_text=claim, retrieved=retrieved)
                         except Exception:
+                            logger.exception("Optional LLM judgement failed; finding requires human verification")
                             result = None
                         latency_ms = round((time.monotonic() - started) * 1000)
                     if llm_client and retrieved and judgement_count <= get_settings().scan_max_claims:
@@ -364,6 +369,7 @@ def execute_campaign_scan(organization_id: str, scan_id: str) -> None:
             db.add(AuditEvent(organization_id=organization_id, actor_user_id=scan.requested_by, action="campaign.scan_completed", entity_type="scan", entity_id=scan.id, details={"finding_count": len(findings), "asset_count": len(assets), "checks": "deterministic-rules-and-cross-asset-percentage-comparison"}))
             db.commit()
         except Exception:
+            logger.exception("Campaign scan execution failed")
             db.rollback()
             failed = db.scalar(select(Scan).where(Scan.organization_id == organization_id, Scan.id == scan_id))
             if failed:

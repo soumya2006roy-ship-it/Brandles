@@ -15,7 +15,8 @@ export default async function ProductLayout({ children }: Readonly<{ children: R
       headers: { cookie: `${cookieName}=${encodeURIComponent(session)}` },
       cache: "no-store",
     });
-  } catch {
+  } catch (error) {
+    console.error("BrandLens session verification request failed", error);
     return <main className="page-shell"><p role="alert">The BrandLens API is unavailable. Try again when the service is ready.</p></main>;
   }
   if (response.status === 401) redirect("/login");

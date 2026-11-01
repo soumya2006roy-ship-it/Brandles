@@ -31,7 +31,8 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     }
     const body = upstream.status === 204 || upstream.status === 304 ? null : await upstream.arrayBuffer();
     return new Response(body, { status: upstream.status, headers: responseHeaders });
-  } catch {
+  } catch (error) {
+    console.error("BrandLens backend proxy request failed", error);
     return Response.json({ detail: "The BrandLens service is unavailable." }, { status: 503 });
   }
 }

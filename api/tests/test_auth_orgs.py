@@ -50,6 +50,28 @@ def test_registration_needs_no_email_verification_and_password_reset_is_single_u
     assert client.post("/api/v1/auth/login", json={"email": "creator@example.com", "password": "New-password-456"}).status_code == 200
 
 
+def test_registration_validation_duplicates_unicode_and_recovery_answer_hashing(client, mailer):
+    payload = {
+        "email": "unicode@example.com",
+        "display_name": "Zoë 東京",
+        "password": "Secure-password-123",
+        "recovery_question": "first_pet",
+        "recovery_answer": "Milo",
+    }
+    created = client.post("/api/v1/auth/register", json=payload)
+    assert created.status_code == 201
+    with next(app.dependency_overrides[get_db]()) as db:
+        user = db.scalar(select(User).where(User.email_normalized == payload["email"]))
+        assert user.display_name == payload["display_name"]
+        assert user.recovery_answer_hash != payload["recovery_answer"]
+        assert user.recovery_answer_hash
+
+    assert client.post("/api/v1/auth/register", json=payload).status_code == 409
+    assert client.post("/api/v1/auth/register", json={**payload, "email": "not-an-email"}).status_code == 400
+    assert client.post("/api/v1/auth/register", json={**payload, "email": "weak@example.com", "password": "short"}).status_code == 400
+    assert client.post("/api/v1/auth/register", json={"email": "empty@example.com"}).status_code == 400
+
+
 def test_recovery_question_resets_password_and_revokes_sessions(client, mailer):
     password = register_user(client, mailer, email="recovery@example.com")
     login = client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": password})
