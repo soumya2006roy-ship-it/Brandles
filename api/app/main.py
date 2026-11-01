@@ -1,6 +1,7 @@
 import logging
 import re
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -10,6 +11,7 @@ from redis import Redis
 from sqlalchemy import text
 
 from app.auth.router import router as auth_router
+from app.auth.bootstrap import bootstrap_platform_admin
 from app.orgs.settings_router import router as organization_settings_router
 from app.core.config import get_settings
 from app.orgs.router import router as org_router
@@ -17,7 +19,7 @@ from app.storage.router import router as private_files_router
 from app.sources.router import router as sources_router
 from app.campaigns.router import router as campaigns_router
 from app.observability import increment, log_json, metric_snapshot, request_started
-from app.core.db import engine
+from app.core.db import SessionLocal, engine
 
 settings = get_settings()
 logger = logging.getLogger("brandlens.api")
@@ -34,6 +36,21 @@ if settings.is_production:
     if not settings.session_cookie_secure:
         raise RuntimeError("SESSION_COOKIE_SECURE must be true in production")
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if settings.is_production:
+        with SessionLocal() as db:
+            created = bootstrap_platform_admin(
+                db,
+                settings.bootstrap_admin_email,
+                settings.bootstrap_admin_password,
+                required=True,
+            )
+        if created:
+            logger.info("Initial platform administrator created; remove bootstrap credentials from the service environment")
+    yield
+
+
 app = FastAPI(
     title="BrandLens API",
     version="0.1.0",
@@ -41,6 +58,7 @@ app = FastAPI(
     docs_url="/docs" if not settings.is_production else None,
     redoc_url=None,
     openapi_url="/api/openapi.json",
+    lifespan=lifespan,
 )
 
 

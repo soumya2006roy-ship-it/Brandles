@@ -42,7 +42,7 @@ The API docs are available at `http://localhost:8000/docs`. Signup and invite ro
 
 ### Platform administrator
 
-For a clean local database, the launcher reads `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env`, creates a development administrator if no platform administrator exists, and records the action. Change its generated password after signing in. Platform administrator status in a deployed environment should be granted only by a trusted operator with production database access. Create the account through the deployed signup page, then promote it from a trusted operator environment connected to the production database. Never put admin passwords or database URLs in this README, source control, or screenshots. To promote an existing account, run:
+For a clean local database, the launcher reads `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env` and creates a development administrator if none exists. For a first production deployment without shell access, set `APP_ENV=production`, `BOOTSTRAP_ADMIN_EMAIL`, and a private `BOOTSTRAP_ADMIN_PASSWORD` of at least 20 characters in the API service environment before its first start. The API creates and audits the first administrator only when none exists; it never changes an existing administrator. Remove the bootstrap credentials from the service environment after the first administrator is created, then sign in and change the password. If no administrator exists and credentials are missing or still use the example values, the API fails startup with an actionable error. Never put admin passwords or database URLs in this README, source control, or screenshots. To promote another existing account later, run:
 
 ```powershell
 Set-Location api
@@ -53,7 +53,7 @@ The same CLI supports `revoke-platform-admin`. The verification dashboard is at 
 
 ## Admin Login
 
-For a new local database, the admin email is read from `BOOTSTRAP_ADMIN_EMAIL` in `.env` (the starter value is `admin@example.com`). The full-stack launcher generates a private random value for `BOOTSTRAP_ADMIN_PASSWORD` and writes it only to the local `.env`; use that value to sign in, then change the password through the account password-reset flow. `.env.example` intentionally contains a placeholder rather than a shared demo password, and `.env` is ignored by Git. There are no shared hosted admin credentials: create your own account through signup and have a trusted operator grant Platform Admin access to that account against the production database. Existing Platform Admin accounts are not overwritten if local bootstrap variables later change.
+For local setup, the full-stack launcher generates a private random value for `BOOTSTRAP_ADMIN_PASSWORD` and writes it only to the local `.env`; use that value to sign in, then change the password through the account password-reset flow. `.env.example` intentionally contains a placeholder rather than a shared demo password, and `.env` is ignored by Git. For a hosted first deployment, configure the two bootstrap variables as service secrets, deploy once, sign in with them, then remove them from the service environment. Existing Platform Admin accounts are not overwritten if bootstrap variables later change.
 
 For local setup, copy `.env.example` to `.env` and run `start.bat` on Windows or `bash start.sh` on macOS/Linux. The launcher generates local secrets and the first admin password on first run; retrieve the password from `.env`. Never commit or send that file.
 
@@ -65,7 +65,7 @@ For local setup, copy `.env.example` to `.env` and run `start.bat` on Windows or
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL`, `BRANDLENS_BACKEND_URL`, `FRONTEND_ORIGIN` | Canonical metadata origin and private Next-to-FastAPI routing |
 | `APP_ENV`, `APP_SECRET_KEY`, `SESSION_*` | Runtime mode, signing secret, and secure session cookie settings |
-| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | Local first-run platform administrator; the launcher generates a random password only when it creates a new `.env` |
+| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | First-run platform administrator; local launcher generates a random password, while hosted deployments may set private values for the first API startup and should remove them once an admin exists |
 | `DATABASE_URL`, `REDIS_URL`, `TRUSTED_PROXY_CIDRS` | PostgreSQL/pgvector, shared API/contact rate limits and job queue, and explicitly trusted API reverse-proxy peers (comma-separated CIDRs; configure only when the ingress sanitizes forwarded IP headers) |
 | `EMAIL_PROVIDER`, `RESEND_*`, `SMTP_*` | Password-reset, invite, workspace notification, and contact messages; use SMTP/Mailpit locally or Resend for deployment |
 | `CONTACT_*` | Marketing contact form sender, team recipient, and reply-to |
