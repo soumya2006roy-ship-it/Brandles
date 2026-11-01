@@ -688,6 +688,7 @@ button:active:not(:disabled), a:active { transform: translateY(1px); }
   .product-main { width: min(100% - 40px, 1120px); }
 }
 @media (max-width: 560px) {
+  .consent-region { position: static; width: min(450px, calc(100vw - 24px)); margin: 18px auto; }
   .product-header { min-height: 66px; padding: 10px 14px; }
   .product-brand-mark { width: 34px; height: 34px; }
   .product-header-actions { gap: 7px; }
