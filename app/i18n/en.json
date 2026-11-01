@@ -65,7 +65,7 @@
     "title": "Campaigns", "intro": "Plan a campaign window and the channels whose assets will be reviewed together.",
     "new": "New campaign", "scope": "Set campaign scope", "name": "Campaign name", "channels": "Channels",
     "starts": "Starts on", "ends": "Ends on", "contentLanguage": "Asset language", "create": "Create campaign", "creating": "Creating…",
-    "created": "Campaign created. Add a text asset or upload a file for each campaign channel.", "createError": "Could not create this campaign.",
+    "created": "Campaign created. Add a text asset or upload a file for each campaign channel.", "createError": "Could not create this campaign.", "channelRequired": "Select at least one channel.",
     "register": "Campaign register", "current": "Current campaigns", "none": "No campaigns yet", "noneHint": "Create a campaign to start collecting channel assets.",
     "loading": "Loading campaigns", "healthLink": "Campaign health →", "noStart": "No start", "noEnd": "No end"
   }

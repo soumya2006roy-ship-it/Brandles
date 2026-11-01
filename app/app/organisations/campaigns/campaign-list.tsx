@@ -38,6 +38,10 @@ export function CampaignList({ organizationId }: { organizationId: string }) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    if (form.getAll("channels").length === 0) {
+      setError(t("campaigns.channelRequired"));
+      return;
+    }
     setError(""); setNotice(""); setBusy(true);
     try {
       const campaign = await apiRequest<Campaign>(`orgs/${organizationId}/campaigns`, { method: "POST", body: JSON.stringify({ name: form.get("name"), channels: form.getAll("channels"), starts_at: form.get("starts_at") || null, ends_at: form.get("ends_at") || null, language: form.get("language") }) });
