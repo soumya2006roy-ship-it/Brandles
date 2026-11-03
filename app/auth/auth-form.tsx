@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { apiRequest } from "@/app/lib/api-client";
+import { ApiError, apiRequest } from "@/app/lib/api-client";
 import { LanguageSelect, useLocale } from "@/app/i18n";
 
 type Mode = "login" | "register" | "forgot" | "forgot-question" | "reset";
@@ -14,9 +13,23 @@ const recoveryQuestions = [
   ["first_pet", "auth.recoveryFirstPet"],
 ] as const;
 
+const transientLoginRetryDelays = [500, 1_000, 2_000, 4_000, 8_000, 16_000, 20_000];
+
+async function loginWithRetry(email: string, password: string) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await apiRequest("auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    } catch (cause) {
+      const retryable = cause instanceof TypeError || (cause instanceof ApiError && [502, 503, 504].includes(cause.status));
+      const delay = transientLoginRetryDelays[attempt];
+      if (!retryable || delay === undefined) throw cause;
+      await new Promise<void>((resolve) => window.setTimeout(resolve, delay));
+    }
+  }
+}
+
 export function AuthForm({ mode }: { mode: Mode }) {
   const { t } = useLocale();
-  const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -43,13 +56,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
     try {
       if (mode === "register") {
         await apiRequest("auth/register", { method: "POST", body: JSON.stringify({ email, display_name: form.get("display_name"), password: form.get("password"), recovery_question: form.get("recovery_question"), recovery_answer: form.get("recovery_answer") }) });
-        await apiRequest("auth/login", { method: "POST", body: JSON.stringify({ email, password: form.get("password") }) });
-        router.replace("/app");
-        router.refresh();
+        await loginWithRetry(email, String(form.get("password") ?? ""));
+        window.location.replace("/app");
       } else if (mode === "login") {
-        await apiRequest("auth/login", { method: "POST", body: JSON.stringify({ email, password: form.get("password") }) });
-        router.replace("/app");
-        router.refresh();
+        await loginWithRetry(email, String(form.get("password") ?? ""));
+        window.location.replace("/app");
       } else if (mode === "forgot") {
         const result = await apiRequest<{ message: string }>("auth/password-reset", { method: "POST", body: JSON.stringify({ email }) });
         setMessage(result.message);
