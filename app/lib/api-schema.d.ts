@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/password-reset/confirm/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Validate Password Reset Token */
+        get: operations["validate_password_reset_token_api_v1_auth_password_reset_confirm_validate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/sessions": {
         parameters: {
             query?: never;
@@ -1779,8 +1796,13 @@ export interface components {
             recovery_question: "first_school" | "birth_city" | "first_pet";
             /** Recovery Answer */
             recovery_answer: string;
-            /** Password */
-            password: string;
+        };
+        /** RecoveryTokenResponse */
+        RecoveryTokenResponse: {
+            /** Reset Token */
+            reset_token: string | null;
+            /** Message */
+            message: string;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -1800,6 +1822,11 @@ export interface components {
             recovery_question: "first_school" | "birth_city" | "first_pet";
             /** Recovery Answer */
             recovery_answer: string;
+        };
+        /** ResetTokenValidation */
+        ResetTokenValidation: {
+            /** Valid */
+            valid: boolean;
         };
         /** RetentionSettings */
         RetentionSettings: {
@@ -2355,7 +2382,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RecoveryTokenResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2389,6 +2416,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_password_reset_token_api_v1_auth_password_reset_confirm_validate_get: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetTokenValidation"];
                 };
             };
             /** @description Validation Error */

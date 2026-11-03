@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/app/lib/api-client";
 import { LanguageSelect, useLocale } from "@/app/i18n";
 
-type Mode = "login" | "register" | "forgot" | "forgot-question" | "reset";
+type Mode = "login" | "register" | "forgot-question" | "reset";
 
 const recoveryQuestions = [
   ["first_school", "auth.recoveryFirstSchool"],
@@ -28,18 +29,18 @@ async function loginWithRetry(email: string, password: string) {
   }
 }
 
-export function AuthForm({ mode }: { mode: Mode }) {
+export function AuthForm({ mode, initialResetToken = "" }: { mode: Mode; initialResetToken?: string }) {
+  const router = useRouter();
   const { t } = useLocale();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
-  const [resetToken, setResetToken] = useState("");
+  const [resetToken] = useState(initialResetToken);
 
   useEffect(() => {
     if (mode === "reset") {
       const timer = window.setTimeout(() => {
         const url = new URL(window.location.href);
-        setResetToken(url.searchParams.get("token") ?? "");
         if (url.searchParams.has("token")) window.history.replaceState(null, "", "/reset-password");
       }, 0);
       return () => window.clearTimeout(timer);
@@ -61,15 +62,17 @@ export function AuthForm({ mode }: { mode: Mode }) {
       } else if (mode === "login") {
         await loginWithRetry(email, String(form.get("password") ?? ""));
         window.location.replace("/app");
-      } else if (mode === "forgot") {
-        const result = await apiRequest<{ message: string }>("auth/password-reset", { method: "POST", body: JSON.stringify({ email }) });
-        setMessage(result.message);
       } else if (mode === "forgot-question") {
-        const result = await apiRequest<{ message: string }>("auth/password-reset/recovery-question", { method: "POST", body: JSON.stringify({ email, recovery_question: form.get("recovery_question"), recovery_answer: form.get("recovery_answer"), password: form.get("password") }) });
-        setMessage(result.message);
+        const result = await apiRequest<{ reset_token: string | null }>("auth/password-reset/recovery-question", { method: "POST", body: JSON.stringify({ email, recovery_question: form.get("recovery_question"), recovery_answer: form.get("recovery_answer") }) });
+        if (!result.reset_token) setError(t("auth.recoveryMismatch"));
+        else router.replace(`/reset-password?token=${encodeURIComponent(result.reset_token)}`);
       } else {
-        const token = resetToken || String(form.get("token") ?? "");
-        await apiRequest("auth/password-reset/confirm", { method: "POST", body: JSON.stringify({ token, password: form.get("password") }) });
+        const password = String(form.get("password") ?? "");
+        if (password !== form.get("confirm_password")) {
+          setError(t("auth.passwordMismatch"));
+          return;
+        }
+        await apiRequest("auth/password-reset/confirm", { method: "POST", body: JSON.stringify({ token: resetToken, password }) });
         setMessage(t("auth.resetSuccess"));
       }
     } catch (cause) {
@@ -82,14 +85,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const titles: Record<Mode, string> = {
     login: t("auth.loginTitle"),
     register: t("auth.registerTitle"),
-    forgot: t("auth.forgotTitle"),
     "forgot-question": t("auth.recoveryTitle"),
     reset: t("auth.resetTitle"),
   };
   const descriptions: Record<Mode, string> = {
     login: t("auth.loginDescription"),
     register: t("auth.registerDescription"),
-    forgot: t("auth.forgotDescription"),
     "forgot-question": t("auth.recoveryDescription"),
     reset: t("auth.resetDescription"),
   };
@@ -97,29 +98,25 @@ export function AuthForm({ mode }: { mode: Mode }) {
   return <main className="auth-page"><div className="auth-panel"><div className="auth-locale-row"><p className="eyebrow">{t("auth.workspace")}</p><LanguageSelect/></div><h1>{titles[mode]}</h1><p className="auth-description">{descriptions[mode]}</p>
     <form className="auth-form" onSubmit={submit}>
       {mode === "register" && <label className="form-field">{t("auth.name")}<input name="display_name" autoComplete="name" required minLength={2} maxLength={120}/></label>}
-      {(mode === "login" || mode === "register" || mode === "forgot") && <label className="form-field">{t("auth.email")}<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>}
+      {(mode === "login" || mode === "register") && <label className="form-field">{t("auth.email")}<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>}
       {mode === "register" && <label className="form-field">{t("auth.recoveryQuestion")}<select name="recovery_question" required defaultValue=""><option value="" disabled>{t("auth.chooseRecoveryQuestion")}</option>{recoveryQuestions.map(([value, label]) => <option value={value} key={value}>{t(label)}</option>)}</select></label>}
       {mode === "register" && <><label className="form-field">{t("auth.recoveryAnswer")}<input name="recovery_answer" autoComplete="off" required minLength={2} maxLength={200}/></label><p className="field-help">{t("auth.recoveryHint")}</p></>}
       {mode === "forgot-question" && <>
         <label className="form-field">{t("auth.email")}<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>
         <label className="form-field">{t("auth.recoveryQuestion")}<select name="recovery_question" required defaultValue=""><option value="" disabled>{t("auth.chooseRecoveryQuestion")}</option>{recoveryQuestions.map(([value, label]) => <option value={value} key={value}>{t(label)}</option>)}</select></label>
         <label className="form-field">{t("auth.recoveryAnswer")}<input name="recovery_answer" autoComplete="off" required minLength={2} maxLength={200}/></label>
-        <PasswordField label={t("auth.newPassword")} t={t}/>
         <p className="field-help">{t("auth.recoveryHint")}</p>
       </>}
-      {mode === "reset" && !resetToken && <label className="form-field">{t("auth.resetToken")}<input name="token" autoComplete="off" required minLength={20}/></label>}
       {(mode === "login" || mode === "register" || mode === "reset") && <PasswordField label={mode === "reset" ? t("auth.newPassword") : t("auth.password")} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "login" ? 1 : 12} t={t}/>}
+      {mode === "reset" && <PasswordField name="confirm_password" id="auth-confirm-password" label={t("auth.confirmPassword")} t={t}/>}
       {mode === "login" && <p className="auth-message auth-note" role="note">{t("auth.adminHint")}</p>}
       {error && <p className="auth-message auth-error" role="alert">{error}</p>}
       {message && <p className="auth-message auth-success" role="status">{message}</p>}
-      <button className="button button-primary" type="submit" disabled={pending}>{pending ? t("auth.wait") : mode === "login" ? t("auth.signIn") : mode === "register" ? t("auth.submitRegister") : mode === "forgot" ? t("auth.sendReset") : t("auth.updatePassword")}</button>
+      <button className="button button-primary" type="submit" disabled={pending}>{pending ? t("auth.wait") : mode === "login" ? t("auth.signIn") : mode === "register" ? t("auth.submitRegister") : mode === "forgot-question" ? t("auth.recoveryVerify") : t("auth.updatePassword")}</button>
     </form>
     <nav className="auth-links" aria-label={t("auth.accountLinks")}>
       {mode === "login" && <><Link href="/sign-up">{t("auth.createAccount")}</Link><Link href="/forgot-password">{t("auth.forgot")}</Link></>}
       {mode === "register" && <Link href="/login">{t("auth.existingAccount")}</Link>}
-      {mode === "forgot" && <Link href="/login">{t("auth.returnSignIn")}</Link>}
-      {mode === "forgot" && <Link href="/reset-with-question">{t("auth.recoveryLink")}</Link>}
-      {mode === "forgot-question" && <Link href="/forgot-password">{t("auth.emailResetLink")}</Link>}
       {mode === "forgot-question" && <Link href="/login">{t("auth.returnSignIn")}</Link>}
       {mode === "reset" && <Link href="/login">{t("auth.returnSignIn")}</Link>}
       <Link href="/">{t("auth.publicSite")}</Link>
@@ -127,8 +124,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
   </div></main>;
 }
 
-function PasswordField({ label, autoComplete = "new-password", minLength = 12, t }: {
+function PasswordField({ label, name = "password", id = "auth-password", autoComplete = "new-password", minLength = 12, t }: {
   label: string;
+  name?: string;
+  id?: string;
   autoComplete?: string;
   minLength?: number;
   t: (key: string) => string;
@@ -146,5 +145,5 @@ function PasswordField({ label, autoComplete = "new-password", minLength = 12, t
     input.setSelectionRange(selection.current.start, selection.current.end, selection.current.direction ?? undefined);
   }
 
-  return <div className="form-field"><label htmlFor="auth-password">{label}</label><div className="password-field-control"><input ref={inputRef} id="auth-password" name="password" type={showPassword ? "text" : "password"} autoComplete={autoComplete} required minLength={minLength} maxLength={128}/><button className="password-visibility-toggle" type="button" aria-label={t(showPassword ? "auth.hidePassword" : "auth.showPassword")} aria-controls="auth-password" aria-pressed={showPassword} onPointerDown={(event) => event.preventDefault()} onMouseDown={(event) => event.preventDefault()} onClick={toggleVisibility}>{t(showPassword ? "auth.hidePassword" : "auth.showPassword")}</button></div></div>;
+  return <div className="form-field"><label htmlFor={id}>{label}</label><div className="password-field-control"><input ref={inputRef} id={id} name={name} type={showPassword ? "text" : "password"} autoComplete={autoComplete} required minLength={minLength} maxLength={128}/><button className="password-visibility-toggle" type="button" aria-label={t(showPassword ? "auth.hidePassword" : "auth.showPassword")} aria-controls={id} aria-pressed={showPassword} onPointerDown={(event) => event.preventDefault()} onMouseDown={(event) => event.preventDefault()} onClick={toggleVisibility}>{t(showPassword ? "auth.hidePassword" : "auth.showPassword")}</button></div></div>;
 }

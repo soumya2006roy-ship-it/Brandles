@@ -15,7 +15,7 @@ def test_postgres_migrations_and_append_only_audit_trigger():
     try:
         with engine.begin() as connection:
             revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0011_account_recovery_questions"
+            assert revision == "0012_question_gated_password_reset"
             version_length = connection.scalar(text("SELECT character_maximum_length FROM information_schema.columns WHERE table_name = 'alembic_version' AND column_name = 'version_num'"))
             assert version_length == 128
             user_columns = {row[0] for row in connection.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"))}

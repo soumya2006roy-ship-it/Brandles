@@ -5,12 +5,11 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import AuthContext, get_auth_context, get_current_user
-from app.auth.schemas import LoginRequest, PasswordResetConfirm, PasswordResetRequest, RecoveryPasswordReset, RegisterRequest, SessionResponse, UserResponse
+from app.auth.schemas import LoginRequest, PasswordResetConfirm, PasswordResetRequest, RecoveryPasswordReset, RecoveryTokenResponse, RegisterRequest, ResetTokenValidation, SessionResponse, UserResponse
 from app.core.config import get_settings
 from app.core.db import get_db
-from app.core.mail import EmailSender, OutboundEmail, get_email_sender
 from app.core.rate_limit import clear_login_failures, client_ip, enforce_login_delay, enforce_rate_limit, record_login_failure
-from app.core.security import as_utc, digest_secret, expires_in, hash_password, new_secret, verify_password
+from app.core.security import digest_secret, expires_in, hash_password, new_secret, verify_password
 from app.db.models import AuditEvent, AuthToken, Membership, SessionRecord, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -101,23 +100,13 @@ def me(user: User = Depends(get_current_user)):
 
 
 @router.post("/password-reset", status_code=status.HTTP_202_ACCEPTED)
-def request_password_reset(payload: PasswordResetRequest, request: Request, db: Session = Depends(get_db), sender: EmailSender = Depends(get_email_sender)):
+def request_password_reset(payload: PasswordResetRequest, request: Request, db: Session = Depends(get_db)):
     enforce_rate_limit(_client_key(request, "password-reset"), limit=5, window_seconds=3600)
-    email = str(payload.email).strip().lower()
-    user = db.scalar(select(User).where(User.email_normalized == email, User.is_active.is_(True)))
-    if user:
-        _record_auth_event(db, user, "auth.password_reset_requested")
-        token = _new_auth_token(db, user, "password_reset", get_settings().password_reset_ttl_minutes)
-        db.commit()
-        reset_url = f"{get_settings().frontend_origin.rstrip('/')}/reset-password?token={token}"
-        try:
-            sender.send(OutboundEmail(user.email, "Reset your BrandLens password", f"Use this single-use link to reset your password: {reset_url}\n\nIf you did not request a reset, ignore this message."))
-        except Exception:
-            pass
-    return {"message": "If an account exists for that address, a password reset link will arrive shortly."}
+    # Do not issue an email-only reset token: all password resets must pass the recovery challenge.
+    return {"message": "Continue with your account recovery question to reset your password."}
 
 
-@router.post("/password-reset/recovery-question", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/password-reset/recovery-question", status_code=status.HTTP_202_ACCEPTED, response_model=RecoveryTokenResponse)
 def reset_password_with_recovery_question(payload: RecoveryPasswordReset, request: Request, db: Session = Depends(get_db)):
     normalized_email = str(payload.email).strip().lower()
     enforce_rate_limit(_client_key(request, "password-reset-question"), limit=10, window_seconds=900)
@@ -125,13 +114,11 @@ def reset_password_with_recovery_question(payload: RecoveryPasswordReset, reques
     user = db.scalar(select(User).where(User.email_normalized == normalized_email, User.is_active.is_(True)))
     answer_hash = user.recovery_answer_hash if user and user.recovery_answer_hash else _dummy_recovery_hash
     correct_answer = verify_password(answer_hash, _normalize_recovery_answer(payload.recovery_answer))
+    reset_token = None
     if user and user.recovery_question == payload.recovery_question and user.recovery_answer_hash and correct_answer:
-        user.password_hash = hash_password(payload.password)
-        db.execute(update(SessionRecord).where(SessionRecord.user_id == user.id, SessionRecord.revoked_at.is_(None)).values(revoked_at=_now()))
-        _record_auth_event(db, user, "auth.password_recovery_question_completed")
+        reset_token = _new_auth_token(db, user, "password_reset_question", 10)
         db.commit()
-    # Keep account existence and recovery success out of the response body.
-    return {"message": "If the recovery details match, the password has been updated. Otherwise, check your answer or use the email reset option."}
+    return {"reset_token": reset_token, "message": "If the recovery details match, you can continue to reset your password."}
 
 
 @router.post("/password-reset/confirm")
@@ -139,10 +126,10 @@ def confirm_password_reset(payload: PasswordResetConfirm, request: Request, db: 
     enforce_rate_limit(_client_key(request, "password-reset-confirm"), limit=10, window_seconds=900)
     token_record = db.scalar(select(AuthToken).where(
         AuthToken.token_hash == digest_secret(payload.token),
-        AuthToken.purpose == "password_reset",
+        AuthToken.purpose == "password_reset_question",
         AuthToken.consumed_at.is_(None),
         AuthToken.expires_at > _now(),
-    ))
+    ).with_for_update())
     if not token_record:
         raise HTTPException(status_code=400, detail="This reset link is invalid or expired.")
     user = db.get(User, token_record.user_id)
@@ -150,10 +137,23 @@ def confirm_password_reset(payload: PasswordResetConfirm, request: Request, db: 
         raise HTTPException(status_code=400, detail="This reset link is invalid or expired.")
     user.password_hash = hash_password(payload.password)
     token_record.consumed_at = _now()
-    _record_auth_event(db, user, "auth.password_reset_completed")
+    _record_auth_event(db, user, "auth.password_recovery_question_completed")
     db.execute(update(SessionRecord).where(SessionRecord.user_id == user.id, SessionRecord.revoked_at.is_(None)).values(revoked_at=_now()))
     db.commit()
     return {"message": "Password updated. Sign in with your new password."}
+
+
+@router.get("/password-reset/confirm/validate", response_model=ResetTokenValidation)
+def validate_password_reset_token(token: str, request: Request, db: Session = Depends(get_db)):
+    enforce_rate_limit(_client_key(request, "password-reset-validate"), limit=30, window_seconds=900)
+    token_record = db.scalar(select(AuthToken).where(
+        AuthToken.token_hash == digest_secret(token),
+        AuthToken.purpose == "password_reset_question",
+        AuthToken.consumed_at.is_(None),
+        AuthToken.expires_at > _now(),
+    ))
+    user = db.get(User, token_record.user_id) if token_record else None
+    return {"valid": bool(user and user.is_active)}
 
 
 @router.get("/sessions", response_model=list[SessionResponse])

@@ -1,4 +1,4 @@
-from urllib.parse import parse_qs, urlparse
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 
 from docx import Document
@@ -8,8 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from app.core.db import get_db
-from app.core.security import digest_secret, hash_password
-from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
+from app.core.security import digest_secret, hash_password, new_secret
+from app.db.models import Asset, AuditEvent, AuthToken, BrandGuidelineSource, Campaign, Finding, Invite, Membership, Organization, PlatformAdmin, Rule, Scan, SessionRecord, SourcePassage, User
 from app.main import app
 from app.sources.documents import chunk_block, extract_document, identify_format, local_hash_embedding
 from app.campaigns import router as campaigns_router, scans as campaign_scans
@@ -24,7 +24,7 @@ def register_user(client, mailer, *, email: str, display_name: str = "Test Perso
     return password
 
 
-def test_registration_needs_no_email_verification_and_password_reset_is_single_use(client, mailer):
+def test_registration_needs_no_email_verification_and_password_reset_requires_question_token(client, mailer):
     password = register_user(client, mailer, email="creator@example.com")
     with next(app.dependency_overrides[get_db]()) as db:
         user = db.scalar(select(User).where(User.email_normalized == "creator@example.com"))
@@ -38,11 +38,20 @@ def test_registration_needs_no_email_verification_and_password_reset_is_single_u
     assert client.get("/api/v1/auth/me").json()["email"] == "creator@example.com"
     assert len(client.get("/api/v1/auth/sessions").json()) == 1
 
-    client.post("/api/v1/auth/password-reset", json={"email": "missing@example.com"})
     reset_request = client.post("/api/v1/auth/password-reset", json={"email": "creator@example.com"})
     assert reset_request.status_code == 202
-    reset_url = mailer.sent[-1].text.splitlines()[0].split(": ", maxsplit=1)[-1]
-    reset_token = parse_qs(urlparse(reset_url).query)["token"][0]
+    assert mailer.sent == []
+    legacy_token = new_secret()
+    with next(app.dependency_overrides[get_db]()) as db:
+        user = db.scalar(select(User).where(User.email_normalized == "creator@example.com"))
+        db.add(AuthToken(user_id=user.id, token_hash=digest_secret(legacy_token), purpose="password_reset", expires_at=datetime.now(UTC) + timedelta(minutes=30)))
+        db.commit()
+    assert client.post("/api/v1/auth/password-reset/confirm", json={"token": legacy_token, "password": "Other-password-789"}).status_code == 400
+
+    reset = client.post("/api/v1/auth/password-reset/recovery-question", json={"email": "creator@example.com", "recovery_question": "first_pet", "recovery_answer": "mIlO"})
+    assert reset.status_code == 202
+    reset_token = reset.json()["reset_token"]
+    assert reset_token
     reset = client.post("/api/v1/auth/password-reset/confirm", json={"token": reset_token, "password": "New-password-456"})
     assert reset.status_code == 200
     assert client.get("/api/v1/auth/me").status_code == 401
@@ -50,25 +59,40 @@ def test_registration_needs_no_email_verification_and_password_reset_is_single_u
     assert client.post("/api/v1/auth/login", json={"email": "creator@example.com", "password": "New-password-456"}).status_code == 200
 
 
-def test_recovery_question_resets_password_and_revokes_sessions(client, mailer):
+def test_recovery_question_only_issues_token_after_correct_answer(client, mailer):
     password = register_user(client, mailer, email="recovery@example.com")
     login = client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": password})
     assert login.status_code == 200
     assert client.get("/api/v1/auth/me").status_code == 200
 
-    body = {"email": "recovery@example.com", "recovery_question": "first_pet", "recovery_answer": "  mIlO  ", "password": "Recovery-password-789"}
-    reset = client.post("/api/v1/auth/password-reset/recovery-question", json=body)
-    assert reset.status_code == 202
-    assert "If the recovery details match" in reset.json()["message"]
-    assert client.get("/api/v1/auth/me").status_code == 401
-    assert client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": "Recovery-password-789"}).status_code == 200
+    body = {"email": "recovery@example.com", "recovery_question": "first_pet", "recovery_answer": "  mIlO  "}
+    wrong_response = client.post("/api/v1/auth/password-reset/recovery-question", json={**body, "recovery_answer": "not Milo"})
+    missing_response = client.post("/api/v1/auth/password-reset/recovery-question", json={**body, "email": "missing-recovery@example.com"})
+    assert wrong_response.status_code == missing_response.status_code == 202
+    assert wrong_response.json() == missing_response.json()
+    assert wrong_response.json()["reset_token"] is None
+    wrong_question = client.post("/api/v1/auth/password-reset/recovery-question", json={**body, "recovery_question": "birth_city"})
+    assert wrong_question.json() == wrong_response.json()
+    assert client.get("/api/v1/auth/me").status_code == 200
+    assert client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": "Should-not-work-123"}).status_code == 401
 
-    wrong = {**body, "recovery_answer": "not Milo", "password": "Should-not-work-123"}
-    assert client.post("/api/v1/auth/password-reset/recovery-question", json=wrong).status_code == 202
-    client.post("/api/v1/auth/logout")
+    correct = client.post("/api/v1/auth/password-reset/recovery-question", json=body)
+    token = correct.json()["reset_token"]
+    assert token
+    assert client.get("/api/v1/auth/password-reset/confirm/validate", params={"token": token}).json() == {"valid": True}
+    assert client.get("/api/v1/auth/password-reset/confirm/validate", params={"token": "invalid-token-value"}).json() == {"valid": False}
+    expired_token = new_secret()
+    with next(app.dependency_overrides[get_db]()) as db:
+        user = db.scalar(select(User).where(User.email_normalized == "recovery@example.com"))
+        db.add(AuthToken(user_id=user.id, token_hash=digest_secret(expired_token), purpose="password_reset_question", expires_at=datetime.now(UTC) - timedelta(minutes=1)))
+        db.commit()
+    assert client.get("/api/v1/auth/password-reset/confirm/validate", params={"token": expired_token}).json() == {"valid": False}
+    assert client.post("/api/v1/auth/password-reset/confirm", json={"token": expired_token, "password": "Other-password-789"}).status_code == 400
+    assert client.post("/api/v1/auth/password-reset/confirm", json={"token": token, "password": "Recovery-password-789"}).status_code == 200
+    assert client.get("/api/v1/auth/me").status_code == 401
+    assert client.get("/api/v1/auth/password-reset/confirm/validate", params={"token": token}).json() == {"valid": False}
+    assert client.post("/api/v1/auth/password-reset/confirm", json={"token": token, "password": "Other-password-789"}).status_code == 400
     assert client.post("/api/v1/auth/login", json={"email": "recovery@example.com", "password": "Recovery-password-789"}).status_code == 200
-    missing = {**body, "email": "missing-recovery@example.com"}
-    assert client.post("/api/v1/auth/password-reset/recovery-question", json=missing).json() == reset.json()
 
 
 def test_local_bootstrap_admin_email_can_sign_in(client):

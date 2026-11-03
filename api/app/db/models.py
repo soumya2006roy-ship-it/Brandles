@@ -104,7 +104,7 @@ class Invite(Base):
 
 class AuthToken(Base):
     __tablename__ = "auth_tokens"
-    __table_args__ = (CheckConstraint("purpose IN ('email_verification','password_reset')", name="ck_auth_tokens_purpose"),)
+    __table_args__ = (CheckConstraint("purpose IN ('email_verification','password_reset','password_reset_question')", name="ck_auth_tokens_purpose"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

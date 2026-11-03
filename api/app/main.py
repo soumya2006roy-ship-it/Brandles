@@ -68,6 +68,7 @@ def custom_openapi() -> dict:
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/password-reset"),
         ("POST", "/api/v1/auth/password-reset/confirm"),
+        ("GET", "/api/v1/auth/password-reset/confirm/validate"),
     }
     for path, path_item in schema.get("paths", {}).items():
         for method, operation in path_item.items():
