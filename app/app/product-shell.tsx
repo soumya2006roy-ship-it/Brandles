@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/app/ui";
 import { LanguageSelect, useLocale } from "@/app/i18n";
 
 type NavigationItem = { label: string; href: string; match: string };
+type OrganizationRoleSummary = { id: string; role: string };
 
 export function ProductShell({ children }: { children: ReactNode }) {
   const { t } = useLocale();
@@ -16,6 +17,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [organizationAccess, setOrganizationAccess] = useState<{ organizationId: string; role: string } | null>(null);
   const routeOrganizationId = pathname.match(/^\/app\/organisations\/([^/]+)/)?.[1];
   const organizationId = routeOrganizationId === "new" ? undefined : routeOrganizationId;
 
@@ -27,6 +29,17 @@ export function ProductShell({ children }: { children: ReactNode }) {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [router]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    let active = true;
+    apiRequest<OrganizationRoleSummary[]>("orgs")
+      .then((organizations) => {
+        if (active) setOrganizationAccess({ organizationId, role: organizations.find((organization) => organization.id === organizationId)?.role ?? "" });
+      })
+      .catch(() => { if (active) setOrganizationAccess({ organizationId, role: "" }); });
+    return () => { active = false; };
+  }, [organizationId]);
 
   async function signOut() {
     try { await apiRequest<void>("auth/logout", { method: "POST" }); }
@@ -42,7 +55,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
     { label: t("nav.findings"), href: `/app/organisations/${organizationId}/findings`, match: `/app/organisations/${organizationId}/findings` },
     { label: t("nav.reviews"), href: `/app/organisations/${organizationId}/reviews`, match: `/app/organisations/${organizationId}/reviews` },
     { label: t("nav.sources"), href: `/app/organisations/${organizationId}/sources`, match: `/app/organisations/${organizationId}/sources` },
-    { label: t("nav.rules"), href: `/app/organisations/${organizationId}/rules`, match: `/app/organisations/${organizationId}/rules` },
+    ...(organizationAccess?.organizationId === organizationId && (organizationAccess.role === "admin" || organizationAccess.role === "creator") ? [{ label: t("nav.rules"), href: `/app/organisations/${organizationId}/rules`, match: `/app/organisations/${organizationId}/rules` }] : []),
     { label: t("nav.team"), href: `/app/organisations/${organizationId}#team`, match: "#never-active" },
     { label: t("nav.settings"), href: `/app/organisations/${organizationId}#settings`, match: "#never-active" },
     { label: t("nav.audit"), href: `/app/organisations/${organizationId}/audit`, match: `/app/organisations/${organizationId}/audit` },
