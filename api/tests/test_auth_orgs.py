@@ -267,6 +267,18 @@ def test_rule_suggestions_are_not_active_until_admin_approval_and_upload_checks_
     assert suggested.status_code == 201, suggested.text
     assert suggested.json()["status"] == "suggested"
     client.post("/api/v1/auth/logout")
+
+    reviewer_email = "rule-reviewer@example.com"
+    register_user(client, mailer, email=reviewer_email, display_name="Rule Reviewer")
+    with next(app.dependency_overrides[get_db]()) as db:
+        reviewer = db.scalar(select(User).where(User.email_normalized == reviewer_email))
+        db.add(Membership(organization_id=org_id, user_id=reviewer.id, role="reviewer"))
+        db.commit()
+    client.post("/api/v1/auth/login", json={"email": reviewer_email, "password": "Secure-password-123"})
+    denied = client.post(f"/api/v1/orgs/{org_id}/rules", json={"rule_type": "discount_percent", "parameters": {"percent": 25}, "source_passage_id": detail["passages"][0]["id"]})
+    assert denied.status_code == 403
+    assert len(client.get(f"/api/v1/orgs/{org_id}/rules").json()) == 1
+    client.post("/api/v1/auth/logout")
     client.post("/api/v1/auth/login", json={"email": owner_email, "password": owner_password})
     decision = client.post(f"/api/v1/orgs/{org_id}/rules/{suggested.json()['id']}/decision", json={"decision": "approve"})
     assert decision.status_code == 200, decision.text

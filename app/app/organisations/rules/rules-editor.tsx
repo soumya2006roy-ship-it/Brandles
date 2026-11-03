@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiRequest } from "@/app/lib/api-client";
+import { ApiError, apiRequest } from "@/app/lib/api-client";
+import { useToast } from "@/app/ui";
 
 type Source = { id: string; family_id: string; title: string; version: number; status: string };
 type Passage = { id: string; text: string; page_number: number | null; location_label: string | null; source_id: string; source_title: string; source_version: number; source_status: string };
@@ -14,6 +15,7 @@ type RuleType = "offer_name" | "discount_percent" | "valid_from" | "valid_until"
 const labels: Record<RuleType, string> = { offer_name: "Offer name", discount_percent: "Discount percentage", valid_from: "Offer starts on", valid_until: "Offer ends on", banned_phrase: "Banned phrase", required_disclaimer: "Required disclaimer", approved_logo: "Approved logo version", channel_length_limit: "Channel character limit", brand_colors: "Brand colour palette", typography: "Typography guidance" };
 
 export function RulesEditor({ organizationId }: { organizationId: string }) {
+  const notify = useToast();
   const params = useSearchParams();
   const passageIdFromUrl = params.get("passage") ?? "";
   const [sources, setSources] = useState<Source[]>([]);
@@ -27,6 +29,7 @@ export function RulesEditor({ organizationId }: { organizationId: string }) {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const canCreateRules = role === "admin" || role === "creator";
 
   const load = useCallback(async () => {
     const [orgs, sourceRows, ruleRows] = await Promise.all([
@@ -64,6 +67,10 @@ export function RulesEditor({ organizationId }: { organizationId: string }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canCreateRules) {
+      notify("You don't have permission", "error");
+      return;
+    }
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const parameters: Record<string, unknown> = {};
@@ -81,7 +88,10 @@ export function RulesEditor({ organizationId }: { organizationId: string }) {
       setNotice(role === "admin" ? "Rule saved as active with its approved-source evidence." : "Rule submitted as a suggestion. An Admin must approve it before checks can use it.");
       formElement.reset();
       const updated = await apiRequest<Rule[]>(`orgs/${organizationId}/rules`); setRules(updated);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save this rule."); }
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 403) notify("You don't have permission", "error");
+      else setError(cause instanceof Error ? cause.message : "Could not save this rule.");
+    }
     finally { setBusy(false); }
   }
 
@@ -114,7 +124,7 @@ export function RulesEditor({ organizationId }: { organizationId: string }) {
         {ruleType === "channel_length_limit" && <><label className="form-field">Channel to limit<input name="limit_channel" required maxLength={50} placeholder="Instagram caption"/></label><label className="form-field">Maximum characters<input name="max_characters" type="number" min={1} max={100000} required/></label></>}
         <div className="rule-date-fields"><label className="form-field">Rule effective from<input name="valid_from" type="date"/></label><label className="form-field">Rule effective until<input name="valid_to" type="date"/></label></div>
         <label className="form-field">Applies to channel (optional)<input name="channel" maxLength={50}/></label>
-        <button className="button button-primary" disabled={busy || !passageId}>{busy ? "Saving…" : role === "admin" ? "Save active rule" : "Submit rule suggestion"}</button>
+        <button className="button button-primary" onClick={(event) => { if (!canCreateRules) { event.preventDefault(); notify("You don't have permission", "error"); } }} disabled={busy || (canCreateRules && !passageId)}>{busy ? "Saving…" : role === "admin" ? "Save active rule" : role === "creator" ? "Submit rule suggestion" : "Add rule"}</button>
       </form>}</section>
       <section className="workspace-section"><p className="eyebrow">Rule register</p><h2>Current rules and suggestions</h2>{rules.length === 0 ? <p>No rules have been recorded yet.</p> : <div className="rule-list">{rules.map((rule) => <article className="rule-row" key={rule.id}><div><p className="eyebrow">{rule.rule_type.replaceAll("_", " ")} · <span className={`status-label status-${rule.status}`}>{rule.status}</span></p><p>{Object.entries(rule.parameters).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p><small>Evidence passage: <code>{rule.source_passage_id}</code>{rule.channel ? ` · ${rule.channel}` : ""}</small></div>{rule.status === "suggested" && role === "admin" && <div className="inline-actions"><button className="small-button" onClick={() => void decide(rule.id, "approve")}>Approve</button><button className="small-button" onClick={() => void decide(rule.id, "reject")}>Reject</button></div>}</article>)}</div>}</section>
     </>}
