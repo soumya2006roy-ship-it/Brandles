@@ -22,6 +22,11 @@ const judgeDemoAccounts = [
   { role: "Reviewer", email: "judge-reviewer@brandlens.example.test", password: "JudgeReviewer2026!" },
 ];
 
+const platformAdminDemoAccount = {
+  email: "D101@gmail.com",
+  password: "D101@123456789",
+};
+
 async function loginWithRetry(email: string, password: string) {
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -127,7 +132,7 @@ export function AuthForm({ mode, initialResetToken = "" }: { mode: Mode; initial
       {mode === "reset" && <Link href="/login">{t("auth.returnSignIn")}</Link>}
       <Link href="/">{t("auth.publicSite")}</Link>
     </nav>
-  </div>{mode === "login" && <aside className="judge-demo-panel" aria-labelledby="judge-demo-title"><p className="eyebrow">JUDGE DEMO · SHARED WORKSPACE</p><h2 id="judge-demo-title">Try each organisation role</h2><p className="judge-demo-intro">All three accounts open the same fictional organisation and sample campaigns.</p><div className="judge-demo-accounts">{judgeDemoAccounts.map((account) => <article className="judge-demo-account" key={account.email}><h3>{account.role}</h3><dl><div><dt>Email</dt><dd><code>{account.email}</code></dd></div><div><dt>Password</dt><dd><code>{account.password}</code></dd></div></dl></article>)}</div><p className="judge-demo-note">These are public demo accounts, not Platform Admin accounts. Demo records are synthetic and shared; changes may be visible to other visitors. Do not enter real data.</p></aside>}</div></main>;
+  </div>{mode === "login" && <aside className="judge-demo-panel" aria-labelledby="judge-demo-title"><p className="eyebrow">JUDGE DEMO · SHARED WORKSPACE</p><h2 id="judge-demo-title">Try each organisation role</h2><p className="judge-demo-intro">All three accounts open the same fictional organisation and sample campaigns.</p><div className="judge-demo-accounts">{judgeDemoAccounts.map((account) => <article className="judge-demo-account" key={account.email}><h3>{account.role}</h3><dl><div><dt>Email</dt><dd><code>{account.email}</code></dd></div><div><dt>Password</dt><dd><code>{account.password}</code></dd></div></dl></article>)}</div><p className="judge-demo-note">These public demo accounts share synthetic organisation data; changes may be visible to other visitors. Do not enter real data.</p><section className="platform-admin-demo" aria-labelledby="platform-admin-demo-title"><p className="eyebrow">PRIVILEGED ACCESS</p><h3 id="platform-admin-demo-title">Platform Admin</h3><dl><div><dt>Email</dt><dd><code>{platformAdminDemoAccount.email}</code></dd></div><div><dt>Password</dt><dd><code>{platformAdminDemoAccount.password}</code></dd></div></dl><p>Platform-wide controls are available with this account. Its credentials are public on this page.</p></section></aside>}</div></main>;
 }
 
 function PasswordField({ label, name = "password", id = "auth-password", autoComplete = "new-password", minLength = 12, t }: {
