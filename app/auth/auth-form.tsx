@@ -16,6 +16,12 @@ const recoveryQuestions = [
 
 const transientLoginRetryDelays = [500, 1_000, 2_000, 4_000, 8_000, 16_000, 20_000];
 
+const judgeDemoAccounts = [
+  { role: "Organization Admin", email: "judge-admin@brandlens.example.test", password: "JudgeAdmin2026!" },
+  { role: "Creator", email: "judge-creator@brandlens.example.test", password: "JudgeCreator2026!" },
+  { role: "Reviewer", email: "judge-reviewer@brandlens.example.test", password: "JudgeReviewer2026!" },
+];
+
 async function loginWithRetry(email: string, password: string) {
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -95,7 +101,7 @@ export function AuthForm({ mode, initialResetToken = "" }: { mode: Mode; initial
     reset: t("auth.resetDescription"),
   };
 
-  return <main className="auth-page"><div className="auth-panel"><div className="auth-locale-row"><p className="eyebrow">{t("auth.workspace")}</p><LanguageSelect/></div><h1>{titles[mode]}</h1><p className="auth-description">{descriptions[mode]}</p>
+  return <main className="auth-page"><div className={mode === "login" ? "auth-layout has-demo-accounts" : "auth-layout"}><div className="auth-panel"><div className="auth-locale-row"><p className="eyebrow">{t("auth.workspace")}</p><LanguageSelect/></div><h1>{titles[mode]}</h1><p className="auth-description">{descriptions[mode]}</p>
     <form className="auth-form" onSubmit={submit}>
       {mode === "register" && <label className="form-field">{t("auth.name")}<input name="display_name" autoComplete="name" required minLength={2} maxLength={120}/></label>}
       {(mode === "login" || mode === "register") && <label className="form-field">{t("auth.email")}<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>}
@@ -121,7 +127,7 @@ export function AuthForm({ mode, initialResetToken = "" }: { mode: Mode; initial
       {mode === "reset" && <Link href="/login">{t("auth.returnSignIn")}</Link>}
       <Link href="/">{t("auth.publicSite")}</Link>
     </nav>
-  </div></main>;
+  </div>{mode === "login" && <aside className="judge-demo-panel" aria-labelledby="judge-demo-title"><p className="eyebrow">JUDGE DEMO · SHARED WORKSPACE</p><h2 id="judge-demo-title">Try each organisation role</h2><p className="judge-demo-intro">All three accounts open the same fictional organisation and sample campaigns.</p><div className="judge-demo-accounts">{judgeDemoAccounts.map((account) => <article className="judge-demo-account" key={account.email}><h3>{account.role}</h3><dl><div><dt>Email</dt><dd><code>{account.email}</code></dd></div><div><dt>Password</dt><dd><code>{account.password}</code></dd></div></dl></article>)}</div><p className="judge-demo-note">These are public demo accounts, not Platform Admin accounts. Demo records are synthetic and shared; changes may be visible to other visitors. Do not enter real data.</p></aside>}</div></main>;
 }
 
 function PasswordField({ label, name = "password", id = "auth-password", autoComplete = "new-password", minLength = 12, t }: {

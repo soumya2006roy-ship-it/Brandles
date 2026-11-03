@@ -312,7 +312,7 @@ def workspace_dashboard(org_id: str, context=Depends(get_auth_context), db: Sess
         assets = db.scalars(select(Asset).where(Asset.organization_id == org_id, Asset.campaign_id == campaign.id, Asset.current.is_(True), Asset.deleted_at.is_(None))).all()
         if not scan or not _scan_is_current(db, org_id, campaign.id, scan, assets):
             continue
-        open_count += db.scalar(select(func.count(Finding.id)).where(Finding.organization_id == org_id, Finding.scan_id == scan.id, Finding.status.in_("open", "clarification_requested"))) or 0
+        open_count += db.scalar(select(func.count(Finding.id)).where(Finding.organization_id == org_id, Finding.scan_id == scan.id, Finding.status.in_(["open", "clarification_requested"]))) or 0
         pending_rows = db.scalars(select(Review).where(Review.organization_id == org_id, Review.scan_id == scan.id, Review.decision == "pending")).all()
         pending_submission_ids.update(row.submission_id or row.id for row in pending_rows)
 

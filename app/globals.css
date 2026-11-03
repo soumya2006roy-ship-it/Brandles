@@ -442,7 +442,20 @@ button:active:not(:disabled), a:active { transform: translateY(1px); }
 
 /* Authenticated workspace */
 .auth-page { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 100vh; place-items: center; padding: 32px 20px; }
-.auth-panel { width: min(100%, 520px); padding: clamp(24px, 5vw, 46px); border: 1px solid var(--line); background: var(--surface); }
+.auth-layout { display: grid; width: min(100%, 520px); grid-template-columns: minmax(0, 1fr); align-items: start; gap: 20px; }
+.auth-layout.has-demo-accounts { width: min(100%, 960px); grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); }
+.auth-panel { width: 100%; padding: clamp(24px, 5vw, 46px); border: 1px solid var(--line); background: var(--surface); }
+.judge-demo-panel { padding: clamp(22px, 3vw, 32px); border: 1px solid var(--line); background: var(--surface); }
+.judge-demo-panel h2 { margin: 0 0 10px; font-size: clamp(24px, 3vw, 34px); line-height: 1.1; }
+.judge-demo-intro, .judge-demo-note { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.judge-demo-accounts { display: grid; gap: 10px; margin-top: 20px; }
+.judge-demo-account { padding: 13px 14px; border: 1px solid var(--line); background: var(--paper); }
+.judge-demo-account h3 { margin: 0 0 9px; font-size: 14px; }
+.judge-demo-account dl, .judge-demo-account dl div { display: grid; gap: 4px; margin: 0; }
+.judge-demo-account dl { gap: 9px; }
+.judge-demo-account dt { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.judge-demo-account dd { margin: 0; overflow-wrap: anywhere; font-size: 12px; }
+.judge-demo-note { padding-top: 14px; margin: 14px 0 0; border-top: 1px solid var(--line); font-size: 11px; }
 .auth-panel h1 { margin: 0 0 12px; font-size: clamp(36px, 7vw, 52px); line-height: 1; }
 .auth-description { margin-bottom: 26px; color: var(--muted); }
 .auth-form, .workspace-form { display: grid; gap: 17px; }
@@ -771,6 +784,8 @@ button:active:not(:disabled), a:active { transform: translateY(1px); }
 .workspace-skeleton div { border-radius: 6px; animation: none; }
 .auth-panel { border-radius: 12px; }
 .auth-panel h1 { line-height: 1.08; }
+.judge-demo-panel, .judge-demo-account { border-radius: 10px; }
+@media (max-width: 760px) { .auth-layout.has-demo-accounts { grid-template-columns: minmax(0, 1fr); } }
 .auth-form .button { min-width: 150px; }
 .site-header { backdrop-filter: none; }
 @media (max-width: 900px) {

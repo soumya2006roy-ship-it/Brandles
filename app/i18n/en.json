@@ -42,7 +42,7 @@
     "returnSignIn": "Return to sign in",
     "resetSuccess": "Password updated. Sign in with your new password.",
     "genericError": "Something went wrong. Please try again.",
-    "adminHint": "Platform Admin access is granted by a trusted operator. There are no shared hosted credentials."
+    "adminHint": "Platform Admin access is separate from these public organisation demo accounts."
   },
   "nav": {
     "overview": "Overview", "campaigns": "Campaigns", "findings": "Findings", "reviews": "Reviews",
