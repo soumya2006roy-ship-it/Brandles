@@ -16,7 +16,7 @@ test("account entry points expose real sign-in and organisation flows", async ({
   await expect(page.getByLabel(/email/i)).toBeVisible();
   await page.goto("/sign-up");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/create|register/i);
-  await expect(page.getByLabel(/password/i)).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Password" })).toBeVisible();
   await page.goto("/signup");
   await expect(page).toHaveURL(/\/sign-up$/);
   await page.goto("/org/create");
