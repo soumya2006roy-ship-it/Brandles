@@ -181,7 +181,7 @@ def seed_judge_demo() -> None:
             organization = Organization(
                 name=DEMO_ORGANIZATION,
                 industry="Fictional consumer products",
-                official_email="demo@example.test",
+                official_email="demo@example.com",
                 website="https://brandlens.example.test",
                 contact_person="Judge demo workspace",
                 verification_status="approved",
@@ -189,6 +189,9 @@ def seed_judge_demo() -> None:
             )
             db.add(organization)
             db.flush()
+        else:
+            # Keep existing demo rows compatible with EmailStr response validation.
+            organization.official_email = "demo@example.com"
         _ensure_membership(db, organization, admin, "admin")
         _ensure_membership(db, organization, creator, "creator")
         _ensure_membership(db, organization, reviewer, "reviewer")
