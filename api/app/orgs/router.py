@@ -375,8 +375,10 @@ def redeem_invite(payload: InviteRedeem, request: Request, user: User = Depends(
 
 
 @router.get("/platform/verifications", response_model=list[OrganizationResponse])
-def verification_queue(_: User = Depends(require_platform_admin), db: Session = Depends(get_db)):
-    return db.scalars(select(Organization).where(Organization.verification_status.in_(["pending_verification", "more_information_required"]), Organization.deleted_at.is_(None)).order_by(Organization.created_at.asc())).all()
+def verification_queue(status_filter: str = Query(default="pending", alias="status", pattern="^(pending|awaiting_info)$"), _: User = Depends(require_platform_admin), db: Session = Depends(get_db)):
+    verification_status = "pending_verification" if status_filter == "pending" else "more_information_required"
+    organizations = db.scalars(select(Organization).where(Organization.verification_status == verification_status, Organization.deleted_at.is_(None)).order_by(Organization.created_at.asc())).all()
+    return [organization_response(org, db) for org in organizations]
 
 
 @router.get("/platform/verifications/{organization_id}/history", response_model=list[VerificationHistoryItem])
@@ -392,7 +394,7 @@ def decide_verification(organization_id: str, payload: VerificationDecisionReque
     org = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)).with_for_update())
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found.")
-    if org.verification_status not in {"pending_verification", "more_information_required"}:
+    if org.verification_status != "pending_verification":
         raise HTTPException(status_code=409, detail="This organisation is not awaiting verification.")
     if org.created_by == admin.id:
         raise HTTPException(status_code=403, detail="A platform administrator cannot verify an organisation they submitted.")
@@ -405,6 +407,6 @@ def decide_verification(organization_id: str, payload: VerificationDecisionReque
     db.commit()
     db.refresh(org)
     send_user_email(db, sender, user_id=org.created_by, organization_id=org.id, subject=f"BrandLens organisation verification: {org.name}", text=f"Your organisation status is now {payload.decision.replace('_', ' ')}.\n{payload.note or ''}")
-    return org
+    return organization_response(org, db, admin)
 
 
