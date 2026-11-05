@@ -11,18 +11,31 @@ depends_on = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("organization_submissions") as batch:
-        batch.add_column(sa.Column("document_ref", sa.String(length=500), nullable=True))
-        batch.add_column(sa.Column("original_filename", sa.String(length=240), nullable=True))
-        batch.add_column(sa.Column("content_type", sa.String(length=120), nullable=True))
-        batch.add_column(sa.Column("sha256", sa.String(length=64), nullable=True))
-        batch.add_column(sa.Column("size_bytes", sa.Integer(), nullable=False, server_default="0"))
+    bind = op.get_bind()
+    existing_columns = {column["name"] for column in sa.inspect(bind).get_columns("organization_submissions")}
+    columns = (
+        sa.Column("document_ref", sa.String(length=500), nullable=True),
+        sa.Column("original_filename", sa.String(length=240), nullable=True),
+        sa.Column("content_type", sa.String(length=120), nullable=True),
+        sa.Column("sha256", sa.String(length=64), nullable=True),
+        sa.Column("size_bytes", sa.Integer(), nullable=False, server_default="0"),
+    )
+    missing_columns = [column for column in columns if column.name not in existing_columns]
+    if missing_columns:
+        with op.batch_alter_table("organization_submissions") as batch:
+            for column in missing_columns:
+                batch.add_column(column)
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("organization_submissions") as batch:
-        batch.drop_column("size_bytes")
-        batch.drop_column("sha256")
-        batch.drop_column("content_type")
-        batch.drop_column("original_filename")
-        batch.drop_column("document_ref")
+    bind = op.get_bind()
+    existing_columns = {column["name"] for column in sa.inspect(bind).get_columns("organization_submissions")}
+    removable_columns = [
+        name
+        for name in ("size_bytes", "sha256", "content_type", "original_filename", "document_ref")
+        if name in existing_columns
+    ]
+    if removable_columns:
+        with op.batch_alter_table("organization_submissions") as batch:
+            for name in removable_columns:
+                batch.drop_column(name)
