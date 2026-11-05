@@ -260,6 +260,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{organization_id}/resubmit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resubmit Organization */
+        post: operations["resubmit_organization_api_v1_orgs__organization_id__resubmit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{organization_id}/audit-events": {
         parameters: {
             query?: never;
@@ -372,6 +389,23 @@ export interface paths {
         };
         /** Verification History */
         get: operations["verification_history_api_v1_platform_verifications__organization_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/verifications/{organization_id}/submissions/{submission_id}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Organization Submission Document */
+        get: operations["download_organization_submission_document_api_v1_platform_verifications__organization_id__submissions__submission_id__document_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1682,25 +1716,6 @@ export interface components {
              */
             created_at: string;
         };
-        /** OrganizationCreate */
-        OrganizationCreate: {
-            /** Name */
-            name: string;
-            /** Industry */
-            industry: string;
-            /**
-             * Official Email
-             * Format: email
-             */
-            official_email: string;
-            /**
-             * Website
-             * Format: uri
-             */
-            website: string;
-            /** Contact Person */
-            contact_person: string;
-        };
         /** OrganizationResponse */
         OrganizationResponse: {
             /** Id */
@@ -1727,6 +1742,37 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Can Resubmit
+             * @default false
+             */
+            can_resubmit: boolean;
+            latest_admin_request?: components["schemas"]["VerificationHistoryItem"] | null;
+            /** Submissions */
+            submissions?: components["schemas"]["OrganizationSubmissionResponse"][];
+        };
+        /** OrganizationSubmissionResponse */
+        OrganizationSubmissionResponse: {
+            /** Id */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Submitted By Name */
+            submitted_by_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Original Filename */
+            original_filename?: string | null;
+            /** Content Type */
+            content_type?: string | null;
+            /**
+             * Size Bytes
+             * @default 0
+             */
+            size_bytes: number;
         };
         /** OrganizationSummary */
         OrganizationSummary: {
@@ -2538,12 +2584,53 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrganizationCreate"];
+                "application/json": {
+                    name: string;
+                    industry: string;
+                    /** Format: email */
+                    official_email: string;
+                    /** Format: uri */
+                    website: string;
+                    contact_person: string;
+                };
+                "multipart/form-data": {
+                    name: string;
+                    industry: string;
+                    /** Format: email */
+                    official_email: string;
+                    /** Format: uri */
+                    website: string;
+                    contact_person: string;
+                    /** Format: binary */
+                    document?: string;
+                };
             };
         };
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+        };
+    };
+    get_organization_api_v1_orgs__organization_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2562,7 +2649,7 @@ export interface operations {
             };
         };
     };
-    get_organization_api_v1_orgs__organization_id__get: {
+    resubmit_organization_api_v1_orgs__organization_id__resubmit_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2571,7 +2658,32 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    industry: string;
+                    /** Format: email */
+                    official_email: string;
+                    /** Format: uri */
+                    website: string;
+                    contact_person: string;
+                    note?: string;
+                };
+                "multipart/form-data": {
+                    name: string;
+                    industry: string;
+                    /** Format: email */
+                    official_email: string;
+                    /** Format: uri */
+                    website: string;
+                    contact_person: string;
+                    /** Format: binary */
+                    document?: string;
+                    note?: string;
+                };
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2791,7 +2903,9 @@ export interface operations {
     };
     verification_queue_api_v1_platform_verifications_get: {
         parameters: {
-            query?: never;
+            query?: {
+                status?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2805,6 +2919,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2827,6 +2950,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerificationHistoryItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_organization_submission_document_api_v1_platform_verifications__organization_id__submissions__submission_id__document_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

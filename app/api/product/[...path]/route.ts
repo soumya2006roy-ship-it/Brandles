@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 
-const allowedResponseHeaders = ["content-type", "cache-control", "set-cookie", "retry-after", "x-content-type-options", "referrer-policy", "x-frame-options", "cross-origin-opener-policy", "permissions-policy", "content-security-policy", "strict-transport-security"];
+const allowedResponseHeaders = ["content-type", "content-disposition", "cache-control", "set-cookie", "retry-after", "x-content-type-options", "referrer-policy", "x-frame-options", "cross-origin-opener-policy", "permissions-policy", "content-security-policy", "strict-transport-security"];
 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;

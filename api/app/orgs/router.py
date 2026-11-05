@@ -389,6 +389,34 @@ def verification_history(organization_id: str, _: User = Depends(require_platfor
     return [VerificationHistoryItem(id=decision.id, decision=decision.decision, note=decision.note, actor_name=name, created_at=decision.created_at) for decision, name in rows]
 
 
+@router.get("/platform/verifications/{organization_id}/submissions/{submission_id}/document")
+def download_organization_submission_document(organization_id: str, submission_id: str, context=Depends(get_auth_context), db: Session = Depends(get_db)):
+    org = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)))
+    if not org:
+        raise HTTPException(status_code=404, detail="Organisation not found.")
+    submission = db.scalar(select(OrganizationSubmission).where(OrganizationSubmission.organization_id == org.id, OrganizationSubmission.id == submission_id))
+    if not submission or not submission.document_ref:
+        raise HTTPException(status_code=404, detail="No document was submitted for this version.")
+    is_platform_admin = db.get(PlatformAdmin, context.user.id) is not None
+    if not is_platform_admin and org.created_by != context.user.id:
+        raise HTTPException(status_code=403, detail="Only the organisation creator or a platform administrator can download this document.")
+    storage = get_storage()
+    local_path = storage.local_path(org.id, submission.document_ref)
+    if local_path is not None and not local_path.is_file():
+        raise HTTPException(status_code=404, detail="The stored document is unavailable.")
+    try:
+        chunks, _stored_type = storage.stream(org.id, submission.document_ref)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail="The stored document is unavailable.") from exc
+    filename = submission.original_filename or "organisation-document"
+    headers = {
+        "Cache-Control": "private, no-store",
+        "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename, safe='')}",
+        "X-Content-Type-Options": "nosniff",
+    }
+    return StreamingResponse(chunks, media_type=submission.content_type or "application/octet-stream", headers=headers)
+
+
 @router.post("/platform/verifications/{organization_id}/decision", response_model=OrganizationResponse)
 def decide_verification(organization_id: str, payload: VerificationDecisionRequest, admin: User = Depends(require_platform_admin), db: Session = Depends(get_db), sender: EmailSender = Depends(get_email_sender)):
     org = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)).with_for_update())
