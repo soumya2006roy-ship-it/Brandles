@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiRequest, type Invite, type Organization, type OrganizationSummary } from "@/app/lib/api-client";
 import { BrandTwin } from "./brand-twin";
 import { OrganisationDashboard } from "./dashboard";
+import { OrganisationDocumentField } from "./organisation-document-field";
 
 type NewInvite = Invite & { code: string };
 type WorkspaceNotification = { id: string; kind: string; payload: Record<string, unknown>; read_at: string | null; created_at: string };
@@ -24,6 +25,7 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
   const [retention, setRetention] = useState<RetentionPreferences>({ retention_days: 365, scope: "completed scan and finding history" });
   const [deletionConfirmation, setDeletionConfirmation] = useState("");
   const [newInvite, setNewInvite] = useState<NewInvite | null>(null);
+  const [resubmitting, setResubmitting] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -121,13 +123,28 @@ export function OrganisationWorkspace({ organizationId }: { organizationId: stri
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete workspace data."); }
   }
 
+  async function resubmitOrganization(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setResubmitting(true);
+    const values = new FormData(event.currentTarget);
+    try {
+      const updated = await apiRequest<Organization>(`orgs/${organizationId}/resubmit`, { method: "POST", body: values });
+      setOrganization(updated);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not resubmit this organisation.");
+    } finally {
+      setResubmitting(false);
+    }
+  }
+
   if (loading) return <div className="workspace-skeleton" aria-label="Loading organisation"><div/><div/></div>;
   if (!organization) return <p className="auth-message auth-error" role="alert">{error || "Organisation not found."}</p>;
   const canManage = role === "admin" && organization.verification_status === "approved";
   return <>
     <header className="workspace-heading"><p className="eyebrow">{organization.industry} · {role}</p><h1>{organization.name}</h1><p>{organization.official_email} · <a href={organization.website} target="_blank" rel="noopener noreferrer">Organisation website</a></p><span className={`status-label status-${organization.verification_status}`}>{organization.verification_status.replaceAll("_", " ")}</span></header>
     {organization.verification_status === "pending_verification" && <section className="workspace-notice"><h2>Waiting for platform verification</h2><p>An administrator will review the organisation details. You cannot invite members or add sources until the workspace is approved.</p></section>}
-    {organization.verification_status === "more_information_required" && <section className="workspace-notice"><h2>More information is required</h2><p>Check with the platform team for the details needed to continue. Organisation resubmission is not available yet.</p></section>}
+    {organization.verification_status === "more_information_required" && <section className="workspace-notice"><h2>More information is required</h2>{organization.latest_admin_request?.note ? <p>{organization.latest_admin_request.note}</p> : <p>The platform team has asked you to update the organisation details.</p>}{organization.latest_admin_request && <p className="field-help">Requested by {organization.latest_admin_request.actor_name} · {new Date(organization.latest_admin_request.created_at).toLocaleString()}</p>}{organization.can_resubmit && <form className="workspace-form" onSubmit={resubmitOrganization}><h3>Update organisation details</h3><label className="form-field">Organisation name<input name="name" required minLength={2} maxLength={180} defaultValue={organization.name}/></label><label className="form-field">Industry<input name="industry" required minLength={2} maxLength={120} defaultValue={organization.industry}/></label><label className="form-field">Official organisation email<input name="official_email" type="email" required maxLength={320} defaultValue={organization.official_email}/></label><label className="form-field">Organisation website<input name="website" type="url" required maxLength={500} defaultValue={organization.website}/></label><label className="form-field">Contact person<input name="contact_person" required minLength={2} maxLength={120} defaultValue={organization.contact_person}/></label><OrganisationDocumentField/><label className="form-field">Note to the platform admin <span className="field-help">Optional · up to 1,200 characters</span><textarea name="note" maxLength={1200} rows={3}/></label><button className="button button-primary" type="submit" disabled={resubmitting}>{resubmitting ? "Resubmitting…" : "Resubmit for approval"}</button></form>}</section>}
     {organization.verification_status === "rejected" && <section className="workspace-notice"><h2>Organisation not approved</h2><p>Workspace actions are unavailable. Contact the platform team if you believe this decision needs review.</p></section>}
     {error && <p className="auth-message auth-error" role="alert">{error}</p>}
     {organization.verification_status === "approved" && <OrganisationDashboard organizationId={organizationId}/>}

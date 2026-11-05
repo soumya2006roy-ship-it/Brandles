@@ -453,3 +453,210 @@ def test_brand_twin_cites_only_approved_evidence_and_refuses_gaps(client, mailer
     assert answer.json()["insufficient_evidence"] is False
     assert answer.json()["citations"][0]["source_id"] == source_id
     assert answer.json()["citations"][0]["source_version"] == 1
+
+
+def test_organization_creator_can_resubmit_more_information_request(client, mailer):
+    owner_password = register_user(client, mailer, email="resubmit-owner@example.com", display_name="Organisation Owner")
+    client.post("/api/v1/auth/login", json={"email": "resubmit-owner@example.com", "password": owner_password})
+    created = client.post("/api/v1/orgs", json={
+        "name": "Original Organisation",
+        "industry": "Retail",
+        "official_email": "brand@example.com",
+        "website": "https://example.test",
+        "contact_person": "Original Contact",
+    })
+    assert created.status_code == 201, created.text
+    organization_id = created.json()["id"]
+    assert len(created.json()["submissions"]) == 1
+
+    register_user(client, mailer, email="resubmit-outsider@example.com")
+    register_user(client, mailer, email="resubmit-admin@example.com", display_name="Platform Admin")
+    with next(app.dependency_overrides[get_db]()) as db:
+        admin = db.scalar(select(User).where(User.email_normalized == "resubmit-admin@example.com"))
+        db.add(PlatformAdmin(user_id=admin.id))
+        db.commit()
+
+    client.post("/api/v1/auth/login", json={"email": "resubmit-admin@example.com", "password": "Secure-password-123"})
+    request_info = client.post(f"/api/v1/platform/verifications/{organization_id}/decision", json={
+        "decision": "more_information_required",
+        "note": "Please provide the registered organisation name.",
+    })
+    assert request_info.status_code == 200, request_info.text
+
+    client.post("/api/v1/auth/login", json={"email": "resubmit-outsider@example.com", "password": "Secure-password-123"})
+    forbidden = client.post(f"/api/v1/orgs/{organization_id}/resubmit", json={
+        "name": "Changed Organisation",
+        "industry": "Retail",
+        "official_email": "brand@example.com",
+        "website": "https://example.test",
+        "contact_person": "Updated Contact",
+    })
+    assert forbidden.status_code == 403
+
+    client.post("/api/v1/auth/login", json={"email": "resubmit-owner@example.com", "password": owner_password})
+    owner_view = client.get(f"/api/v1/orgs/{organization_id}")
+    assert owner_view.status_code == 200
+    assert owner_view.json()["can_resubmit"] is True
+    assert owner_view.json()["latest_admin_request"]["note"] == "Please provide the registered organisation name."
+
+    response = client.post(f"/api/v1/orgs/{organization_id}/resubmit", json={
+        "name": "Updated Organisation",
+        "industry": "Retail",
+        "official_email": "brand@example.com",
+        "website": "https://example.test",
+        "contact_person": "Updated Contact",
+        "note": "The registered name is Updated Organisation.",
+    })
+    assert response.status_code == 200, response.text
+    assert response.json()["verification_status"] == "pending_verification"
+    assert response.json()["can_resubmit"] is False
+    assert response.json()["latest_admin_request"]["note"] == "Please provide the registered organisation name."
+    assert response.json()["submissions"][-1]["note"] == "The registered name is Updated Organisation."
+    conflict = client.post(f"/api/v1/orgs/{organization_id}/resubmit", json={
+        "name": "Second Update",
+        "industry": "Retail",
+        "official_email": "brand@example.com",
+        "website": "https://example.test",
+        "contact_person": "Updated Contact",
+    })
+    assert conflict.status_code == 409
+
+
+def test_verification_queue_separates_pending_from_awaiting_info(client, mailer):
+    owner_password = register_user(client, mailer, email="queue-owner@example.com")
+    client.post("/api/v1/auth/login", json={"email": "queue-owner@example.com", "password": owner_password})
+    created = client.post("/api/v1/orgs", json={
+        "name": "Queue Organisation",
+        "industry": "Retail",
+        "official_email": "brand@example.com",
+        "website": "https://example.test",
+        "contact_person": "Queue Owner",
+    })
+    assert created.status_code == 201, created.text
+    organization_id = created.json()["id"]
+
+    register_user(client, mailer, email="queue-admin@example.com", display_name="Platform Admin")
+    with next(app.dependency_overrides[get_db]()) as db:
+        admin = db.scalar(select(User).where(User.email_normalized == "queue-admin@example.com"))
+        db.add(PlatformAdmin(user_id=admin.id))
+        db.commit()
+    client.post("/api/v1/auth/login", json={"email": "queue-admin@example.com", "password": "Secure-password-123"})
+    requested = client.post(f"/api/v1/platform/verifications/{organization_id}/decision", json={
+        "decision": "more_information_required",
+        "note": "Please confirm the organisation website.",
+    })
+    assert requested.status_code == 200, requested.text
+    assert client.get("/api/v1/platform/verifications").json() == []
+    awaiting = client.get("/api/v1/platform/verifications", params={"status": "awaiting_info"})
+    assert awaiting.status_code == 200
+    assert [row["id"] for row in awaiting.json()] == [organization_id]
+    for decision in ("approved", "rejected"):
+        blocked = client.post(f"/api/v1/platform/verifications/{organization_id}/decision", json={"decision": decision, "note": "Not allowed while waiting on the creator."})
+        assert blocked.status_code == 409
+
+    client.post("/api/v1/auth/login", json={"email": "queue-owner@example.com", "password": owner_password})
+    resubmitted = client.post(f"/api/v1/orgs/{organization_id}/resubmit", json={
+        "name": "Queue Organisation",
+        "industry": "Retail",
+        "official_email": "brand@example.com",
+        "website": "https://brand.example.com",
+        "contact_person": "Queue Owner",
+        "note": "The website is now confirmed.",
+    })
+    assert resubmitted.status_code == 200, resubmitted.text
+    client.post("/api/v1/auth/login", json={"email": "queue-admin@example.com", "password": "Secure-password-123"})
+    pending = client.get("/api/v1/platform/verifications")
+    assert [row["id"] for row in pending.json()] == [organization_id]
+    assert pending.json()[0]["submissions"][-1]["note"] == "The website is now confirmed."
+    assert client.get("/api/v1/platform/verifications", params={"status": "awaiting_info"}).json() == []
+
+
+def test_optional_organization_document_validation_and_resubmission(client, mailer, monkeypatch):
+    stored = {}
+
+    class MemoryStorage:
+        def put(self, organization_id, object_key, file, content_type):
+            stored[(organization_id, object_key)] = (file.read(), content_type)
+            return object_key
+
+        def delete(self, organization_id, object_key):
+            stored.pop((organization_id, object_key), None)
+
+        def local_path(self, organization_id, object_key):
+            return None
+
+        def stream(self, organization_id, object_key):
+            return iter([stored[(organization_id, object_key)][0]]), stored[(organization_id, object_key)][1]
+
+    monkeypatch.setattr("app.orgs.router.get_storage", lambda: MemoryStorage())
+    monkeypatch.setattr("app.orgs.router.enforce_rate_limit", lambda *args, **kwargs: None)
+    owner_password = register_user(client, mailer, email="document-owner@example.com")
+    client.post("/api/v1/auth/login", json={"email": "document-owner@example.com", "password": owner_password})
+    fields = {
+        "name": "Document Organisation",
+        "industry": "Retail",
+        "official_email": "brand@example.com",
+        "website": "https://example.test",
+        "contact_person": "Document Owner",
+    }
+    pdf = pymupdf.open()
+    pdf.new_page()
+    first_document = pdf.tobytes()
+    pdf.close()
+    created = client.post("/api/v1/orgs", data=fields, files={"document": ("proof.pdf", first_document, "application/pdf")})
+    assert created.status_code == 201, created.text
+    organization_id = created.json()["id"]
+    first_submission = created.json()["submissions"][0]
+    assert first_submission["original_filename"] == "proof.pdf"
+    assert first_submission["content_type"] == "application/pdf"
+    assert first_submission["size_bytes"] > 0
+    assert len(stored) == 1
+
+    invalid = client.post("/api/v1/orgs", data={**fields, "name": "Invalid Upload"}, files={"document": ("proof.pdf", b"not a PDF", "application/pdf")})
+    assert invalid.status_code == 415
+    oversized = client.post("/api/v1/orgs", data={**fields, "name": "Oversized Upload"}, files={"document": ("large.pdf", b"%PDF-" + b"0" * (5 * 1024 * 1024), "application/pdf")})
+    assert oversized.status_code == 413
+    path_trick = client.post("/api/v1/orgs", data={**fields, "name": "Unsafe Filename"}, files={"document": ("../proof.pdf", first_document, "application/pdf")})
+    assert path_trick.status_code == 422
+    assert len(stored) == 1
+
+    register_user(client, mailer, email="document-admin@example.com", display_name="Platform Admin")
+    with next(app.dependency_overrides[get_db]()) as db:
+        admin = db.scalar(select(User).where(User.email_normalized == "document-admin@example.com"))
+        db.add(PlatformAdmin(user_id=admin.id))
+        db.commit()
+    client.post("/api/v1/auth/login", json={"email": "document-admin@example.com", "password": "Secure-password-123"})
+    requested = client.post(f"/api/v1/platform/verifications/{organization_id}/decision", json={"decision": "more_information_required", "note": "Please provide a current supporting document."})
+    assert requested.status_code == 200
+
+    client.post("/api/v1/auth/login", json={"email": "document-owner@example.com", "password": owner_password})
+    replacement_pdf = pymupdf.open()
+    replacement_pdf.new_page()
+    second_document = replacement_pdf.tobytes()
+    replacement_pdf.close()
+    resubmitted = client.post(f"/api/v1/orgs/{organization_id}/resubmit", data={**fields, "note": "Attached the current document."}, files={"document": ("current-proof.pdf", second_document, "application/pdf")})
+    assert resubmitted.status_code == 200, resubmitted.text
+    submissions = resubmitted.json()["submissions"]
+    assert [item["original_filename"] for item in submissions] == ["proof.pdf", "current-proof.pdf"]
+    assert len(stored) == 2
+
+    client.post("/api/v1/auth/login", json={"email": "document-admin@example.com", "password": "Secure-password-123"})
+    queue = client.get("/api/v1/platform/verifications")
+    assert queue.status_code == 200
+    visible_submissions = queue.json()[0]["submissions"]
+    assert [item["original_filename"] for item in visible_submissions] == ["proof.pdf", "current-proof.pdf"]
+    for submission in visible_submissions:
+        download = client.get(f"/api/v1/platform/verifications/{organization_id}/submissions/{submission['id']}/document")
+        assert download.status_code == 200
+        assert download.headers["content-type"] == "application/pdf"
+        assert download.headers["x-content-type-options"] == "nosniff"
+        assert "attachment" in download.headers["content-disposition"]
+
+    client.post("/api/v1/auth/login", json={"email": "document-owner@example.com", "password": owner_password})
+    owner_download = client.get(f"/api/v1/platform/verifications/{organization_id}/submissions/{visible_submissions[-1]['id']}/document")
+    assert owner_download.status_code == 200
+    register_user(client, mailer, email="document-outsider@example.com")
+    client.post("/api/v1/auth/login", json={"email": "document-outsider@example.com", "password": "Secure-password-123"})
+    assert client.get(f"/api/v1/platform/verifications/{organization_id}/submissions/{visible_submissions[-1]['id']}/document").status_code == 403
+    client.post("/api/v1/auth/logout")
+    assert client.get(f"/api/v1/platform/verifications/{organization_id}/submissions/{visible_submissions[-1]['id']}/document").status_code == 401

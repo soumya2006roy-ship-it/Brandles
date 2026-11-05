@@ -31,11 +31,28 @@ class OrganizationResponse(BaseModel):
     verification_status: str
     llm_processing_allowed: bool
     created_at: datetime
+    can_resubmit: bool = False
+    latest_admin_request: "VerificationHistoryItem | None" = None
+    submissions: list["OrganizationSubmissionResponse"] = Field(default_factory=list)
+
+
+class OrganizationSubmissionResponse(BaseModel):
+    id: str
+    note: str | None
+    submitted_by_name: str
+    created_at: datetime
+    original_filename: str | None = None
+    content_type: str | None = None
+    size_bytes: int = 0
 
 
 class VerificationDecisionRequest(StrictInput):
     decision: Literal["approved", "rejected", "more_information_required"]
     note: Annotated[str | None, Field(max_length=1200)] = None
+
+
+class OrganizationResubmit(OrganizationCreate):
+    note: Annotated[str | None, Field(default=None, max_length=1200)] = None
 
 
 class VerificationHistoryItem(BaseModel):

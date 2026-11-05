@@ -140,6 +140,22 @@ class VerificationDecision(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 
+class OrganizationSubmission(Base):
+    __tablename__ = "organization_submissions"
+    __table_args__ = (Index("ix_org_submissions_org_created", "organization_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    submitted_by_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    document_ref: Mapped[str | None] = mapped_column(String(500))
+    original_filename: Mapped[str | None] = mapped_column(String(240))
+    content_type: Mapped[str | None] = mapped_column(String(120))
+    sha256: Mapped[str | None] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
     __table_args__ = (Index("ix_audit_events_org_created", "organization_id", "created_at"),)

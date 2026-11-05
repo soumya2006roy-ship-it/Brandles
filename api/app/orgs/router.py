@@ -1,10 +1,19 @@
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
+from io import BytesIO
+from pathlib import PurePosixPath, PureWindowsPath
 import secrets
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import pymupdf
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from app.auth.dependencies import get_auth_context, get_current_user, require_org_role, require_platform_admin
 from app.auth.schemas import OrganizationSummary
@@ -12,12 +21,45 @@ from app.core.db import get_db
 from app.core.mail import EmailSender, get_email_sender
 from app.core.rate_limit import client_ip, enforce_rate_limit
 from app.core.security import as_utc, digest_secret
-from app.db.models import AuditEvent, Invite, Membership, Organization, User, VerificationDecision
+from app.db.models import AuditEvent, Invite, Membership, Organization, OrganizationSubmission, PlatformAdmin, User, VerificationDecision
+from app.assets.media import sniff_and_normalize
 from app.notifications.service import record_notification, send_user_email
-from app.orgs.schemas import AuditEventResponse, InviteCreate, InviteRedeem, InviteResponse, InviteSummary, OrganizationCreate, OrganizationResponse, VerificationDecisionRequest, VerificationHistoryItem
+from app.orgs.schemas import AuditEventResponse, InviteCreate, InviteRedeem, InviteResponse, InviteSummary, OrganizationCreate, OrganizationResponse, OrganizationResubmit, OrganizationSubmissionResponse, VerificationDecisionRequest, VerificationHistoryItem
+from app.sources.documents import identify_format
+from app.storage.factory import get_storage
+from app.storage.local import safe_filename
 
 router = APIRouter(tags=["organisations"])
 _AUDIT_PRIVATE_KEYS = {"question", "suggested_change", "comment", "note", "token", "secret", "code", "text", "excerpt", "content", "email", "document_text", "raw"}
+MAX_ORGANIZATION_DOCUMENT_BYTES = 5 * 1024 * 1024
+
+
+def organization_submission_openapi_extra(schema_name: str) -> dict:
+    properties = {
+        "name": {"type": "string"},
+        "industry": {"type": "string"},
+        "official_email": {"type": "string", "format": "email"},
+        "website": {"type": "string", "format": "uri"},
+        "contact_person": {"type": "string"},
+        "document": {"type": "string", "format": "binary"},
+    }
+    if schema_name == "OrganizationResubmit":
+        properties["note"] = {"type": "string", "maxLength": 1200}
+    json_schema = {
+        "type": "object",
+        "properties": {key: value for key, value in properties.items() if key != "document"},
+        "required": ["name", "industry", "official_email", "website", "contact_person"],
+        "additionalProperties": False,
+    }
+    return {"requestBody": {"required": True, "content": {
+        "application/json": {"schema": json_schema},
+        "multipart/form-data": {"schema": {
+            "type": "object",
+            "properties": properties,
+            "required": ["name", "industry", "official_email", "website", "contact_person"],
+            "additionalProperties": False,
+        }},
+    }}}
 
 
 def _safe_audit_details(value):
@@ -43,14 +85,141 @@ def get_member(organization_id: str, user_id: str, db: Session) -> Membership:
     return membership
 
 
+async def parse_organization_request(request: Request, schema):
+    content_type = request.headers.get("content-type", "").casefold()
+    document = None
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form(max_files=1, max_fields=10)
+        allowed_fields = set(schema.model_fields) | {"document"}
+        unexpected = set(form.keys()) - allowed_fields
+        if unexpected:
+            raise HTTPException(status_code=422, detail="The organisation form contains an unsupported field.")
+        uploads = form.getlist("document")
+        if len(uploads) > 1:
+            raise HTTPException(status_code=422, detail="Upload one organisation document at a time.")
+        if uploads and uploads[0].filename:
+            if not isinstance(uploads[0], StarletteUploadFile):
+                raise HTTPException(status_code=422, detail="The organisation document upload is invalid.")
+            document = uploads[0]
+        values = {key: form.get(key) for key in schema.model_fields}
+    elif content_type.startswith("application/json"):
+        values = await request.json()
+    else:
+        raise HTTPException(status_code=415, detail="Submit organisation details as JSON or a form with an optional document.")
+    try:
+        return schema.model_validate(values), document
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=jsonable_encoder(exc.errors(include_url=False))) from None
+
+
+async def store_organization_document(organization_id: str, document: StarletteUploadFile) -> dict:
+    filename = document.filename or ""
+    if (
+        not filename
+        or filename in {".", ".."}
+        or "/" in filename
+        or "\\" in filename
+        or PurePosixPath(filename).name != filename
+        or PureWindowsPath(filename).name != filename
+        or any(ord(char) < 32 or ord(char) == 127 for char in filename)
+    ):
+        raise HTTPException(status_code=422, detail="Use a plain file name without folder paths.")
+    original_filename = filename.strip()
+    extension = PurePosixPath(original_filename).suffix.casefold()
+    if extension not in {".pdf", ".png", ".jpg", ".jpeg"}:
+        raise HTTPException(status_code=415, detail="Upload a PDF, PNG, or JPG document.")
+    contents = await document.read(MAX_ORGANIZATION_DOCUMENT_BYTES + 1)
+    if not contents:
+        raise HTTPException(status_code=422, detail="The organisation document is empty.")
+    if len(contents) > MAX_ORGANIZATION_DOCUMENT_BYTES:
+        raise HTTPException(status_code=413, detail="Organisation documents must be 5 MB or smaller.")
+    file_type, content_type = identify_format(original_filename, contents)
+    expected = {".pdf": "pdf", ".png": "image_png", ".jpg": "image_jpeg", ".jpeg": "image_jpeg"}[extension]
+    if file_type != expected:
+        raise HTTPException(status_code=415, detail="The file contents do not match the selected file type.")
+    if file_type in {"image_png", "image_jpeg"}:
+        normalized = sniff_and_normalize(contents)
+        if normalized.content_type != content_type:
+            raise HTTPException(status_code=415, detail="The file contents do not match the selected image type.")
+        contents = normalized.normalized_bytes
+    else:
+        try:
+            pdf = pymupdf.open(stream=contents, filetype="pdf")
+            if pdf.is_encrypted:
+                raise HTTPException(status_code=422, detail="Password-protected PDFs cannot be submitted.")
+            pdf.close()
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail="The PDF document is invalid or unreadable.") from exc
+    if len(original_filename) > 240:
+        original_filename = original_filename[:240]
+    object_key = safe_filename(original_filename)
+    storage = get_storage()
+    storage.put(organization_id, object_key, BytesIO(contents), content_type)
+    return {
+        "document_ref": object_key,
+        "original_filename": original_filename,
+        "content_type": content_type,
+        "sha256": sha256(contents).hexdigest(),
+        "size_bytes": len(contents),
+    }
+
+
+def organization_response(org: Organization, db: Session, viewer: User | None = None) -> OrganizationResponse:
+    submissions = db.execute(
+        select(OrganizationSubmission, User.display_name)
+        .join(User, User.id == OrganizationSubmission.submitted_by_user_id)
+        .where(OrganizationSubmission.organization_id == org.id)
+        .order_by(OrganizationSubmission.created_at.asc(), OrganizationSubmission.id.asc())
+    ).all()
+    request_row = db.execute(
+        select(VerificationDecision, User.display_name)
+        .join(User, User.id == VerificationDecision.actor_user_id)
+        .where(
+            VerificationDecision.organization_id == org.id,
+            VerificationDecision.decision == "more_information_required",
+        )
+        .order_by(VerificationDecision.created_at.desc(), VerificationDecision.id.desc())
+        .limit(1)
+    ).first()
+    latest_request = None
+    if request_row:
+        decision, actor_name = request_row
+        latest_request = VerificationHistoryItem(
+            id=decision.id,
+            decision=decision.decision,
+            note=decision.note,
+            actor_name=actor_name,
+            created_at=decision.created_at,
+        )
+    return OrganizationResponse.model_validate(org).model_copy(update={
+        "can_resubmit": bool(viewer and org.created_by == viewer.id and org.verification_status == "more_information_required"),
+        "latest_admin_request": latest_request,
+        "submissions": [
+            OrganizationSubmissionResponse(
+                id=submission.id,
+                note=submission.note,
+                submitted_by_name=display_name,
+                created_at=submission.created_at,
+                original_filename=submission.original_filename,
+                content_type=submission.content_type,
+                size_bytes=submission.size_bytes,
+            )
+            for submission, display_name in submissions
+        ],
+    })
+
+
 @router.get("/orgs", response_model=list[OrganizationSummary])
 def list_organizations(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     rows = db.execute(select(Organization, Membership.role).join(Membership, Membership.organization_id == Organization.id).where(Membership.user_id == user.id, Organization.deleted_at.is_(None)).order_by(Organization.created_at.desc())).all()
     return [OrganizationSummary(id=org.id, name=org.name, industry=org.industry, verification_status=org.verification_status, role=role) for org, role in rows]
 
 
-@router.post("/orgs", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
-def create_organization(payload: OrganizationCreate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.post("/orgs", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED, openapi_extra=organization_submission_openapi_extra("OrganizationCreate"))
+async def create_organization(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    payload, document = await parse_organization_request(request, OrganizationCreate)
     host = client_ip(request)
     enforce_rate_limit(f"create-org:{user.id}:{host}", limit=3, window_seconds=3600)
     org = Organization(
@@ -65,10 +234,18 @@ def create_organization(payload: OrganizationCreate, request: Request, user: Use
     db.add(org)
     db.flush()
     db.add(Membership(organization_id=org.id, user_id=user.id, role="admin"))
+    stored_document = await store_organization_document(org.id, document) if document else {}
+    db.add(OrganizationSubmission(organization_id=org.id, submitted_by_user_id=user.id, **stored_document))
     db.add(AuditEvent(organization_id=org.id, actor_user_id=user.id, action="organization.submitted_for_verification", entity_type="organization", entity_id=org.id, details={"status": "pending_verification"}))
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        if stored_document:
+            get_storage().delete(org.id, stored_document["document_ref"])
+        raise
     db.refresh(org)
-    return org
+    return organization_response(org, db, user)
 
 
 @router.get("/orgs/{organization_id}", response_model=OrganizationResponse)
@@ -77,7 +254,38 @@ def get_organization(organization_id: str, context=Depends(get_auth_context), db
     org = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)))
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found.")
-    return org
+    return organization_response(org, db, context.user)
+
+
+@router.post("/orgs/{organization_id}/resubmit", response_model=OrganizationResponse, openapi_extra=organization_submission_openapi_extra("OrganizationResubmit"))
+async def resubmit_organization(organization_id: str, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    payload, document = await parse_organization_request(request, OrganizationResubmit)
+    enforce_rate_limit(f"resubmit-org:{organization_id}:{user.id}:{client_ip(request)}", limit=5, window_seconds=3600)
+    org = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)).with_for_update())
+    if not org:
+        raise HTTPException(status_code=404, detail="Organisation not found.")
+    if org.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Only the organisation creator can resubmit it.")
+    if org.verification_status != "more_information_required":
+        raise HTTPException(status_code=409, detail="This organisation is not waiting for more information.")
+    org.name = payload.name
+    org.industry = payload.industry
+    org.official_email = str(payload.official_email).strip().lower()
+    org.website = str(payload.website)
+    org.contact_person = payload.contact_person
+    org.verification_status = "pending_verification"
+    stored_document = await store_organization_document(org.id, document) if document else {}
+    db.add(OrganizationSubmission(organization_id=org.id, submitted_by_user_id=user.id, note=payload.note.strip() if payload.note and payload.note.strip() else None, **stored_document))
+    db.add(AuditEvent(organization_id=org.id, actor_user_id=user.id, action="organization.resubmitted_for_verification", entity_type="organization", entity_id=org.id, details={"status": "pending_verification", "note_present": bool(payload.note and payload.note.strip())}))
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        if stored_document:
+            get_storage().delete(org.id, stored_document["document_ref"])
+        raise
+    db.refresh(org)
+    return organization_response(org, db, user)
 
 
 @router.get("/orgs/{organization_id}/audit-events", response_model=list[AuditEventResponse])
