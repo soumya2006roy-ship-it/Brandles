@@ -15,11 +15,13 @@ def test_postgres_migrations_and_append_only_audit_trigger():
     try:
         with engine.begin() as connection:
             revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0012_question_gated_password_reset"
+            assert revision == "0014_organization_submission_documents"
             version_length = connection.scalar(text("SELECT character_maximum_length FROM information_schema.columns WHERE table_name = 'alembic_version' AND column_name = 'version_num'"))
             assert version_length == 128
             user_columns = {row[0] for row in connection.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"))}
             assert {"recovery_question", "recovery_answer_hash"} <= user_columns
+            submission_columns = {row[0] for row in connection.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'organization_submissions'"))}
+            assert {"organization_id", "submitted_by_user_id", "note", "document_ref", "original_filename", "content_type", "sha256", "size_bytes"} <= submission_columns
             triggers = connection.execute(text("SELECT tgname FROM pg_trigger WHERE tgrelid = 'audit_events'::regclass AND NOT tgisinternal")).scalars().all()
             assert "audit_events_append_only" in triggers
             assert connection.scalar(text("SELECT 1")) == 1

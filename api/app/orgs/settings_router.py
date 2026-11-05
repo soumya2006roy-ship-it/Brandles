@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import require_org_role
 from app.core.config import get_settings
 from app.core.db import get_db
-from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, GuidelineUpdateSuggestion, Invite, Membership, Notification, Organization, Review, Rule, Scan, SourcePassage, VerificationDecision
+from app.db.models import Asset, AuditEvent, BrandGuidelineSource, Campaign, ExtractedFact, Finding, GuidelineUpdateSuggestion, Invite, Membership, Notification, Organization, OrganizationSubmission, Review, Rule, Scan, SourcePassage, VerificationDecision
 from app.core.rate_limit import client_ip, enforce_rate_limit
 from app.storage.factory import get_storage
 
@@ -97,7 +97,7 @@ def export_organization_data(organization_id: str, request: Request, membership:
     organization = db.scalar(select(Organization).where(Organization.id == organization_id, Organization.deleted_at.is_(None)))
     if not organization:
         raise HTTPException(status_code=404, detail="Organisation not found.")
-    models = [Membership, Invite, BrandGuidelineSource, SourcePassage, Rule, Campaign, Asset, ExtractedFact, Scan, Finding, Review, GuidelineUpdateSuggestion, Notification, VerificationDecision, AuditEvent]
+    models = [Membership, Invite, BrandGuidelineSource, SourcePassage, Rule, Campaign, Asset, ExtractedFact, Scan, Finding, Review, GuidelineUpdateSuggestion, Notification, OrganizationSubmission, VerificationDecision, AuditEvent]
     export = {"organization": jsonable_encoder(organization), "exported_at": datetime.now(UTC).isoformat(), "records": {}}
     total_bytes = 0
     for model in models:
@@ -106,7 +106,7 @@ def export_organization_data(organization_id: str, request: Request, membership:
         if model is Invite:
             for item in export["records"][model.__tablename__]:
                 item.pop("code_hash", None)
-        if model in {Asset, BrandGuidelineSource}:
+        if model in {Asset, BrandGuidelineSource, OrganizationSubmission}:
             for index, row in enumerate(rows):
                 object_key = row.file_ref if model is Asset else row.document_ref
                 if not object_key:
@@ -139,16 +139,20 @@ def delete_organization_data(organization_id: str, payload: DeletionRequest, req
     storage = get_storage()
     assets = db.scalars(select(Asset).where(Asset.organization_id == organization_id)).all()
     sources = db.scalars(select(BrandGuidelineSource).where(BrandGuidelineSource.organization_id == organization_id)).all()
+    submissions = db.scalars(select(OrganizationSubmission).where(OrganizationSubmission.organization_id == organization_id)).all()
     for asset in assets:
         if asset.file_ref:
             storage.delete(organization_id, asset.file_ref)
     for source in sources:
         if source.document_ref:
             storage.delete(organization_id, source.document_ref)
+    for submission in submissions:
+        if submission.document_ref:
+            storage.delete(organization_id, submission.document_ref)
     for asset in assets:
         asset.supersedes_asset_id = None
     db.flush()
-    for model in (Review, Finding, ExtractedFact, Scan, Asset, Rule, SourcePassage, BrandGuidelineSource, GuidelineUpdateSuggestion, Notification, Invite, VerificationDecision, Campaign, Membership):
+    for model in (Review, Finding, ExtractedFact, Scan, Asset, Rule, SourcePassage, BrandGuidelineSource, GuidelineUpdateSuggestion, Notification, Invite, OrganizationSubmission, VerificationDecision, Campaign, Membership):
         db.execute(delete(model).where(model.organization_id == organization_id))
     organization.deleted_at = datetime.now(UTC)
     organization.llm_processing_allowed = False
